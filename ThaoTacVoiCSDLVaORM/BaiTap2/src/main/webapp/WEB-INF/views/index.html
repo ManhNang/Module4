@@ -1,0 +1,458 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NASA - Image of the Day & Feedback</title>
+    <style>
+      :root {
+        --primary: #4361ee;
+        --primary-hover: #3a56d4;
+        --secondary: #eef2ff;
+        --dark: #1e293b;
+        --gray: #64748b;
+        --light-gray: #f8fafc;
+        --border: #e2e8f0;
+        --success: #10b981;
+        --heart: #ef4444;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: #f1f5f9;
+        color: var(--dark);
+        line-height: 1.6;
+        padding: 24px 16px;
+      }
+
+      .container {
+        max-width: 860px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 24px;
+      }
+
+      .header h1 {
+        font-size: 1.85rem;
+        color: #0f172a;
+        font-weight: 700;
+      }
+
+      .header p {
+        color: var(--gray);
+        font-size: 0.95rem;
+      }
+
+      .card {
+        background: #ffffff;
+        border-radius: 14px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+        padding: 24px;
+        margin-bottom: 24px;
+        border: 1px solid var(--border);
+      }
+
+      .image-wrapper {
+        position: relative;
+        width: 100%;
+        min-height: 380px;
+        background: #090d16;
+        border-radius: 10px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+      }
+
+      #img-of-the-day {
+        max-width: 100%;
+        max-height: 520px;
+        display: block;
+        margin: 0 auto;
+        border-radius: 8px;
+        transition: opacity 0.3s ease;
+      }
+
+      .image-caption {
+        font-size: 0.95rem;
+        color: var(--gray);
+        text-align: center;
+        font-style: italic;
+      }
+
+      .alert-success {
+        background-color: #d1fae5;
+        color: #065f46;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 18px;
+        border: 1px solid #a7f3d0;
+        font-weight: 500;
+      }
+
+      .form-group {
+        margin-bottom: 18px;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+      }
+
+      .rating-options {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .rating-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 20px;
+        background: var(--light-gray);
+        border: 1px solid var(--border);
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+
+      .rating-label:hover {
+        border-color: var(--primary);
+        background: var(--secondary);
+      }
+
+      .rating-label input[type="radio"] {
+        accent-color: var(--primary);
+        cursor: pointer;
+      }
+
+      input[type="text"],
+      textarea {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.2s;
+        font-family: inherit;
+      }
+
+      input[type="text"]:focus,
+      textarea:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+      }
+
+      .btn-submit {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 10px 22px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 600;
+        transition: background-color 0.2s;
+      }
+
+      .btn-submit:hover {
+        background-color: var(--primary-hover);
+      }
+
+      .comments-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid var(--light-gray);
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+      }
+
+      .badge-today {
+        background: var(--secondary);
+        color: var(--primary);
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .comment-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .comment-item {
+        padding: 16px;
+        border-radius: 10px;
+        background: var(--light-gray);
+        border: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .comment-content {
+        flex: 1;
+      }
+
+      .comment-author {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 4px;
+      }
+
+      .rating-badge {
+        background: #fef3c7;
+        color: #b45309;
+        font-size: 0.8rem;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+      }
+
+      .comment-text {
+        color: #334155;
+        font-size: 0.95rem;
+        margin-top: 4px;
+        white-space: pre-line;
+      }
+
+      .like-action {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-like {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        background: white;
+        color: var(--dark);
+        border: 1px solid var(--border);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .btn-like:hover {
+        color: var(--heart);
+        border-color: #fca5a5;
+        background: #fff1f2;
+      }
+
+      .btn-like .heart-icon {
+        color: var(--heart);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 30px;
+        color: var(--gray);
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Bức ảnh của ngày (NASA APOD)</h1>
+        <p>Bức ảnh thiên văn học được chọn lọc và công bố hôm nay bởi NASA</p>
+      </div>
+
+      <!-- KHUNG HIỂN THỊ ẢNH NASA -->
+      <div class="card">
+        <div class="image-wrapper">
+          <img id="img-of-the-day" alt="NASA Image of the Day" />
+        </div>
+        <div id="image-title" class="image-caption">
+          Đang tải ảnh thiên văn từ NASA...
+        </div>
+      </div>
+
+      <!-- FORM ĐÁNH GIÁ & NHẬN XÉT -->
+      <div class="card">
+        <h2 style="font-size: 1.25rem; margin-bottom: 16px">
+          Đánh giá & Để lại nhận xét
+        </h2>
+
+        <div
+          th:if="${message}"
+          class="alert-success"
+          th:text="${message}"
+        ></div>
+
+        <form
+          th:action="@{/feedback/save}"
+          th:object="${newFeedback}"
+          method="post"
+        >
+          <div class="form-group">
+            <label>Đánh giá (Thang điểm 1 - 5):</label>
+            <div class="rating-options">
+              <label class="rating-label"
+                ><input type="radio" th:field="*{mark}" value="1" required /> 1
+                ★</label
+              >
+              <label class="rating-label"
+                ><input type="radio" th:field="*{mark}" value="2" /> 2 ★★</label
+              >
+              <label class="rating-label"
+                ><input type="radio" th:field="*{mark}" value="3" /> 3
+                ★★★</label
+              >
+              <label class="rating-label"
+                ><input type="radio" th:field="*{mark}" value="4" checked /> 4
+                ★★★★</label
+              >
+              <label class="rating-label"
+                ><input type="radio" th:field="*{mark}" value="5" /> 5
+                ★★★★★</label
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="author">Tác giả / Người đánh giá:</label>
+            <input
+              type="text"
+              id="author"
+              th:field="*{author}"
+              placeholder="Nhập tên của bạn"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="feedback">Lời nhận xét:</label>
+            <textarea
+              id="feedback"
+              th:field="*{feedback}"
+              rows="3"
+              placeholder="Chia sẻ cảm nghĩ về bức ảnh hôm nay..."
+              required
+            ></textarea>
+          </div>
+
+          <button type="submit" class="btn-submit">Gửi nhận xét</button>
+        </form>
+      </div>
+
+      <!-- DANH SÁCH COMMENT TRONG NGÀY -->
+      <div class="card">
+        <div class="comments-header">
+          <h2 style="font-size: 1.25rem">Nhận xét hôm nay</h2>
+          <span
+            class="badge-today"
+            th:text="'Ngày: ' + ${#temporals.format(#temporals.createToday(), 'dd/MM/yyyy')}"
+          ></span>
+        </div>
+
+        <div th:if="${#lists.isEmpty(feedbacks)}" class="empty-state">
+          Chưa có phản hồi nào trong ngày hôm nay. Hãy là người đầu tiên để lại
+          nhận xét!
+        </div>
+
+        <ul th:if="${!#lists.isEmpty(feedbacks)}" class="comment-list">
+          <li th:each="item : ${feedbacks}" class="comment-item">
+            <div class="comment-content">
+              <div class="comment-author">
+                <span th:text="${item.author}">Nguyễn Văn A</span>
+                <span class="rating-badge" th:text="'+' + ${item.mark} + ' ★'"
+                  >+5 ★</span
+                >
+              </div>
+              <div class="comment-text" th:text="${item.feedback}">
+                Bức ảnh thật kỳ vĩ!
+              </div>
+            </div>
+            <div class="like-action">
+              <!-- Nút Like gửi request tăng lượt thích -->
+              <a
+                th:href="@{/feedback/like/{id}(id=${item.id})}"
+                class="btn-like"
+              >
+                <span class="heart-icon">❤️</span>
+                <span th:text="${item.likes} + ' Like'">0 Like</span>
+              </a>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- ĐOẠN SCRIPT LẤY BỨC ẢNH CỦA NGÀY TỪ NASA (ĐÚNG YÊU CẦU ĐỀ BÀI)            -->
+    <!-- CHỖ ĐẶT API KEY: Thay 'DEMO_KEY' ở biến query bên dưới bằng API key của bạn -->
+    <!-- ========================================================================= -->
+    <script>
+      // ==========================================================================
+      // >>>>> CHỖ ĐẶT API KEY NASA TẠI ĐÂY (Thay DEMO_KEY bằng Key cá nhân) <<<<<
+      // Đăng ký key miễn phí tại: https://api.nasa.gov/
+      // ==========================================================================
+      let apiKey = "m2AEcIrIEhu1ozz3gV1nMcf3yHYBHbHSYMoJX0Yr"; // <<< ĐẶT API KEY CỦA BẠN VÀO ĐÂY (Ví dụ: 'DEMO_KEY' hoặc key 40 ký tự)
+
+      let query = "https://api.nasa.gov/planetary/apod?api_key=" + apiKey;
+      let request = new XMLHttpRequest();
+      request.open("GET", query);
+      request.onload = function () {
+        if (request.status === 200) {
+          let response = JSON.parse(request.responseText);
+          let imgElement = document.getElementById("img-of-the-day");
+          imgElement.setAttribute("src", response.url);
+
+          let titleElement = document.getElementById("image-title");
+          if (titleElement && response.title) {
+            titleElement.innerText =
+              response.title +
+              (response.date ? " (" + response.date + ")" : "");
+          }
+        } else {
+          console.error("Không thể lấy ảnh NASA:", request.statusText);
+          let titleElement = document.getElementById("image-title");
+          if (titleElement) {
+            titleElement.innerText =
+              "Không thể tải ảnh từ NASA APOD. Vui lòng kiểm tra API Key hoặc kết nối mạng.";
+          }
+        }
+      };
+      request.onerror = function () {
+        let titleElement = document.getElementById("image-title");
+        if (titleElement) {
+          titleElement.innerText = "Lỗi kết nối tới máy chủ NASA API.";
+        }
+      };
+      request.send();
+    </script>
+  </body>
+</html>

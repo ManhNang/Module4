@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <!-- Database connection settings -->
+        <property name="connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+        <property name="connection.url">jdbc:mysql://localhost:3306/img_of_the_day?createDatabaseIfNotExist=true&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true&amp;characterEncoding=UTF-8</property>
+        <property name="connection.username">root</property>
+        <property name="connection.password">123456</property>
+
+        <!-- JDBC connection pool (use Hibernate built-in pool for simple webapp) -->
+        <property name="connection.pool_size">5</property>
+
+        <!-- SQL dialect for Hibernate 6.x -->
+        <property name="dialect">org.hibernate.dialect.MySQLDialect</property>
+
+        <!-- Echo all executed SQL to stdout -->
+        <property name="show_sql">true</property>
+        <property name="format_sql">true</property>
+
+        <!-- Update database schema on startup -->
+        <property name="hbm2ddl.auto">update</property>
+
+        <!-- Mapping entity classes -->
+        <mapping class="com.codegym.image.model.Feedback"/>
+    </session-factory>
+</hibernate-configuration>
