@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác Nhận Xóa Bài Viết</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #2c3e50;
+        }
+        .confirm-card {
+            border: none;
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3 shadow-sm mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" th:href="@{/blogs}">
+            <i class="bi bi-journal-richtext text-primary fs-4"></i>
+            <span>DevLog Personal</span>
+        </a>
+    </div>
+</nav>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
+            <div class="card confirm-card p-4 p-md-5 text-center">
+                <div class="mb-3 text-danger">
+                    <i class="bi bi-exclamation-triangle-fill display-3"></i>
+                </div>
+
+                <h3 class="fw-bold mb-2">Bạn có chắc chắn muốn xóa?</h3>
+                <p class="text-muted mb-4">Hành động này không thể hoàn tác. Bài viết sau sẽ bị xóa vĩnh viễn khỏi hệ thống:</p>
+
+                <div class="bg-light p-3 rounded-3 text-start mb-4 border">
+                    <p class="mb-1 fw-bold text-dark">
+                        <i class="bi bi-file-earmark-text me-1 text-primary"></i>
+                        <span th:text="${blog.title}">Tiêu đề bài viết</span>
+                    </p>
+                    <p class="mb-1 text-muted small">
+                        <strong>Tác giả:</strong> <span th:text="${blog.author != null ? blog.author : 'Ẩn danh'}"></span>
+                    </p>
+                    <p class="mb-0 text-muted small" th:if="${blog.summary != null and !#strings.isEmpty(blog.summary)}">
+                        <strong>Tóm tắt:</strong> <span th:text="${blog.summary}"></span>
+                    </p>
+                </div>
+
+                <form th:action="@{/blogs/{id}/delete(id=${blog.id})}" method="post" class="d-flex justify-content-center gap-3">
+                    <a th:href="@{/blogs}" class="btn btn-light rounded-pill px-4">
+                        <i class="bi bi-x-circle me-1"></i> Hủy bỏ
+                    </a>
+                    <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold shadow-sm">
+                        <i class="bi bi-trash3-fill me-1"></i> Xác nhận xóa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

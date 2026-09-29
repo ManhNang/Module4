@@ -1,0 +1,43 @@
+plugins {
+    id 'java'
+    id 'war'
+}
+
+group = 'com.codegym'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Jakarta Servlet API for Tomcat 10.1+
+    providedCompile 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+
+    // Spring Framework 6 (Tomcat 10.1+ / Jakarta EE 10 compatible)
+    implementation 'org.springframework:spring-webmvc:6.1.14'
+    implementation 'org.springframework:spring-orm:6.1.14'
+
+    // Hibernate ORM 6 (Jakarta Persistence)
+    implementation 'org.hibernate.orm:hibernate-core:6.4.4.Final'
+
+    // MySQL Connector
+    implementation 'com.mysql:mysql-connector-j:8.3.0'
+
+    // Thymeleaf Spring 6
+    implementation 'org.thymeleaf:thymeleaf-spring6:3.1.2.RELEASE'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+war {
+    archiveFileName = "${project.name}.war"
+}

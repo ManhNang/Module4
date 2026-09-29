@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+    id 'war'
+}
+
+group = 'com.codegym'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+
+    implementation 'org.springframework:spring-webmvc:6.1.14'
+    implementation 'org.springframework.data:spring-data-jpa:3.3.5'
+    implementation 'org.hibernate.orm:hibernate-core:6.6.1.Final'
+    implementation 'com.mysql:mysql-connector-j:8.4.0'
+    implementation 'org.thymeleaf:thymeleaf-spring6:3.1.2.RELEASE'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+war {
+    archiveFileName = "${project.name}.war"
+}
