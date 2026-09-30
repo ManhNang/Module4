@@ -1,0 +1,67 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Danh sách Khách hàng</title>
+  </head>
+  <body>
+    <div th:replace="~{layout :: body}"></div>
+    <h2>Danh sách Khách hàng</h2>
+    <p><a th:href="@{/customers/create}">Thêm mới Khách hàng</a></p>
+
+    <form th:action="@{/customers}" method="get" style="margin-bottom: 15px;">
+      <input type="text" name="search" th:value="${search}" placeholder="Nhập tên khách hàng..." />
+      <button type="submit">Tìm kiếm</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Họ</th>
+          <th>Tên</th>
+          <th>Tỉnh thành</th>
+          <th>Sửa</th>
+          <th>Xóa</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="c : ${customers.content}">
+          <td th:text="${c.id}"></td>
+          <td th:text="${c.firstName}"></td>
+          <td th:text="${c.lastName}"></td>
+          <td
+            th:text="${c.province != null ? c.province.name : 'Chưa phân loại'}"
+          ></td>
+          <td><a th:href="@{/customers/update/{id}(id=${c.id})}">Sửa</a></td>
+          <td>
+            <a
+              th:href="@{/customers/delete/{id}(id=${c.id})}"
+              onclick="return confirm('Xóa khách hàng này?');"
+              >Xóa</a
+            >
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(customers.content)}">
+          <td colspan="6" style="text-align: center;">Không tìm thấy khách hàng nào</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top: 15px;">
+      <a
+        th:href="@{/customers(page=${customers.number - 1}, search=${search})}"
+        th:if="${customers.hasPrevious()}"
+        >Trang trước</a
+      >
+      <span th:text="${customers.number + 1}"></span>/<span
+        th:text="${customers.totalPages == 0 ? 1 : customers.totalPages}"
+      ></span>
+      <a
+        th:href="@{/customers(page=${customers.number + 1}, search=${search})}"
+        th:if="${customers.hasNext()}"
+        >Trang sau</a
+      >
+    </div>
+  </body>
+</html>

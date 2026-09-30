@@ -1,0 +1,43 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Danh sách Tỉnh thành</title>
+  </head>
+  <body>
+    <div th:replace="~{layout :: body}"></div>
+    <h2>Danh sách Tỉnh thành</h2>
+    <p><a th:href="@{/provinces/create}">Thêm mới Tỉnh thành</a></p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Tên Tỉnh</th>
+          <th>Sửa</th>
+          <th>Xóa</th>
+          <th>Chi tiết</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="p : ${provinces}">
+          <td th:text="${p.id}"></td>
+          <td th:text="${p.name}"></td>
+          <td><a th:href="@{/provinces/update/{id}(id=${p.id})}">Sửa</a></td>
+          <td>
+            <a
+              th:href="@{/provinces/delete/{id}(id=${p.id})}"
+              onclick="return confirm('Bạn có chắc chắn muốn xóa?');"
+              >Xóa</a
+            >
+          </td>
+          <td>
+            <a th:href="@{/provinces/view/{id}(id=${p.id})}"
+              >Xem danh sách KH</a
+            >
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cập nhật Khách hàng</title>
+  </head>
+  <body>
+    <div th:replace="~{layout :: body}"></div>
+    <h2>Cập nhật Khách hàng</h2>
+    <p class="message" th:if="${message}" th:text="${message}"></p>
+    <form
+      th:action="@{/customers/update}"
+      th:object="${customer}"
+      method="post"
+    >
+      <input type="hidden" th:field="*{id}" />
+      <div>
+        <label>Họ (First Name):</label>
+        <input type="text" th:field="*{firstName}" required />
+      </div>
+      <br />
+      <div>
+        <label>Tên (Last Name):</label>
+        <input type="text" th:field="*{lastName}" required />
+      </div>
+      <br />
+      <div>
+        <label>Tỉnh thành:</label>
+        <select th:field="*{province}">
+          <option
+            th:each="p : ${provinces}"
+            th:value="${p.id}"
+            th:text="${p.name}"
+            th:selected="${customer.province != null and p.id == customer.province.id}"
+          ></option>
+        </select>
+      </div>
+      <br />
+      <button type="submit">Cập nhật</button>
+      <a th:href="@{/customers}">Quay lại</a>
+    </form>
+  </body>
+</html>
