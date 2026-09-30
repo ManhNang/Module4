@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Danh Mục: ' + ${category.name} + ' - DevLog Personal'">Danh Sách Bài Viết Theo Danh Mục</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #2c3e50;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .blog-card {
+            border: none;
+            border-radius: 12px;
+            transition: all 0.25s ease-in-out;
+            background: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .blog-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.1);
+        }
+        .card-title a {
+            color: #1e293b;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .card-title a:hover {
+            color: #0d6efd;
+        }
+        .blog-meta {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        .badge-category {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .summary-text {
+            color: #475569;
+            line-height: 1.6;
+        }
+        .page-link {
+            border-radius: 8px;
+            margin: 0 3px;
+            color: #475569;
+        }
+        .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3 shadow-sm mb-4">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/blogs}">
+            <i class="bi bi-journal-richtext text-primary fs-4"></i>
+            <span>DevLog Personal</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/blogs}">
+                        <i class="bi bi-grid me-1"></i> Tất cả bài viết
+                    </a>
+                </li>
+                <!-- Dropdown Menu Danh Mục -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-tags me-1"></i> Danh mục
+                    </a>
+                    <ul class="dropdown-menu shadow-sm">
+                        <li><h6 class="dropdown-header text-uppercase small">Danh sách chủ đề</h6></li>
+                        <li th:each="cat : ${categories}">
+                            <a class="dropdown-item"
+                               th:classappend="${cat.id == category.id} ? 'active' : ''"
+                               th:href="@{/categories/{id}/blogs(id=${cat.id})}">
+                                <i class="bi bi-tag me-1 text-primary"></i>
+                                <span th:text="${cat.name}">Tên danh mục</span>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-primary fw-medium" th:href="@{/categories}">
+                                <i class="bi bi-gear-fill me-1"></i> Quản lý danh mục
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+
+            <div class="d-flex align-items-center gap-2">
+                <a th:href="@{/categories}" class="btn btn-outline-light btn-sm rounded-pill px-3">
+                    <i class="bi bi-folder2-open me-1"></i> Quản lý danh mục
+                </a>
+                <a th:href="@{/blogs/create}" class="btn btn-primary d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill shadow-sm">
+                    <i class="bi bi-pencil-square"></i>
+                    <span>Viết bài mới</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="container py-3">
+
+    <!-- Flash message -->
+    <div th:if="${message}" class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+        <span th:text="${message}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- Category Header Banner -->
+    <div class="p-4 p-md-5 mb-4 rounded-4 bg-white border shadow-sm">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2 fw-medium">Danh mục bài viết</span>
+                    <a th:href="@{/categories/{id}/edit(id=${category.id})}" class="text-muted small text-decoration-none" title="Chỉnh sửa danh mục">
+                        <i class="bi bi-pencil"></i> Sửa tên
+                    </a>
+                </div>
+                <h1 class="display-6 fw-bold mb-2 text-dark">
+                    <i class="bi bi-folder-fill text-warning me-2"></i>
+                    <span th:text="${category.name}">Tên danh mục</span>
+                </h1>
+                <p class="text-muted mb-0">
+                    Tất cả các bài viết thuộc chủ đề <strong class="text-dark" th:text="${category.name}"></strong>.
+                    Tổng cộng: <strong class="text-primary" th:text="${blogsPage.totalElements}">0</strong> bài viết.
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <a th:href="@{/blogs/create}" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm">
+                    <i class="bi bi-plus-lg me-1"></i> Viết bài mới
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Sort Filter Toolbar -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <form th:action="@{/categories/{id}/blogs(id=${category.id})}" method="get" class="row g-2 align-items-center">
+                <!-- Search Input -->
+                <div class="col-md-6 col-lg-7">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="search" class="form-control bg-light border-start-0"
+                               placeholder="Tìm kiếm bài viết theo tiêu đề..."
+                               th:value="${search}">
+                        <button th:if="${search != null and !#strings.isEmpty(search)}"
+                                type="button" class="btn btn-light border"
+                                th:onclick="'window.location.href=\'' + @{/categories/{id}/blogs(id=${category.id})} + '\''">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sort Selector -->
+                <div class="col-md-4 col-lg-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-sort-down"></i></span>
+                        <select name="sort" class="form-select bg-light" onchange="this.form.submit()">
+                            <option value="createdAt,desc" th:selected="${sort == 'createdAt,desc'}">Mới nhất trước</option>
+                            <option value="createdAt,asc" th:selected="${sort == 'createdAt,asc'}">Cũ nhất trước</option>
+                            <option value="title,asc" th:selected="${sort == 'title,asc'}">Tiêu đề (A - Z)</option>
+                            <option value="title,desc" th:selected="${sort == 'title,desc'}">Tiêu đề (Z - A)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="col-md-2 col-lg-2">
+                    <button type="submit" class="btn btn-secondary w-100 rounded-3">
+                        <i class="bi bi-filter me-1"></i> Lọc
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Empty state -->
+    <div th:if="${#lists.isEmpty(blogs)}" class="text-center py-5 my-4 bg-white rounded-4 shadow-sm p-4">
+        <i class="bi bi-journal-x display-1 text-muted mb-3 d-block"></i>
+        <h4 class="fw-bold text-secondary">Không có bài viết nào!</h4>
+        <p class="text-muted mb-4" th:if="${search != null and !#strings.isEmpty(search)}">
+            Không tìm thấy bài viết nào phù hợp với từ khóa "<strong th:text="${search}"></strong>" trong danh mục này.
+        </p>
+        <p class="text-muted mb-4" th:unless="${search != null and !#strings.isEmpty(search)}">
+            Chưa có bài viết nào được gắn vào danh mục này.
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+            <a th:if="${search != null and !#strings.isEmpty(search)}" th:href="@{/categories/{id}/blogs(id=${category.id})}" class="btn btn-outline-secondary rounded-pill px-4">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Xem tất cả trong danh mục
+            </a>
+            <a th:href="@{/blogs/create}" class="btn btn-primary px-4 rounded-pill">
+                <i class="bi bi-plus-lg me-1"></i> Viết bài mới ngay
+            </a>
+        </div>
+    </div>
+
+    <!-- Blog Grid -->
+    <div class="row g-4 mb-4" th:unless="${#lists.isEmpty(blogs)}">
+        <div class="col-md-6 col-lg-4" th:each="blog : ${blogs}">
+            <div class="card h-100 blog-card">
+                <div class="card-body d-flex flex-column p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge badge-category px-2 py-1 rounded-2">
+                            <i class="bi bi-tag-fill me-1"></i>
+                            <span th:text="${category.name}">Chủ đề</span>
+                        </span>
+                        <div class="blog-meta">
+                            <i class="bi bi-calendar3 me-1"></i>
+                            <span th:text="${blog.createdAt != null ? #temporals.format(blog.createdAt, 'dd/MM/yyyy HH:mm') : 'N/A'}">01/01/2026</span>
+                        </div>
+                    </div>
+
+                    <h5 class="card-title fw-bold my-2">
+                        <a th:href="@{/blogs/{id}/view(id=${blog.id})}" th:text="${blog.title}">Tiêu đề bài viết</a>
+                    </h5>
+
+                    <!-- Tóm tắt bài viết -->
+                    <p class="card-text summary-text flex-grow-1 mb-3" th:text="${blog.summary != null and !#strings.isEmpty(blog.summary) ? blog.summary : 'Chưa có tóm tắt...'}">
+                        Tóm tắt nội dung bài blog ngắn gọn xúc tích...
+                    </p>
+
+                    <div class="pt-3 border-top mt-auto d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">
+                            <i class="bi bi-person-circle me-1"></i>
+                            <strong th:text="${blog.author != null ? blog.author : 'Ẩn danh'}">Tác giả</strong>
+                        </span>
+                        <div class="btn-group btn-group-sm">
+                            <a th:href="@{/blogs/{id}/view(id=${blog.id})}" class="btn btn-outline-primary" title="Xem chi tiết">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a th:href="@{/blogs/{id}/edit(id=${blog.id})}" class="btn btn-outline-secondary" title="Sửa">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a th:href="@{/blogs/{id}/delete(id=${blog.id})}" class="btn btn-outline-danger" title="Xóa">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phân trang (Pageable Pagination) -->
+    <nav th:if="${blogsPage != null and blogsPage.totalPages > 1}" aria-label="Page navigation" class="mt-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+            <div class="text-muted small">
+                Hiển thị trang <strong th:text="${blogsPage.number + 1}">1</strong> / <span th:text="${blogsPage.totalPages}">1</span>
+                (Tổng số <span th:text="${blogsPage.totalElements}">0</span> bài viết)
+            </div>
+
+            <ul class="pagination mb-0">
+                <!-- Nút trang trước -->
+                <li class="page-item" th:classappend="${blogsPage.first} ? 'disabled' : ''">
+                    <a class="page-link"
+                       th:href="@{/categories/{id}/blogs(id=${category.id}, page=${blogsPage.number - 1}, search=${search}, sort=${sort})}">
+                        <i class="bi bi-chevron-left"></i> Trước
+                    </a>
+                </li>
+
+                <!-- Danh sách các trang -->
+                <li class="page-item" th:each="i : ${#numbers.sequence(0, blogsPage.totalPages - 1)}"
+                    th:classappend="${i == blogsPage.number} ? 'active' : ''">
+                    <a class="page-link"
+                       th:href="@{/categories/{id}/blogs(id=${category.id}, page=${i}, search=${search}, sort=${sort})}"
+                       th:text="${i + 1}">1</a>
+                </li>
+
+                <!-- Nút trang sau -->
+                <li class="page-item" th:classappend="${blogsPage.last} ? 'disabled' : ''">
+                    <a class="page-link"
+                       th:href="@{/categories/{id}/blogs(id=${category.id}, page=${blogsPage.number + 1}, search=${search}, sort=${sort})}">
+                        Sau <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+</main>
+
+<footer class="mt-5 py-4 bg-white border-top text-center text-muted small">
+    <div class="container">
+        <p class="mb-0">Personal Blog System © 2026 - Powered by Spring MVC & Spring Data JPA</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

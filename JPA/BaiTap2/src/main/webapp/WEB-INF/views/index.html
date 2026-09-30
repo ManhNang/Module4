@@ -146,51 +146,46 @@
         padding-right: 6px;
       }
 
-      .api-input-box {
+      .apod-date-control {
         margin-top: 16px;
         padding: 12px 14px;
         background: #090e1a;
         border-radius: 10px;
         border: 1px solid #293548;
-      }
-
-      .api-input-box label {
-        display: block;
-        font-size: 0.8rem;
-        color: #94a3b8;
-        margin-bottom: 6px;
-      }
-
-      .api-input-group {
         display: flex;
         gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
       }
 
-      .api-input-group input {
-        flex: 1;
+      .apod-date-control label {
+        font-size: 0.85rem;
+        color: #94a3b8;
+        font-weight: 500;
+      }
+
+      .apod-date-control input[type="date"] {
         background: #1e293b;
         border: 1px solid #334155;
         color: #fff;
-        padding: 7px 12px;
+        padding: 6px 10px;
         border-radius: 8px;
         font-size: 0.85rem;
         outline: none;
       }
 
-      .api-input-group button {
-        background: #38bdf8;
-        color: #0f172a;
-        font-weight: 600;
+      .apod-date-control .btn-date {
         border: none;
-        padding: 7px 14px;
+        padding: 6px 12px;
         border-radius: 8px;
         font-size: 0.85rem;
         cursor: pointer;
-        transition: background 0.2s;
+        font-weight: 500;
+        transition: background 0.2s, transform 0.15s;
       }
 
-      .api-input-group button:hover {
-        background: #0ea5e9;
+      .apod-date-control .btn-date:hover {
+        transform: translateY(-1px);
       }
 
       /* Rating Form */
@@ -408,6 +403,129 @@
         font-size: 2.2rem;
         margin-bottom: 8px;
       }
+
+      /* Toolbar & Filter Tabs */
+      .feedback-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .tab-group {
+        display: inline-flex;
+        background: #0f172a;
+        padding: 4px;
+        border-radius: 10px;
+        border: 1px solid var(--card-border);
+      }
+
+      .tab-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 7px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        color: var(--text-muted);
+        transition: all 0.2s;
+      }
+
+      .tab-btn:hover {
+        color: #fff;
+      }
+
+      .tab-btn.active {
+        background: #4f46e5;
+        color: #fff;
+        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
+      }
+
+      .page-size-selector {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .page-size-selector select {
+        background: #0f172a;
+        border: 1px solid var(--card-border);
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        outline: none;
+      }
+
+      /* Pagination Styles */
+      .pagination-wrapper {
+        margin-top: 24px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .pagination-info {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .pagination-info strong {
+        color: #38bdf8;
+      }
+
+      .pagination {
+        display: flex;
+        list-style: none;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 0;
+      }
+
+      .page-item .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 10px;
+        border-radius: 8px;
+        background: #1e293b;
+        border: 1px solid var(--card-border);
+        color: #cbd5e1;
+        text-decoration: none;
+        font-size: 0.88rem;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+
+      .page-item .page-link:hover {
+        background: #334155;
+        color: #fff;
+        border-color: #64748b;
+      }
+
+      .page-item.active .page-link {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        border-color: #6366f1;
+        color: #fff;
+        box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+      }
+
+      .page-item.disabled .page-link {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
@@ -437,26 +555,11 @@
             <div id="apod-desc" class="apod-desc"></div>
           </div>
 
-          <div class="api-input-box">
-            <label for="nasa-api-key-input"
-              >🔑 NASA API Key (Bạn có thể nhập key trực tiếp hoặc điền vào file
-              mã nguồn):</label
-            >
-            <div class="api-input-group">
-              <input
-                type="text"
-                id="nasa-api-key-input"
-                placeholder="Nhập API Key NASA của bạn..."
-              />
-              <button type="button" id="btn-reload-apod">Tải ảnh</button>
-            </div>
-            
-            <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap;">
-              <label for="apod-date-picker" style="margin-bottom: 0; font-size: 0.82rem; color: #94a3b8;">📅 Chọn ngày:</label>
-              <input type="date" id="apod-date-picker" style="background: #1e293b; border: 1px solid #334155; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 0.82rem;" />
-              <button type="button" id="btn-yesterday" style="background: #334155; color: #e2e8f0; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">Ảnh trước</button>
-              <button type="button" id="btn-today" style="background: #4f46e5; color: #fff; border: none; padding: 5px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">Hôm nay</button>
-            </div>
+          <div class="apod-date-control">
+            <label for="apod-date-picker">📅 Chọn ngày xem ảnh:</label>
+            <input type="date" id="apod-date-picker" />
+            <button type="button" id="btn-yesterday" class="btn-date" style="background: #334155; color: #e2e8f0;">Ảnh trước</button>
+            <button type="button" id="btn-today" class="btn-date" style="background: #4f46e5; color: #fff;">Hôm nay</button>
           </div>
         </div>
 
@@ -513,38 +616,90 @@
               ></textarea>
             </div>
 
+            <input type="hidden" name="filter" th:value="${filter}" />
+            <input type="hidden" name="size" th:value="${pageSize}" />
+
             <button type="submit" class="btn-submit">Gửi đánh giá</button>
           </form>
         </div>
       </div>
 
-      <!-- Danh sách Feedback chỉ trong ngày hiện tại -->
+      <!-- Danh sách Feedback có phân trang và bộ lọc -->
       <section class="feedback-section">
         <div class="section-header">
-          <h2 class="card-title" style="margin-bottom: 0">
-            💬 Nhận xét trong ngày
-          </h2>
+          <div>
+            <h2 class="card-title" style="margin-bottom: 4px">
+              <span th:if="${filter == 'today'}">💬 Nhận xét hôm nay</span>
+              <span th:unless="${filter == 'today'}">💬 Tất cả nhận xét</span>
+            </h2>
+            <span style="font-size: 0.85rem; color: #94a3b8;">
+              <span th:if="${filter == 'today'}">Các đánh giá được gửi trong ngày hôm nay</span>
+              <span th:unless="${filter == 'today'}">Toàn bộ đánh giá từ cộng đồng thiên văn</span>
+            </span>
+          </div>
           <span
             class="badge-today"
-            th:text="'Ngày: ' + ${#temporals.format(today, 'dd/MM/yyyy')}"
-            >Ngày: hôm nay</span
+            th:text="'Hôm nay: ' + ${#temporals.format(today, 'dd/MM/yyyy')}"
+            >Hôm nay: 01/01/2026</span
           >
         </div>
 
+        <!-- Thanh công cụ lọc và chọn số lượng hiển thị -->
+        <div class="feedback-toolbar">
+          <div class="tab-group">
+            <a
+              th:href="@{/(filter='all', page=0, size=${pageSize})}"
+              class="tab-btn"
+              th:classappend="${filter != 'today'} ? 'active' : ''"
+            >
+              <span>🌟 Tất cả</span>
+              <span style="font-size: 0.75rem; opacity: 0.8;">(Phân trang)</span>
+            </a>
+            <a
+              th:href="@{/(filter='today', page=0, size=${pageSize})}"
+              class="tab-btn"
+              th:classappend="${filter == 'today'} ? 'active' : ''"
+            >
+              <span>📅 Hôm nay</span>
+            </a>
+          </div>
+
+          <div class="page-size-selector">
+            <label for="pageSizeSelect">Hiển thị mỗi trang:</label>
+            <select
+              id="pageSizeSelect"
+              th:onchange="'location.href=\'/?filter=' + ${filter} + '&page=0&size=\' + this.value'"
+            >
+              <option value="3" th:selected="${pageSize == 3}">3 bình luận</option>
+              <option value="5" th:selected="${pageSize == 5}">5 bình luận</option>
+              <option value="10" th:selected="${pageSize == 10}">10 bình luận</option>
+              <option value="20" th:selected="${pageSize == 20}">20 bình luận</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Trạng thái trống (chưa có feedback) -->
         <div th:if="${#lists.isEmpty(feedbacks)}" class="empty-state">
           <div class="empty-icon">🌠</div>
-          <p>Chưa có nhận xét nào trong ngày hôm nay.</p>
+          <p th:if="${filter == 'today'}">Chưa có nhận xét nào trong ngày hôm nay.</p>
+          <p th:unless="${filter == 'today'}">Chưa có nhận xét nào trong hệ thống.</p>
           <p style="font-size: 0.85rem; color: #64748b; margin-top: 4px">
             Hãy là người đầu tiên để lại cảm nghĩ và đánh giá bức ảnh!
           </p>
         </div>
 
+        <!-- Danh sách nhận xét của trang hiện tại -->
         <div th:unless="${#lists.isEmpty(feedbacks)}">
           <div th:each="fb : ${feedbacks}" class="feedback-card">
             <div class="feedback-card-top">
-              <span class="feedback-author" th:text="${fb.author}"
-                >Tác giả</span
-              >
+              <span class="feedback-author">
+                <span th:text="${fb.author}">Tác giả</span>
+                <span
+                  th:if="${fb.date != null and fb.date.equals(today)}"
+                  style="font-size: 0.75rem; background: #064e3b; color: #6ee7b7; border: 1px solid #059669; padding: 2px 8px; border-radius: 9999px; margin-left: 6px; font-weight: normal;"
+                  >Hôm nay</span
+                >
+              </span>
               <span class="feedback-stars">
                 <span th:each="i : ${#numbers.sequence(1, fb.rating)}">★</span>
                 <span th:text="'(' + ${fb.rating} + '/5)'"></span>
@@ -565,7 +720,10 @@
                 method="post"
                 style="display: inline"
               >
-                <button type="submit" class="btn-like">
+                <input type="hidden" name="page" th:value="${currentPage}" />
+                <input type="hidden" name="size" th:value="${pageSize}" />
+                <input type="hidden" name="filter" th:value="${filter}" />
+                <button type="submit" class="btn-like" title="Thích nhận xét này">
                   <span>👍</span>
                   <span>Like</span>
                   <span
@@ -577,94 +735,202 @@
               </form>
             </div>
           </div>
+
+          <!-- Thanh phân trang (Pagination Bar) -->
+          <div class="pagination-wrapper" th:if="${totalPages > 0}">
+            <div class="pagination-info">
+              Hiển thị từ
+              <strong th:text="${totalElements == 0 ? 0 : currentPage * pageSize + 1}">1</strong>
+              đến
+              <strong th:text="${(currentPage + 1) * pageSize > totalElements ? totalElements : (currentPage + 1) * pageSize}">5</strong>
+              trong tổng số
+              <strong th:text="${totalElements}">0</strong> nhận xét
+              (Trang <span th:text="${currentPage + 1}">1</span> / <span th:text="${totalPages == 0 ? 1 : totalPages}">1</span>)
+            </div>
+
+            <ul class="pagination" th:if="${totalPages > 1}">
+              <!-- Nút về trang đầu -->
+              <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled' : ''">
+                <a
+                  class="page-link"
+                  th:href="@{/(page=0, size=${pageSize}, filter=${filter})}"
+                  title="Trang đầu tiên"
+                  >« Đầu</a
+                >
+              </li>
+
+              <!-- Nút về trang trước -->
+              <li
+                class="page-item"
+                th:classappend="${!feedbackPage.hasPrevious()} ? 'disabled' : ''"
+              >
+                <a
+                  class="page-link"
+                  th:href="@{/(page=${currentPage - 1}, size=${pageSize}, filter=${filter})}"
+                  title="Trang trước"
+                  >‹ Trước</a
+                >
+              </li>
+
+              <!-- Các số trang (Hiển thị trang hiện tại và các trang lân cận) -->
+              <li
+                th:each="pageNum : ${#numbers.sequence(0, totalPages - 1)}"
+                th:if="${pageNum >= currentPage - 2 and pageNum <= currentPage + 2}"
+                class="page-item"
+                th:classappend="${pageNum == currentPage} ? 'active' : ''"
+              >
+                <a
+                  class="page-link"
+                  th:href="@{/(page=${pageNum}, size=${pageSize}, filter=${filter})}"
+                  th:text="${pageNum + 1}"
+                  >1</a
+                >
+              </li>
+
+              <!-- Nút trang sau -->
+              <li
+                class="page-item"
+                th:classappend="${!feedbackPage.hasNext()} ? 'disabled' : ''"
+              >
+                <a
+                  class="page-link"
+                  th:href="@{/(page=${currentPage + 1}, size=${pageSize}, filter=${filter})}"
+                  title="Trang tiếp theo"
+                  >Tiếp ›</a
+                >
+              </li>
+
+              <!-- Nút đến trang cuối -->
+              <li
+                class="page-item"
+                th:classappend="${currentPage >= totalPages - 1} ? 'disabled' : ''"
+              >
+                <a
+                  class="page-link"
+                  th:href="@{/(page=${totalPages - 1}, size=${pageSize}, filter=${filter})}"
+                  title="Trang cuối cùng"
+                  >Cuối »</a
+                >
+              </li>
+            </ul>
+          </div>
         </div>
       </section>
     </div>
 
-    <!-- Mã JavaScript gọi API NASA APOD theo đúng code mẫu được yêu cầu -->
+    <!-- Mã JavaScript gọi API NASA APOD sử dụng apiKey trong mã nguồn và fallback tự động -->
     <script>
-      // Điền API Key của bạn tại biến apiKey bên dưới (để trống theo yêu cầu):
-      let apiKey = "m2AEcIrIEhu1ozz3gV1nMcf3yHYBHbHSYMoJX0Yr"; // <--- Bạn có thể dán API Key trực tiếp vào đây hoặc dùng ô nhập trên giao diện
+      const apiKey = "m2AEcIrIEhu1ozz3gV1nMcf3yHYBHbHSYMoJX0Yr";
 
-      function fetchApod(key, date) {
-        let currentKey = key || apiKey;
-        if (!currentKey || currentKey.trim() === "") {
-          document.getElementById("apod-title").innerText =
-            "Vui lòng nhập API Key của NASA để tải ảnh";
-          document.getElementById("apod-desc").innerText =
-            "Nhập NASA API Key vào ô trên hoặc thay vào biến apiKey trong file index.html";
-          return;
+      function renderApodData(data) {
+        let imgEl = document.getElementById("img-of-the-day");
+        let mediaUrl = data.url || data.hdurl;
+
+        if (data.media_type === "image" || (!data.media_type && mediaUrl)) {
+          imgEl.setAttribute("src", mediaUrl);
+          imgEl.style.display = "block";
+        } else if (data.media_type === "video") {
+          imgEl.setAttribute("alt", "Hôm nay là video: " + (data.title || "NASA Video"));
+          imgEl.setAttribute(
+            "src",
+            data.thumbnail_url || "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800"
+          );
+        } else if (mediaUrl) {
+          imgEl.setAttribute("src", mediaUrl);
         }
 
-        let query = "https://api.nasa.gov/planetary/apod?api_key=" + currentKey;
+        let dateStr = data.date ? " (" + data.date + ")" : "";
+        document.getElementById("apod-title").innerText = (data.title || "NASA Picture of the Day") + dateStr;
+
+        // Loại bỏ các thẻ HTML thô nếu có trong explanation từ API NASA
+        let desc = data.explanation || "";
+        let tempDiv = document.createElement("div");
+        tempDiv.innerHTML = desc;
+        document.getElementById("apod-desc").innerText = tempDiv.textContent || tempDiv.innerText || desc;
+
+        if (data.date) {
+          document.getElementById("apod-date-picker").value = data.date;
+        }
+      }
+
+      function convertDateToYYMMDD(dateStr) {
+        if (!dateStr) return "";
+        let parts = dateStr.split("-");
+        if (parts.length === 3) {
+          let yy = parts[0].slice(-2);
+          let mm = parts[1];
+          let dd = parts[2];
+          return yy + mm + dd;
+        }
+        return "";
+      }
+
+      function fetchFromScienceNasa(date) {
+        let endpoint = "https://science.nasa.gov/wp-json/wp/v2/apod-basic?per_page=1";
+        if (date) {
+          let yymmdd = convertDateToYYMMDD(date);
+          if (yymmdd) {
+            endpoint = "https://science.nasa.gov/wp-json/wp/v2/apod-basic/" + yymmdd;
+          }
+        }
+
+        fetch(endpoint)
+          .then(function (res) {
+            if (!res.ok) {
+              throw new Error("Mã lỗi: " + res.status);
+            }
+            return res.json();
+          })
+          .then(function (data) {
+            let item = Array.isArray(data) ? data[0] : data;
+            if (item) {
+              renderApodData(item);
+            } else {
+              throw new Error("Không có dữ liệu ảnh");
+            }
+          })
+          .catch(function (err) {
+            document.getElementById("apod-title").innerText = "Không thể tải ảnh từ NASA";
+            document.getElementById("apod-desc").innerText = "Chi tiết lỗi: " + err.message;
+          });
+      }
+
+      function fetchApod(date) {
+        document.getElementById("apod-title").innerText = "Đang tải ảnh thiên văn từ NASA...";
+        document.getElementById("apod-desc").innerText = "";
+
+        let query = "https://api.nasa.gov/planetary/apod?api_key=" + apiKey;
         if (date) {
           query += "&date=" + date;
         }
 
-        let request = new XMLHttpRequest();
-        request.open("GET", query);
-        request.onload = function () {
-          if (request.status === 200) {
-            let response = JSON.parse(request.responseText);
-            let imgEl = document.getElementById("img-of-the-day");
-            if (response.media_type === "image") {
-              imgEl.setAttribute("src", response.url);
-              imgEl.style.display = "block";
-            } else if (response.media_type === "video") {
-              imgEl.setAttribute("alt", "Hôm nay là video: " + response.title);
-              imgEl.setAttribute(
-                "src",
-                response.thumbnail_url ||
-                  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800",
-              );
-            } else {
-              imgEl.setAttribute("src", response.url);
+        // Đặt timeout 3.5 giây nếu server api.nasa.gov bị connection timeout
+        let controller = new AbortController();
+        let timeoutId = setTimeout(function () {
+          controller.abort();
+        }, 3500);
+
+        fetch(query, { signal: controller.signal })
+          .then(function (res) {
+            clearTimeout(timeoutId);
+            if (res.ok) {
+              return res.json();
             }
-
-            document.getElementById("apod-title").innerText =
-              (response.title || "NASA Picture of the Day") + (response.date ? " (" + response.date + ")" : "");
-            document.getElementById("apod-desc").innerText =
-              response.explanation || "";
-
-            if (response.date) {
-              document.getElementById("apod-date-picker").value = response.date;
-            }
-          } else {
-            document.getElementById("apod-title").innerText =
-              "Không thể tải ảnh từ NASA (Mã lỗi: " + request.status + ")";
-            document.getElementById("apod-desc").innerText =
-              "Chi tiết lỗi: " + request.responseText;
-          }
-        };
-        request.onerror = function () {
-          document.getElementById("apod-title").innerText =
-            "Lỗi kết nối tới NASA API";
-        };
-        request.send();
+            throw new Error("Cổng api.nasa.gov phản hồi: " + res.status);
+          })
+          .then(function (data) {
+            renderApodData(data);
+          })
+          .catch(function (error) {
+            clearTimeout(timeoutId);
+            // Tự động chuyển sang cổng chính thức NASA Science khi api.nasa.gov bị 503 timeout
+            fetchFromScienceNasa(date);
+          });
       }
-
-      function getKey() {
-        return document.getElementById("nasa-api-key-input").value.trim() || apiKey;
-      }
-
-      // Xử lý sự kiện nút "Tải ảnh" với API Key người dùng nhập
-      document
-        .getElementById("btn-reload-apod")
-        .addEventListener("click", function () {
-          let inputVal = getKey();
-          if (inputVal) {
-            localStorage.setItem("nasa_apod_key", inputVal);
-            let date = document.getElementById("apod-date-picker").value;
-            fetchApod(inputVal, date);
-          } else {
-            alert("Vui lòng nhập NASA API Key!");
-          }
-        });
 
       // Chọn ngày xem ảnh khác
       document.getElementById("apod-date-picker").addEventListener("change", function () {
-        let date = this.value;
-        fetchApod(getKey(), date);
+        fetchApod(this.value);
       });
 
       // Xem ảnh hôm qua / trước
@@ -676,30 +942,18 @@
         let mm = String(d.getMonth() + 1).padStart(2, "0");
         let dd = String(d.getDate()).padStart(2, "0");
         let dateStr = `${yyyy}-${mm}-${dd}`;
-        fetchApod(getKey(), dateStr);
+        fetchApod(dateStr);
       });
 
       // Quay lại ảnh hôm nay
       document.getElementById("btn-today").addEventListener("click", function () {
         document.getElementById("apod-date-picker").value = "";
-        fetchApod(getKey());
+        fetchApod();
       });
 
-      // Tự động kiểm tra localStorage hoặc biến apiKey
+      // Tự động tải ảnh khi mở trang
       window.addEventListener("DOMContentLoaded", function () {
-        let savedKey = localStorage.getItem("nasa_apod_key");
-        if (savedKey) {
-          document.getElementById("nasa-api-key-input").value = savedKey;
-          fetchApod(savedKey);
-        } else if (apiKey && apiKey.trim() !== "") {
-          document.getElementById("nasa-api-key-input").value = apiKey;
-          fetchApod(apiKey);
-        } else {
-          document.getElementById("apod-title").innerText =
-            "Chưa cấu hình API Key";
-          document.getElementById("apod-desc").innerText =
-            "Hãy nhập NASA API Key của bạn vào ô trên để tải Bức ảnh của ngày.";
-        }
+        fetchApod();
       });
     </script>
   </body>

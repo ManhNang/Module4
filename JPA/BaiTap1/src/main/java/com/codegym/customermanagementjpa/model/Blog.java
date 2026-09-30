@@ -2,9 +2,12 @@ package com.codegym.customermanagementjpa.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -30,6 +33,10 @@ public class Blog {
     @Column(length = 100)
     private String author;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
@@ -44,12 +51,29 @@ public class Blog {
         this.author = author;
     }
 
+    public Blog(String title, String summary, String content, String author, Category category) {
+        this.title = title;
+        this.summary = summary;
+        this.content = content;
+        this.author = author;
+        this.category = category;
+    }
+
     public Blog(Long id, String title, String summary, String content, String author) {
         this.id = id;
         this.title = title;
         this.summary = summary;
         this.content = content;
         this.author = author;
+    }
+
+    public Blog(Long id, String title, String summary, String content, String author, Category category) {
+        this.id = id;
+        this.title = title;
+        this.summary = summary;
+        this.content = content;
+        this.author = author;
+        this.category = category;
     }
 
     @PrePersist
@@ -101,6 +125,14 @@ public class Blog {
 
     public void setAuthor(String author) {
         this.author = author;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
     }
 
     public LocalDateTime getCreatedAt() {

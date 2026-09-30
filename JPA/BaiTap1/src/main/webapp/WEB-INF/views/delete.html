@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xác Nhận Xóa Bài Viết</title>
+    <title>Xác Nhận Xóa Bài Viết - DevLog Personal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -43,11 +43,16 @@
                 <p class="text-muted mb-4">Hành động này không thể hoàn tác. Bài viết sau sẽ bị xóa vĩnh viễn khỏi hệ thống:</p>
 
                 <div class="bg-light p-3 rounded-3 text-start mb-4 border">
-                    <p class="mb-1 fw-bold text-dark">
+                    <p class="mb-2 fw-bold text-dark fs-5">
                         <i class="bi bi-file-earmark-text me-1 text-primary"></i>
                         <span th:text="${blog.title}">Tiêu đề bài viết</span>
                     </p>
+                    <p class="mb-1 text-muted small" th:if="${blog.category != null}">
+                        <i class="bi bi-folder-fill me-1 text-warning"></i>
+                        <strong>Danh mục:</strong> <span class="badge bg-light text-dark border" th:text="${blog.category.name}">Công nghệ</span>
+                    </p>
                     <p class="mb-1 text-muted small">
+                        <i class="bi bi-person me-1"></i>
                         <strong>Tác giả:</strong> <span th:text="${blog.author != null ? blog.author : 'Ẩn danh'}"></span>
                     </p>
                     <p class="mb-0 text-muted small" th:if="${blog.summary != null and !#strings.isEmpty(blog.summary)}">

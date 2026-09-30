@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'war'
+    id 'eclipse'
 }
 
 group = 'com.codegym'
@@ -26,6 +27,9 @@ dependencies {
 
     // Thymeleaf Spring 6
     implementation 'org.thymeleaf:thymeleaf-spring6:3.1.2.RELEASE'
+
+    // Spring Data JPA (Compatible with Spring 6.1)
+    implementation 'org.springframework.data:spring-data-jpa:3.2.11'
 }
 
 java {

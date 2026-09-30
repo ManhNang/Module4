@@ -33,23 +33,74 @@
             font-style: italic;
             color: #475569;
         }
+        .badge-category {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .badge-category:hover {
+            background-color: #c7d2fe;
+            color: #3730a3;
+        }
     </style>
 </head>
 <body>
 
+<!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3 shadow-sm mb-4">
     <div class="container">
         <a class="navbar-brand fw-bold d-flex align-items-center gap-2" th:href="@{/blogs}">
             <i class="bi bi-journal-richtext text-primary fs-4"></i>
             <span>DevLog Personal</span>
         </a>
-        <div class="ms-auto d-flex gap-2">
-            <a th:href="@{/blogs}" class="btn btn-outline-light btn-sm rounded-pill px-3">
-                <i class="bi bi-arrow-left me-1"></i> Danh sách blog
-            </a>
-            <a th:href="@{/blogs/create}" class="btn btn-primary btn-sm rounded-pill px-3">
-                <i class="bi bi-plus-lg me-1"></i> Viết bài mới
-            </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/blogs}">
+                        <i class="bi bi-grid me-1"></i> Tất cả bài viết
+                    </a>
+                </li>
+                <!-- Menu danh mục -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-tags me-1"></i> Danh mục
+                    </a>
+                    <ul class="dropdown-menu shadow-sm">
+                        <li><h6 class="dropdown-header text-uppercase small">Danh sách chủ đề</h6></li>
+                        <li th:each="cat : ${categories}">
+                            <a class="dropdown-item" th:href="@{/blogs(categoryId=${cat.id})}">
+                                <i class="bi bi-tag me-1 text-primary"></i>
+                                <span th:text="${cat.name}">Tên danh mục</span>
+                            </a>
+                        </li>
+                        <li th:if="${#lists.isEmpty(categories)}">
+                            <span class="dropdown-item text-muted small fst-italic">Chưa có danh mục nào</span>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-primary fw-medium" th:href="@{/categories}">
+                                <i class="bi bi-gear-fill me-1"></i> Quản lý danh mục
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+
+            <div class="ms-auto d-flex gap-2">
+                <a th:href="@{/blogs}" class="btn btn-outline-light btn-sm rounded-pill px-3">
+                    <i class="bi bi-arrow-left me-1"></i> Danh sách blog
+                </a>
+                <a th:href="@{/blogs/create}" class="btn btn-primary btn-sm rounded-pill px-3">
+                    <i class="bi bi-plus-lg me-1"></i> Viết bài mới
+                </a>
+            </div>
         </div>
     </div>
 </nav>
@@ -59,19 +110,35 @@
         <div class="col-lg-9">
             <article class="card article-card p-4 p-md-5">
 
-                <!-- Meta Header -->
-                <div class="mb-3">
-                    <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fw-medium">Bài viết chia sẻ</span>
+                <!-- 8. Bổ sung tên của danh mục khi xem một bài viết -->
+                <div class="mb-3 d-flex align-items-center gap-2">
+                    <a th:if="${blog.category != null}"
+                       th:href="@{/categories/{id}/blogs(id=${blog.category.id})}"
+                       class="badge badge-category px-3 py-2 rounded-pill fs-6">
+                        <i class="bi bi-tag-fill me-1"></i>
+                        <span th:text="${blog.category.name}">Tên danh mục</span>
+                    </a>
+                    <span th:unless="${blog.category != null}" class="badge bg-light text-muted border px-3 py-2 rounded-pill fs-6">
+                        <i class="bi bi-tag me-1"></i> Chưa phân loại
+                    </span>
                 </div>
 
                 <!-- Title -->
                 <h1 class="display-6 fw-bold text-dark mb-3" th:text="${blog.title}">Tiêu đề bài viết</h1>
 
-                <!-- Author & Timestamps -->
+                <!-- Author & Timestamps & Category Info -->
                 <div class="d-flex flex-wrap align-items-center gap-3 text-muted small pb-4 mb-4 border-bottom">
                     <span>
                         <i class="bi bi-person-circle me-1 text-primary"></i>
                         <strong th:text="${blog.author != null ? blog.author : 'Ẩn danh'}">Tác giả</strong>
+                    </span>
+                    <span>•</span>
+                    <!-- Tên danh mục trong meta info -->
+                    <span>
+                        <i class="bi bi-folder2-open me-1 text-warning"></i>
+                        Danh mục:
+                        <strong th:if="${blog.category != null}" class="text-primary" th:text="${blog.category.name}">Chủ đề</strong>
+                        <span th:unless="${blog.category != null}" class="text-muted fst-italic">Chưa có</span>
                     </span>
                     <span>•</span>
                     <span>

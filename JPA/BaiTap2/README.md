@@ -1,6 +1,6 @@
-# img-of-the-day (NASA APOD Viewer & Daily Feedback)
+# img-of-the-day (NASA APOD Viewer & Phân trang nhận xét với JPA)
 
-Ứng dụng Spring MVC + JPA hiển thị Bức ảnh thiên văn trong ngày của NASA (Astronomy Picture of the Day - APOD), cho phép người dùng đánh giá (1-5 sao), để lại nhận xét trong ngày và thả tim (Like) cho các bình luận. Ứng dụng tương thích hoàn toàn với **Tomcat 10.1+** (sử dụng **Jakarta EE 10**, **Spring 6**, **Hibernate 6**).
+Ứng dụng Spring MVC + Spring Data JPA hiển thị Bức ảnh thiên văn trong ngày của NASA (Astronomy Picture of the Day - APOD), cho phép người dùng đánh giá (1-5 sao), để lại nhận xét, xem danh sách nhận xét có **phân trang (Pagination)**, lọc xem nhận xét hôm nay hoặc tất cả, và thả tim (Like) cho các bình luận. Ứng dụng tương thích hoàn toàn với **Tomcat 10.1+** (sử dụng **Jakarta EE 10**, **Spring 6**, **Spring Data JPA 3.2**, **Hibernate 6**).
 
 ---
 
@@ -21,8 +21,7 @@ D:\Module4\JPA\BaiTap2
         │       ├── model
         │       │   └── Feedback.java
         │       ├── repository
-        │       │   ├── IFeedbackRepository.java
-        │       │   └── FeedbackRepository.java
+        │       │   └── IFeedbackRepository.java (Spring Data JPA JpaRepository)
         │       └── service
         │           ├── IFeedbackService.java
         │           └── FeedbackService.java
