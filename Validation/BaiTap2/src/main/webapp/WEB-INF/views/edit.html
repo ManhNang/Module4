@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cập Nhật Thông Tin Bài Hát - Quản Lý Âm Nhạc</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --danger: #ef4444;
+            --danger-bg: #fef2f2;
+            --danger-border: #fca5a5;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            padding: 32px;
+        }
+
+        .card-header {
+            margin-bottom: 24px;
+        }
+
+        .card-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .card-header p {
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 8px;
+        }
+
+        .required {
+            color: var(--danger);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+            background-color: #ffffff;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        input.is-invalid {
+            border-color: var(--danger);
+            background-color: #fffaf0;
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 6px;
+            display: block;
+            font-weight: 500;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .rules-box {
+            background-color: #f1f5f9;
+            border-left: 4px solid var(--primary);
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .rules-box ul {
+            padding-left: 20px;
+            margin-top: 6px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: #334155;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h1>✏️ Cập Nhật Thông Tin Bài Hát</h1>
+            <p>Chỉnh sửa và kiểm tra tính hợp lệ của thông tin bài hát</p>
+        </div>
+
+        <div class="rules-box">
+            <strong>📋 Quy định nhập liệu (Validation Rules):</strong>
+            <ul>
+                <li><strong>Tên bài hát:</strong> Bắt buộc, không quá 800 ký tự, không chứa ký tự đặc biệt (@, ;, ,, ., =, -, +).</li>
+                <li><strong>Nghệ sĩ thể hiện:</strong> Bắt buộc, không quá 300 ký tự, không chứa ký tự đặc biệt (@, ;, ,, ., =, -, +).</li>
+                <li><strong>Thể loại nhạc:</strong> Bắt buộc, không quá 1000 ký tự, chỉ cho phép dấu phẩy (,) ngăn cách, không chứa ký tự đặc biệt khác (@, ;, ., =, -, +).</li>
+            </ul>
+        </div>
+
+        <form th:action="@{/songs/edit}" th:object="${song}" method="post">
+            <input type="hidden" th:field="*{id}">
+
+            <div class="form-group">
+                <label for="name">Tên Bài Hát <span class="required">*</span></label>
+                <input type="text" id="name" th:field="*{name}" th:classappend="${#fields.hasErrors('name')} ? 'is-invalid' : ''" placeholder="Ví dụ: Nơi này có anh">
+                <span th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="error-message"></span>
+                <div class="hint">Tối đa 800 ký tự, không chứa ký tự đặc biệt.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="artist">Nghệ Sĩ Thể Hiện <span class="required">*</span></label>
+                <input type="text" id="artist" th:field="*{artist}" th:classappend="${#fields.hasErrors('artist')} ? 'is-invalid' : ''" placeholder="Ví dụ: Sơn Tùng M-TP">
+                <span th:if="${#fields.hasErrors('artist')}" th:errors="*{artist}" class="error-message"></span>
+                <div class="hint">Tối đa 300 ký tự, không chứa ký tự đặc biệt.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="genre">Thể Loại Nhạc <span class="required">*</span></label>
+                <input type="text" id="genre" th:field="*{genre}" th:classappend="${#fields.hasErrors('genre')} ? 'is-invalid' : ''" placeholder="Ví dụ: Pop, RnB, Dance">
+                <span th:if="${#fields.hasErrors('genre')}" th:errors="*{genre}" class="error-message"></span>
+                <div class="hint">Tối đa 1000 ký tự, được dùng dấu phẩy (,) phân tách các thể loại.</div>
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn btn-primary">Lưu Thay Đổi</button>
+                <a th:href="@{/songs}" class="btn btn-secondary">Hủy Bỏ</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration Successful</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #16a34a;
+            --success-light: #f0fdf4;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --card-bg: #ffffff;
+            --body-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--body-bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            color: var(--text-main);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 1.25rem;
+            box-shadow: var(--shadow);
+            padding: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #16a34a, #22c55e);
+        }
+
+        .icon-circle {
+            width: 72px;
+            height: 72px;
+            background: var(--success-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem;
+            border: 2px solid #bbf7d0;
+            color: var(--success);
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        p.subtitle {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .info-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px dashed #e2e8f0;
+            font-size: 0.925rem;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .back-btn {
+            display: inline-block;
+            text-decoration: none;
+            padding: 0.85rem 1.75rem;
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 0.625rem;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="icon-circle">✓</div>
+        <h1>Registration Successful!</h1>
+        <p class="subtitle">User information has been verified and registered.</p>
+
+        <div class="info-box" th:if="${user != null}">
+            <div class="info-row">
+                <span class="info-label">First Name:</span>
+                <span class="info-value" id="resFirstName" th:text="${user.firstName}">John</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Last Name:</span>
+                <span class="info-value" id="resLastName" th:text="${user.lastName}">Doe</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Phone Number:</span>
+                <span class="info-value" id="resPhone" th:text="${user.phoneNumber}">0987654321</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Age:</span>
+                <span class="info-value" id="resAge" th:text="${user.age}">25</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value" id="resEmail" th:text="${user.email}">user@example.com</span>
+            </div>
+        </div>
+
+        <a th:href="@{/}" id="btnBack" class="back-btn">Register Another User</a>
+    </div>
+</div>
+
+</body>
+</html>

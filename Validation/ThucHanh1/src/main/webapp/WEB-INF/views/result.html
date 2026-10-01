@@ -1,0 +1,14 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kết quả xác thực</title>
+  </head>
+  <body>
+    <h2>Thông tin người dùng hợp lệ!</h2>
+    <p>Tên người dùng: <b th:text="${user.name}"></b></p>
+    <p>Tuổi: <b th:text="${user.age}"></b></p>
+    <br />
+    <a th:href="@{/}">Quay lại trang chủ</a>
+  </body>
+</html>

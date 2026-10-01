@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.codegym.model.UserValidationTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-01T09:31:32.187Z" hostname="MINHLATHANGMINH" time="0.062">
+  <properties/>
+  <testcase name="testInvalidFirstName_EmptyAndTooShort()" classname="com.codegym.model.UserValidationTest" time="0.054"/>
+  <testcase name="testInvalidPhoneNumber_NotStartWithZero()" classname="com.codegym.model.UserValidationTest" time="0.0"/>
+  <testcase name="testInvalidPhoneNumber_ContainsLetters()" classname="com.codegym.model.UserValidationTest" time="0.0"/>
+  <testcase name="testValidUser()" classname="com.codegym.model.UserValidationTest" time="0.001"/>
+  <testcase name="testInvalidLastName_TooLong()" classname="com.codegym.model.UserValidationTest" time="0.001"/>
+  <testcase name="testInvalidEmail()" classname="com.codegym.model.UserValidationTest" time="0.0"/>
+  <testcase name="testInvalidAge_Under18OrNull()" classname="com.codegym.model.UserValidationTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[SLF4J: No SLF4J providers were found.
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See https://www.slf4j.org/codes.html#noProviders for further details.
+]]></system-err>
+</testsuite>

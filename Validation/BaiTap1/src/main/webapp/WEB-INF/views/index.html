@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Registration - Form Validation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #eef2ff;
+            --danger: #dc2626;
+            --danger-bg: #fef2f2;
+            --danger-border: #fecaca;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --card-bg: #ffffff;
+            --body-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--body-bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            color: var(--text-main);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 1.25rem;
+            box-shadow: var(--shadow);
+            padding: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #4f46e5, #06b6d4);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header .badge {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.025em;
+        }
+
+        .header p {
+            font-size: 0.925rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 0.4rem;
+        }
+
+        .required {
+            color: var(--danger);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="email"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            font-family: inherit;
+            border: 1.5px solid var(--border-color);
+            border-radius: 0.625rem;
+            background-color: #f8fafc;
+            color: var(--text-main);
+            transition: all 0.2s ease-in-out;
+            outline: none;
+        }
+
+        input:focus {
+            background-color: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3.5px rgba(79, 70, 229, 0.15);
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 0.825rem;
+            font-weight: 500;
+            margin-top: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .error-message::before {
+            content: '⚠';
+            font-size: 0.85rem;
+        }
+
+        .submit-btn {
+            width: 100%;
+            margin-top: 1rem;
+            padding: 0.875rem 1.5rem;
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 0.625rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .submit-btn:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="header">
+            <span class="badge">Spring MVC Validation</span>
+            <h1>Register Account</h1>
+            <p>Please enter your information to register</p>
+        </div>
+
+        <form th:action="@{/}" th:object="${user}" method="post" id="userForm">
+            <div class="form-row">
+                <!-- First Name -->
+                <div class="form-group">
+                    <label for="firstName">First Name <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <input type="text" th:field="*{firstName}" id="firstName" placeholder="Min 5 chars">
+                    </div>
+                    <p class="error-message" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></p>
+                </div>
+
+                <!-- Last Name -->
+                <div class="form-group">
+                    <label for="lastName">Last Name <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <input type="text" th:field="*{lastName}" id="lastName" placeholder="Min 5 chars">
+                    </div>
+                    <p class="error-message" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></p>
+                </div>
+            </div>
+
+            <!-- Phone Number -->
+            <div class="form-group">
+                <label for="phoneNumber">Phone Number <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <input type="text" th:field="*{phoneNumber}" id="phoneNumber" placeholder="e.g. 0912345678">
+                </div>
+                <p class="error-message" th:if="${#fields.hasErrors('phoneNumber')}" th:errors="*{phoneNumber}"></p>
+            </div>
+
+            <!-- Age -->
+            <div class="form-group">
+                <label for="age">Age <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <input type="number" th:field="*{age}" id="age" placeholder="Must be >= 18">
+                </div>
+                <p class="error-message" th:if="${#fields.hasErrors('age')}" th:errors="*{age}"></p>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+                <label for="email">Email Address <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <input type="email" th:field="*{email}" id="email" placeholder="example@domain.com">
+                </div>
+                <p class="error-message" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></p>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="btnSubmit" class="submit-btn">Complete Registration</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>
