@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thư Viện Sách Trực Tuyến - Spring MVC & AOP</title>
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            --header-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+            --bg-color: #f8fafc;
+            --card-border: rgba(226, 232, 240, 0.8);
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-color);
+            color: #1e293b;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar-custom {
+            background: var(--header-gradient);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+        .navbar-custom .navbar-brand {
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #ffffff;
+            font-size: 1.35rem;
+        }
+        .visitor-pill {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #f8fafc;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.9rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .visitor-pill .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .card-custom {
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+        }
+        .card-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        }
+        .btn-gradient {
+            background: var(--primary-gradient);
+            border: none;
+            color: #ffffff;
+            font-weight: 600;
+            padding: 0.6rem 1.4rem;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        .btn-gradient:hover {
+            opacity: 0.95;
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+        }
+        .badge-quantity {
+            font-size: 0.85rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        .borrow-code-display {
+            background: #eef2ff;
+            border: 2px dashed #6366f1;
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+        .borrow-code-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: 6px;
+            color: #4338ca;
+        }
+        footer {
+            margin-top: auto;
+            background: #0f172a;
+            color: #94a3b8;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom py-3">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/books}">
+                <i class="fa-solid fa-book-bookmark text-warning fa-lg"></i>
+                <span>THƯ VIỆN SÁCH CODEGYM</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 gap-2">
+                    <li class="nav-item">
+                        <a class="nav-link text-white active fw-semibold" th:href="@{/books}">
+                            <i class="fa-solid fa-list me-1"></i> Danh Sách Sách
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white-50 fw-semibold" th:href="@{/books/create}">
+                            <i class="fa-solid fa-circle-plus me-1 text-success"></i> Thêm Sách Mới
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white-50 fw-semibold" th:href="@{/books/return}">
+                            <i class="fa-solid fa-arrow-rotate-left me-1 text-info"></i> Trả Sách
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Real-time Visitor Counter logged by Spring AOP -->
+                    <div class="visitor-pill">
+                        <span class="pulse-dot"></span>
+                        <span>Lượt ghé thăm: <strong class="text-warning" th:text="${visitorCount}">0</strong></span>
+                    </div>
+                    <a th:href="@{/books/return}" class="btn btn-outline-light btn-sm px-3 rounded-pill fw-semibold">
+                        <i class="fa-solid fa-ticket me-1"></i> Trả Sách Ngay
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="container my-4">
+        <!-- Flash Success Message -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm border-0 d-flex align-items-center gap-3" role="alert">
+            <i class="fa-solid fa-circle-check fs-3 text-success"></i>
+            <div>
+                <strong class="d-block">Thành công!</strong>
+                <span th:text="${successMessage}">Thao tác hoàn tất thành công.</span>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Dynamic Content Injected Here -->
+        <div layout:fragment="content">
+            <!-- Content from child templates will replace this -->
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-4 text-center mt-5">
+        <div class="container">
+            <p class="mb-1 text-white fw-semibold">Hệ Thống Mượn Sách & Xử Lý Ngoại Lệ Spring MVC + Spring AOP</p>
+            <p class="text-secondary small mb-0">
+                Spring MVC 6.2.6 &bull; Spring Data JPA 3.4.2 &bull; Hibernate 6.4.4 &bull; Jakarta EE 10 &bull; Tomcat 10.1+
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

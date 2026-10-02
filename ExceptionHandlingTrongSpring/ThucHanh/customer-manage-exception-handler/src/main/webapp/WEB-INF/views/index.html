@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head}">
+    <meta charset="UTF-8">
+    <title>Danh Sách Khách Hàng</title>
+</head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main>
+        <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">Danh Sách Khách Hàng</h1>
+                <a th:href="@{/customers/create}" class="btn btn-primary">+ Thêm khách hàng mới</a>
+            </div>
+
+            <div th:if="${message}" class="alert alert-success">
+                <span th:text="${message}"></span>
+            </div>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">ID</th>
+                            <th>Họ và Tên</th>
+                            <th>Email</th>
+                            <th>Địa Chỉ</th>
+                            <th style="width: 220px; text-align: center;">Hành Động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="customer : ${customers}">
+                            <td th:text="${customer.id}">1</td>
+                            <td><strong th:text="${customer.name}">Nguyễn Văn A</strong></td>
+                            <td th:text="${customer.email}">vana@gmail.com</td>
+                            <td th:text="${customer.address}">Hà Nội</td>
+                            <td style="text-align: center;">
+                                <div class="actions-group" style="justify-content: center;">
+                                    <a th:href="@{/customers/view/{id}(id=${customer.id})}" class="btn btn-info btn-sm">Xem</a>
+                                    <a th:href="@{/customers/update/{id}(id=${customer.id})}" class="btn btn-warning btn-sm">Sửa</a>
+                                    <a th:href="@{/customers/delete/{id}(id=${customer.id})}" class="btn btn-danger btn-sm">Xóa</a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(customers)}">
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                                Hiện tại chưa có khách hàng nào trong hệ thống.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+</body>
+</html>

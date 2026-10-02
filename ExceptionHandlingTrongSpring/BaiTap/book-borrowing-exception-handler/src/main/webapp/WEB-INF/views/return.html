@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Hoàn Trả Sách - Thư Viện</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+
+            <div class="card card-custom p-4 shadow-sm">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex p-3 rounded-circle bg-info-subtle text-info mb-2">
+                        <i class="fa-solid fa-arrow-rotate-left fs-1"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark">Hoàn Trả Sách Thư Viện</h3>
+                    <p class="text-muted small">
+                        Nhập mã số mượn sách (5 chữ số) đã được cấp khi bạn mượn sách
+                    </p>
+                </div>
+
+                <form th:action="@{/books/return}" method="post">
+                    <div class="mb-4">
+                        <label for="borrowCode" class="form-label fw-bold text-secondary text-uppercase small">
+                            Mã Mượn Sách (5 Chữ Số) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light text-muted">
+                                <i class="fa-solid fa-barcode"></i>
+                            </span>
+                            <input type="text" id="borrowCode" name="borrowCode" class="form-control text-center fw-bold fs-4 letter-spacing-2" 
+                                   placeholder="VD: 58392" maxlength="10" required autofocus>
+                        </div>
+                        <div class="form-text text-muted mt-2">
+                            <i class="fa-solid fa-circle-question me-1"></i> Hệ thống sẽ kiểm tra mã hợp lệ, khôi phục lại +1 vào số lượng sách và đánh dấu hoàn thành phiếu mượn.
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-gradient py-3 fw-bold fs-6">
+                            <i class="fa-solid fa-check-circle me-1"></i> Xác Nhận Trả Sách
+                        </button>
+                        <a th:href="@{/books}" class="btn btn-outline-secondary py-2">
+                            <i class="fa-solid fa-arrow-left me-1"></i> Quay lại Danh Sách Sách
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

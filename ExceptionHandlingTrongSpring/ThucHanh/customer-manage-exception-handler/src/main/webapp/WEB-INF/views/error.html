@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head}">
+    <meta charset="UTF-8">
+    <title>Thông Báo Lỗi</title>
+</head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main>
+        <div class="card" style="max-width: 600px; margin: 0 auto; text-align: center;">
+            <div class="card-header" style="justify-content: center;">
+                <h1 class="card-title" style="color: var(--danger-color);">Đã Xảy Ra Lỗi</h1>
+            </div>
+
+            <div class="alert alert-danger" style="margin: 1.5rem 0;">
+                <p th:text="${errorMessage != null ? errorMessage : 'Khách hàng không tồn tại hoặc đã bị xóa.'}"></p>
+            </div>
+
+            <div>
+                <a th:href="@{/customers}" class="btn btn-primary">&larr; Quay lại danh sách khách hàng</a>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+</body>
+</html>

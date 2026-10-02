@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head}">
+    <meta charset="UTF-8">
+    <title>Chi Tiết Khách Hàng</title>
+</head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main>
+        <div class="card" style="max-width: 600px; margin: 0 auto;">
+            <div class="card-header">
+                <h1 class="card-title">Chi Tiết Thông Tin Khách Hàng</h1>
+                <a th:href="@{/customers}" class="btn btn-secondary btn-sm">&larr; Quay lại danh sách</a>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <div class="detail-row">
+                    <span class="detail-label">Mã Khách Hàng:</span>
+                    <span class="detail-value"><strong th:text="${customer.id}">1</strong></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Họ và Tên:</span>
+                    <span class="detail-value" th:text="${customer.name}">Nguyễn Văn A</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Email:</span>
+                    <span class="detail-value" th:text="${customer.email}">vana@gmail.com</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Địa Chỉ:</span>
+                    <span class="detail-value" th:text="${customer.address}">Hà Nội</span>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <a th:href="@{/customers/update/{id}(id=${customer.id})}" class="btn btn-warning">Chỉnh Sửa</a>
+                <a th:href="@{/customers/delete/{id}(id=${customer.id})}" class="btn btn-danger">Xóa Khách Hàng</a>
+                <a th:href="@{/customers}" class="btn btn-secondary">Danh Sách</a>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+</body>
+</html>

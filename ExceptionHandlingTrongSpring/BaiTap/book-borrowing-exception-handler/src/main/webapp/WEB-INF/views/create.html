@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>Thêm Đầu Sách Mới - Thư Viện</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+
+            <div class="card card-custom p-4">
+                <div class="mb-4">
+                    <h3 class="fw-bold text-primary mb-1">
+                        <i class="fa-solid fa-square-plus me-2 text-indigo"></i>Thêm Đầu Sách Mới
+                    </h3>
+                    <p class="text-muted small">Điền các thông tin của cuốn sách cần đưa vào kho thư viện</p>
+                </div>
+
+                <form th:action="@{/books/create}" th:object="${book}" method="post">
+                    <div class="mb-3">
+                        <label for="title" class="form-label fw-semibold text-secondary">
+                            Tên đầu sách <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="title" th:field="*{title}" class="form-control form-control-lg fs-6 rounded-3" 
+                               placeholder="Nhập tên cuốn sách..." required autofocus>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-7">
+                            <label for="author" class="form-label fw-semibold text-secondary">
+                                Tác giả <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" id="author" th:field="*{author}" class="form-control rounded-3" 
+                                   placeholder="Nhập tên tác giả..." required>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="quantity" class="form-label fw-semibold text-secondary">
+                                Số lượng có sẵn <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" id="quantity" th:field="*{quantity}" min="0" class="form-control rounded-3" 
+                                   placeholder="VD: 5" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="description" class="form-label fw-semibold text-secondary">Mô tả tóm tắt sách</label>
+                        <textarea id="description" th:field="*{description}" class="form-control rounded-3" 
+                                  rows="4" placeholder="Nhập tóm tắt nội dung, thể loại, thông tin hữu ích..."></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                        <a th:href="@{/books}" class="btn btn-outline-secondary px-4 rounded-3">Hủy bỏ</a>
+                        <button type="submit" class="btn btn-gradient px-4 rounded-3">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Đầu Sách
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
