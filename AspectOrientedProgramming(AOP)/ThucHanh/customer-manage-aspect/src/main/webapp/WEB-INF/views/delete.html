@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác nhận xóa khách hàng</title>
+    <style>
+        :root {
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --warning-light: #fef2f2;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 550px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--danger);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .warning-box {
+            background-color: var(--warning-light);
+            border-left: 4px solid var(--danger);
+            padding: 14px 16px;
+            border-radius: 6px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #991b1b;
+        }
+
+        .info-group {
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--border);
+            font-size: 14px;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .info-value {
+            font-weight: 500;
+        }
+
+        .actions {
+            margin-top: 28px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: #ffffff;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger-hover);
+        }
+
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #334155;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Xóa khách hàng</h1>
+
+    <div class="warning-box">
+        <strong>Cảnh báo:</strong> Bạn có chắc chắn muốn xóa khách hàng này không? Hành động này không thể hoàn tác.
+    </div>
+
+    <div class="info-group">
+        <span class="info-label">ID:</span>
+        <span class="info-value" th:text="${customer.id}">1</span>
+    </div>
+    <div class="info-group">
+        <span class="info-label">Họ và Tên:</span>
+        <span class="info-value" th:text="${customer.name}">Nguyen Van A</span>
+    </div>
+    <div class="info-group">
+        <span class="info-label">Email:</span>
+        <span class="info-value" th:text="${customer.email}">nguyenvana@gmail.com</span>
+    </div>
+    <div class="info-group">
+        <span class="info-label">Địa chỉ:</span>
+        <span class="info-value" th:text="${customer.address}">Ha Noi</span>
+    </div>
+
+    <form th:action="@{/customers/delete}" method="post">
+        <input type="hidden" name="id" th:value="${customer.id}" />
+        <div class="actions">
+            <button type="submit" class="btn btn-danger">Xác nhận xóa</button>
+            <a th:href="@{/customers}" class="btn btn-secondary">Hủy bỏ</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>
