@@ -1,0 +1,5 @@
+[2026-10-05 14:22:58] [BAD_WORD_DETECTED] Author: "NguyenVanA" | BadWord: "lừa đảo" | Content: "Toàn tin lừa đảo spam" | Msg: "Phát hiện từ cấm: lừa đảo"
+[2026-10-05 14:23:13] [BAD_WORD_DETECTED] Author: "NguyenVanA" | BadWord: "lừa đảo" | Content: "Toàn tin lừa đảo spam" | Msg: "Phát hiện từ cấm: lừa đảo"
+[2026-10-05 14:29:03] [BAD_WORD_DETECTED] Author: "c" | BadWord: "xấu" | Content: "xấu" | Msg: "Nội dung nhận xét chứa từ ngữ không phù hợp: 'xấu'"
+[2026-10-05 14:30:09] [BAD_WORD_DETECTED] Author: "Năng" | BadWord: "xấu" | Content: "xấu vaicalon" | Msg: "Nội dung nhận xét chứa từ ngữ không phù hợp: 'xấu'"
+[2026-10-05 14:35:02] [BAD_WORD_DETECTED] Author: "TestAgent" | BadWord: "xấu" | Content: "Hình ảnh này quá xấu tệ" | Msg: "Nội dung nhận xét chứa từ ngữ không phù hợp: 'xấu'"

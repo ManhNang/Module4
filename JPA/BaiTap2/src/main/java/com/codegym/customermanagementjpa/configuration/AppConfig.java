@@ -5,6 +5,7 @@ import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +32,7 @@ import java.util.Properties;
 @Configuration
 @EnableWebMvc
 @EnableTransactionManagement
+@EnableAspectJAutoProxy
 @EnableJpaRepositories("com.codegym.customermanagementjpa.repository")
 @EnableSpringDataWebSupport
 @ComponentScan("com.codegym.customermanagementjpa")

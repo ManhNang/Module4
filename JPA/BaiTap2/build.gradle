@@ -30,6 +30,24 @@ dependencies {
 
     // Spring Data JPA (Compatible with Spring 6.1)
     implementation 'org.springframework.data:spring-data-jpa:3.2.11'
+
+    // Spring AOP & AspectJ
+    implementation 'org.springframework:spring-aspects:6.1.14'
+    implementation 'org.aspectj:aspectjweaver:1.9.22.1'
+
+    // Logging: Logback Classic (SLF4J implementation)
+    implementation 'ch.qos.logback:logback-classic:1.4.14'
+
+    // Testing
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
+    testImplementation 'org.springframework:spring-test:6.1.14'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 java {
