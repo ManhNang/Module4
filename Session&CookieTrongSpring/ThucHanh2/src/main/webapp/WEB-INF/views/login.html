@@ -1,0 +1,59 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Đăng nhập - Lưu Cookie</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 50px;
+      }
+      .form-container {
+        width: 300px;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      .message {
+        color: blue;
+        margin-bottom: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="form-container">
+      <h2>Đăng Nhập</h2>
+      <div class="message" th:if="${message}" th:text="${message}"></div>
+
+      <form th:action="@{/doLogin}" th:object="${user}" method="post">
+        <div class="form-group">
+          <label for="email">Email / Username:</label>
+          <!-- Tự động điền giá trị email đã ghi nhớ từ Cookie vào ô input -->
+          <input type="email" id="email" th:field="*{email}" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Mật khẩu:</label>
+          <input
+            type="password"
+            id="password"
+            th:field="*{password}"
+            required
+          />
+        </div>
+        <button type="submit">Đăng nhập</button>
+      </form>
+    </div>
+  </body>
+</html>
