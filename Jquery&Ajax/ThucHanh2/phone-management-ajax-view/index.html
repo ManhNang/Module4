@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Quản lý Điện Thoại - AJAX jQuery</title>
+    <link rel="stylesheet" href="index.css" />
+    <!-- Nhúng thư viện jQuery qua CDN -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="index.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Thêm Điện Thoại Mới</h2>
+      <form id="add-smartphone-form">
+        <input type="hidden" id="phone-id" />
+        <div class="form-group">
+          <label for="producer">Hãng sản xuất:</label>
+          <input
+            type="text"
+            id="producer"
+            placeholder="Nhập hãng (VD: Apple, Samsung)"
+          />
+        </div>
+        <div class="form-group">
+          <label for="model">Dòng máy (Model):</label>
+          <input
+            type="text"
+            id="model"
+            placeholder="Nhập model (VD: Galaxy S24)"
+          />
+        </div>
+        <div class="form-group">
+          <label for="price">Giá ($):</label>
+          <input type="number" id="price" placeholder="Nhập giá" />
+        </div>
+        <button type="button" id="btn-save" onclick="saveSmartphone()">
+          Lưu Điện Thoại
+        </button>
+        <button
+          type="button"
+          id="btn-cancel"
+          onclick="resetForm()"
+          style="display: none"
+        >
+          Hủy
+        </button>
+      </form>
+
+      <hr />
+
+      <h2>Danh Sách Điện Thoại</h2>
+      <table id="smartphone-list" border="1" cellpadding="8" cellspacing="0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Hãng sản xuất</th>
+            <th>Model</th>
+            <th>Giá ($)</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="smartphone-body">
+          <!-- Dữ liệu từ AJAX sẽ được chèn vào đây -->
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
