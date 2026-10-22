@@ -1,0 +1,52 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title th:text="#{login.title}">Login</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+      }
+      .lang-switch {
+        margin-bottom: 20px;
+      }
+      .lang-switch a {
+        margin-right: 15px;
+        text-decoration: none;
+        font-weight: bold;
+        color: #007bff;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: inline-block;
+        width: 120px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Thanh chuyển đổi ngôn ngữ -->
+    <div class="lang-switch">
+      <span>Language: </span>
+      <a th:href="@{/login(lang='en')}">English</a> |
+      <a th:href="@{/login(lang='vi')}">Tiếng Việt</a> |
+      <a th:href="@{/login(lang='haw')}">Hawaiian</a>
+    </div>
+
+    <h2 th:text="#{login.heading}">Login</h2>
+
+    <form th:action="@{/doLogin}" th:object="${user}" method="post">
+      <div class="form-group">
+        <label th:text="#{login.username_label}">Username:</label>
+        <input type="text" th:field="*{username}" required />
+      </div>
+      <div class="form-group">
+        <label th:text="#{login.password_label}">Password:</label>
+        <input type="password" th:field="*{password}" required />
+      </div>
+      <button type="submit" th:text="#{login.submit_label}">Login</button>
+    </form>
+  </body>
+</html>

@@ -1,0 +1,147 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title th:text="#{customer.list.title}">Customer Management</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+        background-color: #f5f5f5;
+      }
+      .lang-switch {
+        margin-bottom: 20px;
+        padding: 10px;
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .lang-switch a {
+        margin-right: 15px;
+        text-decoration: none;
+        font-weight: bold;
+        color: #007bff;
+      }
+      .lang-switch a:hover {
+        text-decoration: underline;
+      }
+      h2 {
+        color: #333;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-radius: 5px;
+        overflow: hidden;
+      }
+      th, td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+      th {
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+      }
+      tr:hover {
+        background-color: #f0f7ff;
+      }
+      .btn {
+        display: inline-block;
+        padding: 6px 15px;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 14px;
+        margin-right: 5px;
+      }
+      .btn-primary {
+        background-color: #007bff;
+        color: white;
+      }
+      .btn-warning {
+        background-color: #ffc107;
+        color: #333;
+      }
+      .btn-danger {
+        background-color: #dc3545;
+        color: white;
+      }
+      .btn:hover {
+        opacity: 0.85;
+      }
+      .btn-create {
+        margin-bottom: 20px;
+      }
+      .alert-success {
+        padding: 12px 20px;
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+        border-radius: 4px;
+        margin-bottom: 20px;
+      }
+      .empty-message {
+        text-align: center;
+        padding: 30px;
+        color: #666;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Thanh chuyển đổi ngôn ngữ -->
+    <div class="lang-switch">
+      <span th:text="#{common.language}">Language</span>:
+      <a th:href="@{/customers(lang='en')}">English</a> |
+      <a th:href="@{/customers(lang='vi')}">Tiếng Việt</a> |
+      <a th:href="@{/customers(lang='ja')}">日本語</a>
+    </div>
+
+    <h2 th:text="#{customer.list.heading}">Customer List</h2>
+
+    <!-- Thông báo thành công -->
+    <div class="alert-success" th:if="${message}">
+      <span th:text="#{${message}}">Success</span>
+    </div>
+
+    <!-- Nút thêm khách hàng mới -->
+    <div class="btn-create">
+      <a th:href="@{/customers/create}" class="btn btn-primary"
+         th:text="#{customer.list.create_new}">Add New Customer</a>
+    </div>
+
+    <!-- Bảng danh sách khách hàng -->
+    <table th:if="${!customers.isEmpty()}">
+      <thead>
+        <tr>
+          <th th:text="#{customer.list.id}">ID</th>
+          <th th:text="#{customer.list.name}">Name</th>
+          <th th:text="#{customer.list.email}">Email</th>
+          <th th:text="#{customer.list.address}">Address</th>
+          <th th:text="#{common.action}">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="customer : ${customers}">
+          <td th:text="${customer.id}">1</td>
+          <td th:text="${customer.name}">Name</td>
+          <td th:text="${customer.email}">email@example.com</td>
+          <td th:text="${customer.address}">Address</td>
+          <td>
+            <a th:href="@{/customers/edit/{id}(id=${customer.id})}"
+               class="btn btn-warning" th:text="#{customer.list.edit}">Edit</a>
+            <a th:href="@{/customers/delete/{id}(id=${customer.id})}"
+               class="btn btn-danger" th:text="#{customer.list.delete}">Delete</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Thông báo khi danh sách trống -->
+    <div class="empty-message" th:if="${customers.isEmpty()}"
+         th:text="#{customer.list.empty}">No customers found.</div>
+  </body>
+</html>
