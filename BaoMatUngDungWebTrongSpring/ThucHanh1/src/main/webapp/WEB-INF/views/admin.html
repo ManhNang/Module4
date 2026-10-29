@@ -1,0 +1,30 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Khu vực Admin</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+      }
+      .box {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h2>Trang dành cho ADMIN</h2>
+      <p>
+        Xin chào Quản trị viên <b><span th:text="${username}">Admin</span></b
+        >, bạn đang làm việc tại khu vực quản trị với vai trò <b>ROLE_ADMIN</b>!
+      </p>
+      <a th:href="@{/}"> Quay lại trang chủ</a>
+    </div>
+  </body>
+</html>

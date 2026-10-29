@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Viết Bài Blog Mới</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 35px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #eef2f5;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        h1 {
+            color: #1a365d;
+            margin: 0;
+            font-size: 24px;
+        }
+        .user-info {
+            font-size: 14px;
+            color: #4a5568;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 15px;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 180px;
+            font-family: inherit;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 15px;
+            cursor: pointer;
+            border: none;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background-color: #3182ce;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2b6cb0;
+        }
+        .btn-secondary {
+            background-color: #edf2f7;
+            color: #4a5568;
+            margin-left: 10px;
+        }
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+        }
+        .form-actions {
+            margin-top: 25px;
+            display: flex;
+            align-items: center;
+        }
+        .author-box {
+            background: #ebf8ff;
+            border: 1px solid #bee3f8;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #2b6cb0;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Viết Bài Blog Mới</h1>
+        <div class="user-info">
+            Tác giả: <strong sec:authentication="name" style="color: #2b6cb0;">User</strong>
+        </div>
+    </header>
+
+    <div class="author-box">
+        Bạn đang soạn thảo bài viết với tư cách người dùng đã đăng nhập:
+        <strong sec:authentication="name">Username</strong>.
+        Bài viết sẽ được xuất bản ngay sau khi lưu.
+    </div>
+
+    <!-- Form tạo bài viết mới -->
+    <form th:action="@{/blogs/save}" th:object="${blog}" method="post">
+        <div class="form-group">
+            <label for="title">Tiêu đề bài viết:</label>
+            <input type="text" id="title" th:field="*{title}" placeholder="Nhập tiêu đề blog..." required />
+        </div>
+
+        <div class="form-group">
+            <label for="summary">Tóm tắt ngắn gọn:</label>
+            <input type="text" id="summary" th:field="*{summary}" placeholder="Tóm tắt nội dung chính trong 1-2 câu..." required />
+        </div>
+
+        <div class="form-group">
+            <label for="content">Nội dung chi tiết:</label>
+            <textarea id="content" th:field="*{content}" placeholder="Soạn thảo nội dung bài viết tại đây..." required></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Xuất bản bài viết</button>
+            <a th:href="@{/blogs}" class="btn btn-secondary">Hủy bỏ</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>
+

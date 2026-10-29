@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${blog.title} + ' - Chi Tiết Blog'">Chi Tiết Blog</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 35px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #eef2f5;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-secondary {
+            background-color: #edf2f7;
+            color: #4a5568;
+        }
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+        }
+        .btn-logout {
+            background-color: #e53e3e;
+            color: white;
+            padding: 6px 14px;
+        }
+        .btn-primary {
+            background-color: #3182ce;
+            color: white;
+        }
+        .blog-header h1 {
+            color: #1a365d;
+            font-size: 28px;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .meta-info {
+            font-size: 14px;
+            color: #718096;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #cbd5e0;
+        }
+        .blog-summary {
+            font-style: italic;
+            font-size: 16px;
+            color: #4a5568;
+            background-color: #f7fafc;
+            border-left: 4px solid #4299e1;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 0 4px 4px 0;
+        }
+        .blog-content {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #2d3748;
+            white-space: pre-line;
+            margin-bottom: 35px;
+        }
+        .footer-nav {
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div>
+            <a th:href="@{/blogs}" class="btn btn-secondary">&larr; Quay lại danh sách</a>
+        </div>
+        <div>
+            <div sec:authorize="isAuthenticated()">
+                Xin chào, <strong sec:authentication="name" style="color: #2b6cb0;">User</strong>
+                <form th:action="@{/logout}" method="post" style="display: inline-block; margin-left: 10px;">
+                    <button type="submit" class="btn btn-logout">Đăng xuất</button>
+                </form>
+            </div>
+            <div sec:authorize="isAnonymous()">
+                <a th:href="@{/login}" class="btn btn-primary">Đăng nhập</a>
+            </div>
+        </div>
+    </header>
+
+    <article>
+        <div class="blog-header">
+            <h1 th:text="${blog.title}">Tiêu đề bài viết</h1>
+            <div class="meta-info">
+                <span>Đăng bởi: <strong th:text="${blog.author}">Admin</strong></span> |
+                <span>Thời gian: <span th:text="${blog.formattedDate}">01/01/2026 10:00</span></span>
+            </div>
+        </div>
+
+        <div class="blog-summary" th:text="${blog.summary}">
+            Tóm tắt bài viết...
+        </div>
+
+        <div class="blog-content" th:text="${blog.content}">
+            Nội dung chi tiết bài viết...
+        </div>
+    </article>
+
+    <div class="footer-nav">
+        <a th:href="@{/blogs}" class="btn btn-secondary">&larr; Về trang chủ</a>
+        <div sec:authorize="isAuthenticated()">
+            <a th:href="@{/blogs/create}" class="btn btn-primary">+ Viết bài mới</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+

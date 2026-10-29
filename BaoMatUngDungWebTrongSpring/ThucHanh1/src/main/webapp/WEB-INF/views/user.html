@@ -1,0 +1,30 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Khu vực User</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+      }
+      .box {
+        background-color: #e9ecef;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h2>Trang dành cho USER</h2>
+      <p>
+        Xin chào <b><span th:text="${username}">User</span></b
+        >, bạn đã truy cập thành công vào trang dành cho tài khoản có vai trò
+        <b>ROLE_USER</b>!
+      </p>
+      <a th:href="@{/}"> Quay lại trang chủ</a>
+    </div>
+  </body>
+</html>
