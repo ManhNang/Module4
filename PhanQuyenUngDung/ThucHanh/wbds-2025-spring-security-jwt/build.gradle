@@ -1,0 +1,54 @@
+plugins {
+    id 'java'
+    id 'war'
+}
+
+group = 'com.codegym'
+version = '1.0-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+
+    implementation 'org.springframework:spring-webmvc:6.2.6'
+    implementation 'org.springframework.security:spring-security-web:6.2.6'
+    implementation 'org.springframework.security:spring-security-config:6.2.6'
+    implementation 'org.springframework.data:spring-data-jpa:3.2.5'
+    implementation 'org.hibernate.orm:hibernate-core:6.4.4.Final'
+    implementation 'com.mysql:mysql-connector-j:8.3.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
+
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    testImplementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+    testImplementation 'org.springframework:spring-test:6.2.6'
+    testImplementation 'org.springframework.security:spring-security-test:6.2.6'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-parameters'
+}
+
+war {
+    archiveFileName = 'wbds-2025-spring-security-jwt.war'
+}
+
