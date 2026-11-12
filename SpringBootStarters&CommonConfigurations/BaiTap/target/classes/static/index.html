@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dự Báo Thời Tiết - Weather Forecast Service</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s ease;
+        }
+
+        .header {
+            margin-bottom: 24px;
+        }
+
+        .badge-brand {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        p.subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: rgba(15, 23, 42, 0.6);
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        .preset-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .pill {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pill:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--primary);
+            color: #93c5fd;
+        }
+
+        .pill.danger-pill {
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .pill.danger-pill:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: var(--danger);
+        }
+
+        button.btn-submit {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 24px;
+        }
+
+        button.btn-submit:hover {
+            background: var(--primary-hover);
+        }
+
+        button.btn-submit:active {
+            transform: scale(0.98);
+        }
+
+        /* Result Area */
+        .result-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 380px;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 20px;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .weather-card {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .weather-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .city-name {
+            font-size: 26px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .location-key {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .weather-date {
+            font-size: 12px;
+            color: #60a5fa;
+            background: rgba(59, 130, 246, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(96, 165, 250, 0.2);
+        }
+
+        .temp-display {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .temp-number {
+            font-size: 54px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1;
+        }
+
+        .temp-unit {
+            font-size: 24px;
+            font-weight: 400;
+            color: #94a3b8;
+            vertical-align: super;
+        }
+
+        .condition-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .description-box {
+            background: rgba(15, 23, 42, 0.5);
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #cbd5e1;
+            margin-bottom: 20px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .weather-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .detail-item {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-color);
+            padding: 12px 14px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .detail-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+        }
+
+        .detail-info .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .detail-info .val {
+            font-size: 15px;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        /* Error Banner */
+        .error-card {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 20px;
+            border-radius: 14px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .error-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: #f87171;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .error-status-badge {
+            background: var(--danger);
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        .error-desc {
+            font-size: 13px;
+            color: #fca5a5;
+            line-height: 1.5;
+        }
+
+        .error-endpoint {
+            margin-top: 12px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #94a3b8;
+            word-break: break-all;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Input Panel -->
+        <div class="card">
+            <div class="header">
+                <span class="badge-brand">Spring Boot & Security Service</span>
+                <h1>Dự Báo Thời Tiết</h1>
+                <p class="subtitle">Gọi dịch vụ qua URI <code>/weather/$username/$password/$location</code></p>
+            </div>
+
+            <form id="weatherForm">
+                <div class="form-group">
+                    <label for="username">Username ($user)</label>
+                    <input type="text" id="username" value="client1" required placeholder="Nhập tên tài khoản">
+                    <div class="preset-pills">
+                        <span class="pill" onclick="setUser('client1', '123456')">User: client1</span>
+                        <span class="pill" onclick="setUser('admin', 'admin123')">Admin: admin</span>
+                        <span class="pill danger-pill" onclick="setUser('sai_user', '123456')">Sai User (Test 401)</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password ($password)</label>
+                    <input type="password" id="password" value="123456" required placeholder="Nhập mật khẩu">
+                    <div class="preset-pills">
+                        <span class="pill" onclick="setPassword('123456')">Mật khẩu: 123456</span>
+                        <span class="pill danger-pill" onclick="setPassword('sai_pass')">Sai Password (Test 401)</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="location">Vị trí địa phương ($location)</label>
+                    <input type="text" id="location" value="hanoi" required placeholder="Ví dụ: hanoi, hochiminh, danang...">
+                    <div class="preset-pills">
+                        <span class="pill" onclick="setLocation('hanoi')">Hà Nội</span>
+                        <span class="pill" onclick="setLocation('hochiminh')">TP. Hồ Chí Minh</span>
+                        <span class="pill" onclick="setLocation('danang')">Đà Nẵng</span>
+                        <span class="pill" onclick="setLocation('dalat')">Đà Lạt</span>
+                        <span class="pill" onclick="setLocation('haiphong')">Hải Phòng</span>
+                        <span class="pill" onclick="setLocation('cantho')">Cần Thơ</span>
+                        <span class="pill danger-pill" onclick="setLocation('tokyo')">Tokyo (Test 400)</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    <span id="btnText">Tra Cứu Thời Tiết</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Result Panel -->
+        <div class="card result-container" id="resultContainer">
+            <div class="empty-state" id="emptyState">
+                <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"/>
+                </svg>
+                <h3>Chưa có dữ liệu tra cứu</h3>
+                <p style="font-size: 13px; margin-top: 6px;">Vui lòng nhập thông tin xác thực và chọn vị trí cần dự báo.</p>
+            </div>
+
+            <!-- Dynamic Weather View -->
+            <div class="weather-card" id="weatherDisplay" style="display: none;"></div>
+
+            <!-- Dynamic Error View -->
+            <div class="error-card" id="errorDisplay" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        function setUser(username, password) {
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+        }
+
+        function setPassword(password) {
+            document.getElementById('password').value = password;
+        }
+
+        function setLocation(loc) {
+            document.getElementById('location').value = loc;
+        }
+
+        const form = document.getElementById('weatherForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const emptyState = document.getElementById('emptyState');
+        const weatherDisplay = document.getElementById('weatherDisplay');
+        const errorDisplay = document.getElementById('errorDisplay');
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const location = document.getElementById('location').value.trim();
+
+            if (!username || !password || !location) {
+                alert('Vui lòng điền đầy đủ username, password và location.');
+                return;
+            }
+
+            // Set loading state
+            btnText.innerHTML = '<span class="spinner"></span> Đang kết nối webservice...';
+            submitBtn.disabled = true;
+
+            const endpoint = `/weather/${encodeURIComponent(username)}/${encodeURIComponent(password)}/${encodeURIComponent(location)}`;
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                emptyState.style.display = 'none';
+
+                if (response.ok) {
+                    // Success 200 OK
+                    errorDisplay.style.display = 'none';
+                    renderWeather(data);
+                    weatherDisplay.style.display = 'block';
+                } else {
+                    // Error: 400 Bad Request or 401 Unauthorized
+                    weatherDisplay.style.display = 'none';
+                    renderError(response.status, data, endpoint);
+                    errorDisplay.style.display = 'block';
+                }
+            } catch (err) {
+                emptyState.style.display = 'none';
+                weatherDisplay.style.display = 'none';
+                renderError(500, {
+                    error: 'Network Error',
+                    message: 'Không thể kết nối tới server: ' + err.message
+                }, endpoint);
+                errorDisplay.style.display = 'block';
+            } finally {
+                btnText.textContent = 'Tra Cứu Thời Tiết';
+                submitBtn.disabled = false;
+            }
+        });
+
+        function renderWeather(data) {
+            weatherDisplay.innerHTML = `
+                <div class="weather-top">
+                    <div>
+                        <div class="city-name">${escapeHtml(data.cityName || data.location)}</div>
+                        <div class="location-key">Vị trí: ${escapeHtml(data.location)}</div>
+                    </div>
+                    <div class="weather-date">📅 ${escapeHtml(data.forecastDate || '')}</div>
+                </div>
+
+                <div class="temp-display">
+                    <div class="temp-number">${data.temperature}<span class="temp-unit">°C</span></div>
+                    <div class="condition-badge">
+                        <span>🌤️</span> ${escapeHtml(data.condition || 'Bình thường')}
+                    </div>
+                </div>
+
+                <div class="description-box">
+                    ${escapeHtml(data.description || 'Không có mô tả chi tiết.')}
+                </div>
+
+                <div class="weather-details-grid">
+                    <div class="detail-item">
+                        <div class="detail-icon">💧</div>
+                        <div class="detail-info">
+                            <div class="label">Độ ẩm</div>
+                            <div class="val">${data.humidity}%</div>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">💨</div>
+                        <div class="detail-info">
+                            <div class="label">Tốc độ gió</div>
+                            <div class="val">${data.windSpeed} km/h</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderError(status, data, endpoint) {
+            let title = 'Có lỗi xảy ra';
+            let detail = data.message || 'Yêu cầu không thể thực hiện';
+
+            if (status === 400) {
+                title = '400 - Địa phương không tồn tại';
+                detail = `Địa phương bạn yêu cầu không có trong cơ sở dữ liệu hệ thống. (${detail})`;
+            } else if (status === 401) {
+                title = '401 - Xác thực thất bại';
+                detail = `Tên đăng nhập hoặc mật khẩu không chính xác qua Spring Security. (${detail})`;
+            }
+
+            errorDisplay.innerHTML = `
+                <div class="error-header">
+                    <span class="error-status-badge">MÃ ${status}</span>
+                    <span>${escapeHtml(title)}</span>
+                </div>
+                <div class="error-desc">${escapeHtml(detail)}</div>
+                <div class="error-endpoint">Request: GET ${escapeHtml(endpoint)}</div>
+            `;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
+
