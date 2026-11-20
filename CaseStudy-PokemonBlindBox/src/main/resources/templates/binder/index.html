@@ -24,8 +24,9 @@
                     </svg>
                     <span>Kho Đồ Nhà Sưu Tầm</span>
                 </div>
-                <h1 class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight pk-text-primary">
-                    Kho Đồ Cá Nhân &amp; Bộ Sưu Tập "<span th:text="${progress.setName()}">Delta Reign</span>"
+                <h1 class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight pk-text-primary"
+                    th:text="'Kho Đồ Cá Nhân & Bộ Sưu Tập &quot;' + ${progress.setName()} + '&quot;'">
+                    Kho Đồ Cá Nhân &amp; Bộ Sưu Tập "Delta Reign"
                 </h1>
                 <p class="mt-1 text-xs sm:text-sm pk-text-secondary">
                     Quản lý các thẻ bài bạn đang sở hữu trong kho và theo dõi tiến độ hoàn thành 103 ô thẻ chuẩn.
@@ -43,7 +44,7 @@
                         <path d="M3 9h18"/>
                         <path d="M9 21V9"/>
                     </svg>
-                    <span>Tủ Đồ Cá Nhân (<span class="pk-num" th:text="${#lists.size(myCards)}">4</span>)</span>
+                    <span class="pk-num" th:text="'Tủ Đồ Cá Nhân (' + ${#lists.size(myCards)} + ')'">Tủ Đồ Cá Nhân (4)</span>
                 </button>
 
                 <button type="button"
@@ -53,7 +54,7 @@
                     <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
                     </svg>
-                    <span>Tiến Độ Bộ Thẻ (<span class="pk-num" th:text="${progress.ownedBaseCardCount()} + '/103'">2/103</span>)</span>
+                    <span class="pk-num" th:text="'Tiến Độ Bộ Thẻ (' + ${progress.ownedBaseCardCount()} + '/' + ${progress.baseSetTotal()} + ')'">Tiến Độ Bộ Thẻ (2/103)</span>
                 </button>
             </div>
         </div>
@@ -94,8 +95,9 @@
     <div id="panel-tab-inventory" class="space-y-5">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <h2 class="text-lg font-extrabold pk-text-primary">
-                    Thẻ Bài Đang Sở Hữu (<span class="pk-num" th:text="${#lists.size(myCards)}">4</span>)
+                <h2 class="pk-num text-lg font-extrabold pk-text-primary"
+                    th:text="'Thẻ Bài Đang Sở Hữu (' + ${#lists.size(myCards)} + ')'">
+                    Thẻ Bài Đang Sở Hữu (4)
                 </h2>
                 <p class="text-xs pk-text-secondary">
                     Mỗi thẻ bài có thể được giữ trong bộ sưu tập hoặc bấm <strong>"Đem bán / Đấu giá"</strong> để đưa lên Sàn P2P.

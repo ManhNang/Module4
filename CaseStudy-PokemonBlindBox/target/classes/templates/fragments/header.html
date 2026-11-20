@@ -1,13 +1,16 @@
-<!DOCTYPE html>
-<html lang="vi"
-      xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-
-<!-- ==================== FRAGMENT 1: COMMON HEAD (DUAL-THEME CREAM & OBSIDIAN) ==================== -->
-<head th:fragment="head(pageTitle)">
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title th:text="${pageTitle} + ' | Pokémon Blindbox'">Pokémon Blindbox</title>
+<!doctype html>
+<html
+  lang="vi"
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+>
+  <!-- ==================== FRAGMENT 1: COMMON HEAD (DUAL-THEME CREAM & OBSIDIAN) ==================== -->
+  <head th:fragment="head(pageTitle)">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${pageTitle} + ' | Pokémon Blindbox'">
+      Pokémon Blindbox
+    </title>
 
     <!-- Chống nháy giao diện (Anti-FOUC) khi chuyển trang: Mặc định là Cream Mode ('light') -->
     <script th:src="@{/js/theme-init.js}"></script>
@@ -15,325 +18,562 @@
     <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            darkMode: ['selector', '[data-theme="dark"]'],
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Be Vietnam Pro"', '"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif']
-                    }
-                }
-            }
-        }
+      tailwind.config = {
+        darkMode: ["selector", '[data-theme="dark"]'],
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: [
+                '"Be Vietnam Pro"',
+                '"Plus Jakarta Sans"',
+                "system-ui",
+                "-apple-system",
+                "sans-serif",
+              ],
+            },
+          },
+        },
+      };
     </script>
 
     <!-- Google Fonts: Be Vietnam Pro & Plus Jakarta Sans -->
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- SockJS & STOMP.js via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 
     <!-- Global Dual-Theme & Custom Component Stylesheet -->
-    <link rel="stylesheet" th:href="@{/css/app.css(v='20261120c')}"/>
-</head>
+    <link rel="stylesheet" th:href="@{/css/app.css(v='20261120f')}" />
+  </head>
 
-<body>
-
-<!-- ==================== FRAGMENT 2: SINGLE-ROW STICKY GLASS NAVBAR + MOBILE DRAWER (TÁCH KHỎI HEADER) ==================== -->
-<th:block th:fragment="navbar(activeTab)">
-<header class="pk-navbar sticky top-0 z-40 w-full max-w-full">
-    <div class="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-2 px-3 sm:px-6 lg:px-8">
-
-        <!-- 1. Bên trái: Nút Hamburger (Mobile < lg) + Logo Pokémon Blindbox -->
-        <div class="flex items-center gap-2 min-w-0 shrink-0">
-            <button type="button"
-                    id="mobile-menu-toggle"
-                    onclick="window.toggleMobileNavDrawer()"
-                    aria-label="Mở menu điều hướng"
-                    aria-expanded="false"
-                    class="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl pk-surface-muted pk-text-primary hover:opacity-80 cursor-pointer transition shrink-0">
-                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="4" x2="20" y1="6" y2="6"/>
-                    <line x1="4" x2="20" y1="12" y2="12"/>
-                    <line x1="4" x2="20" y1="18" y2="18"/>
-                </svg>
+  <body>
+    <!-- ==================== FRAGMENT 2: SINGLE-ROW STICKY GLASS NAVBAR + MOBILE DRAWER (TÁCH KHỎI HEADER) ==================== -->
+    <th:block th:fragment="navbar(activeTab)">
+      <header class="pk-navbar sticky top-0 z-40 w-full max-w-full">
+        <div
+          class="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-2 px-3 sm:px-6 lg:px-8"
+        >
+          <!-- 1. Bên trái: Nút Hamburger (Mobile < lg) + Logo Pokémon Blindbox -->
+          <div class="flex items-center gap-2 min-w-0 shrink-0">
+            <button
+              type="button"
+              id="mobile-menu-toggle"
+              onclick="window.toggleMobileNavDrawer()"
+              aria-label="Mở menu điều hướng"
+              aria-expanded="false"
+              class="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl pk-surface-muted pk-text-primary hover:opacity-80 cursor-pointer transition shrink-0"
+            >
+              <svg
+                class="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="4" x2="20" y1="6" y2="6" />
+                <line x1="4" x2="20" y1="12" y2="12" />
+                <line x1="4" x2="20" y1="18" y2="18" />
+              </svg>
             </button>
 
-            <a th:href="@{/store}" class="flex items-center gap-2 shrink-0 group">
-                <div class="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-rose-600 text-white shadow-md shadow-rose-600/25 shrink-0">
-                    <svg class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="9"></circle>
-                        <circle cx="12" cy="12" r="2.5"></circle>
-                        <line x1="3" y1="12" x2="9.5" y2="12"></line>
-                        <line x1="14.5" y1="12" x2="21" y2="12"></line>
-                    </svg>
-                </div>
-                <span class="hidden sm:inline text-sm lg:text-base font-extrabold tracking-tight pk-text-primary whitespace-nowrap">Pokémon Blindbox</span>
-            </a>
-        </div>
-
-        <!-- 2. Ở giữa: Cụm Menu Pill gọn đẹp trên Desktop (>= 1024px) -->
-        <nav class="hidden lg:flex items-center gap-1 rounded-full pk-surface-muted p-1 shrink-0">
-            <a th:href="@{/store}"
-               th:classappend="${activeTab == 'store'} ? 'pk-btn-primary font-bold shadow-sm' : 'pk-text-secondary hover:pk-text-primary font-semibold'"
-               class="rounded-full px-3.5 py-1.5 text-xs xl:text-sm transition flex items-center gap-1.5 whitespace-nowrap">
-                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-                    <path d="m3.3 7 8.7 5 8.7-5"/>
-                    <path d="M12 22V12"/>
+            <a
+              th:href="@{/store}"
+              class="flex items-center gap-2 shrink-0 group"
+            >
+              <div
+                class="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-rose-600 text-white shadow-md shadow-rose-600/25 shrink-0"
+              >
+                <svg
+                  class="h-4 w-4 sm:h-5 sm:w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <circle cx="12" cy="12" r="2.5"></circle>
+                  <line x1="3" y1="12" x2="9.5" y2="12"></line>
+                  <line x1="14.5" y1="12" x2="21" y2="12"></line>
                 </svg>
-                <span>Cửa hàng Box</span>
+              </div>
+              <span
+                class="hidden sm:inline text-sm xl:text-base font-extrabold tracking-tight pk-text-primary whitespace-nowrap"
+                >Pokémon Blindbox</span
+              >
+            </a>
+          </div>
+
+          <!-- 2. Ở giữa: Cụm Menu Pill gọn đẹp trên Desktop (>= 1024px) -->
+          <nav
+            class="hidden lg:flex items-center gap-0.5 xl:gap-1 rounded-full pk-surface-muted p-1 min-w-0"
+          >
+            <a
+              th:href="@{/store}"
+              th:classappend="${activeTab == 'store'} ? 'pk-btn-primary font-bold shadow-sm' : 'pk-text-secondary hover:pk-text-primary font-semibold'"
+              class="rounded-full px-2.5 xl:px-3.5 py-1.5 text-xs xl:text-sm transition flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"
+                />
+                <path d="m3.3 7 8.7 5 8.7-5" />
+                <path d="M12 22V12" />
+              </svg>
+              <span>Cửa hàng Box</span>
             </a>
 
-            <a th:href="@{/inventory}"
-               th:classappend="${activeTab == 'inventory' or activeTab == 'binder'} ? 'pk-btn-primary font-bold shadow-sm' : 'pk-text-secondary hover:pk-text-primary font-semibold'"
-               class="rounded-full px-3.5 py-1.5 text-xs xl:text-sm transition flex items-center gap-1.5 whitespace-nowrap">
-                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/>
-                    <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
-                    <path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5"/>
-                    <path d="M8 10h8"/>
-                </svg>
-                <span>Kho đồ</span>
+            <a
+              th:href="@{/inventory}"
+              th:classappend="${activeTab == 'inventory' or activeTab == 'binder'} ? 'pk-btn-primary font-bold shadow-sm' : 'pk-text-secondary hover:pk-text-primary font-semibold'"
+              class="rounded-full px-2.5 xl:px-3.5 py-1.5 text-xs xl:text-sm transition flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"
+                />
+                <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                <path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5" />
+                <path d="M8 10h8" />
+              </svg>
+              <span>Kho đồ</span>
             </a>
 
-            <a th:href="@{/market}"
-               th:classappend="${activeTab == 'market'} ? 'pk-btn-primary font-bold shadow-sm' : 'pk-text-secondary hover:pk-text-primary font-semibold'"
-               class="rounded-full px-3.5 py-1.5 text-xs xl:text-sm transition flex items-center gap-1.5 whitespace-nowrap">
-                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8"/>
-                    <path d="m16 16 6-6"/>
-                    <path d="m8 8 6-6"/>
-                    <path d="m9 7 8 8"/>
-                    <path d="m21 11-8-8"/>
-                </svg>
-                <span>Sàn P2P</span>
+            <a
+              th:href="@{/market}"
+              th:classappend="${activeTab == 'market'} ? 'pk-btn-primary font-bold shadow-sm' : 'pk-text-secondary hover:pk-text-primary font-semibold'"
+              class="rounded-full px-2.5 xl:px-3.5 py-1.5 text-xs xl:text-sm transition flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8" />
+                <path d="m16 16 6-6" />
+                <path d="m8 8 6-6" />
+                <path d="m9 7 8 8" />
+                <path d="m21 11-8-8" />
+              </svg>
+              <span>Sàn P2P</span>
             </a>
 
-            <a th:href="@{/wallet}"
-               th:classappend="${activeTab == 'wallet'} ? 'pk-btn-primary font-bold shadow-sm' : 'pk-text-secondary hover:pk-text-primary font-semibold'"
-               class="rounded-full px-3.5 py-1.5 text-xs xl:text-sm transition flex items-center gap-1.5 whitespace-nowrap">
-                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/>
-                    <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
-                </svg>
-                <span>Nạp tiền</span>
+            <a
+              th:href="@{/wallet}"
+              th:classappend="${activeTab == 'wallet'} ? 'pk-btn-primary font-bold shadow-sm' : 'pk-text-secondary hover:pk-text-primary font-semibold'"
+              class="rounded-full px-2.5 xl:px-3.5 py-1.5 text-xs xl:text-sm transition flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"
+                />
+                <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
+              </svg>
+              <span>Nạp tiền</span>
             </a>
 
-            <a sec:authorize="hasRole('ADMIN')"
-               th:href="@{/admin/dashboard}"
-               th:classappend="${activeTab == 'admin'} ? 'pk-btn-primary font-bold shadow-sm' : 'pk-text-secondary hover:pk-text-primary font-semibold'"
-               class="rounded-full px-3.5 py-1.5 text-xs xl:text-sm transition flex items-center gap-1.5 whitespace-nowrap">
-                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                </svg>
-                <span>Quản trị</span>
+            <a
+              sec:authorize="hasRole('ADMIN')"
+              th:href="@{/admin/dashboard}"
+              th:classappend="${activeTab == 'admin'} ? 'pk-btn-primary font-bold shadow-sm' : 'pk-text-secondary hover:pk-text-primary font-semibold'"
+              class="rounded-full px-2.5 xl:px-3.5 py-1.5 text-xs xl:text-sm transition flex items-center gap-1.5 whitespace-nowrap"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+                />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span>Quản trị</span>
             </a>
-        </nav>
+          </nav>
 
-        <!-- 3. Bên phải: Cụm Số dư Ví + Avatar Tài khoản + Đăng xuất + Nút đổi Theme -->
-        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-
+          <!-- 3. Bên phải: Cụm Số dư Ví + Avatar Tài khoản + Đăng xuất + Nút đổi Theme -->
+          <div class="flex items-center gap-1.5 shrink-0">
             <!-- Cụm Số dư Ví kèm nút + nạp nhanh -->
-            <div class="flex items-center gap-1.5 rounded-full pk-surface pl-2.5 pr-1 py-1">
-                <a th:href="@{/wallet}" class="flex items-center gap-1">
-                    <span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span>
-                    <span id="nav-wallet-balance"
-                          class="pk-num text-[11px] sm:text-xs font-extrabold pk-text-primary"
-                          th:text="${wallet != null ? #numbers.formatDecimal(wallet.balance(), 0, 'POINT', 0, 'COMMA') + ' ₫' : '0 ₫'}">
-                        2.500.000 ₫
-                    </span>
-                </a>
-                <a th:href="@{/wallet}"
-                   title="Nạp điểm nhanh"
-                   aria-label="Nạp điểm nhanh"
-                   class="flex h-6 w-6 items-center justify-center rounded-full pk-btn-primary text-xs font-bold shrink-0">
-                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </a>
+            <div
+              class="flex items-center gap-1.5 rounded-full pk-surface pl-2.5 pr-1 py-1"
+            >
+              <a th:href="@{/wallet}" class="flex items-center gap-1">
+                <span
+                  class="h-2 w-2 rounded-full bg-emerald-500 shrink-0"
+                ></span>
+                <span
+                  id="nav-wallet-balance"
+                  class="pk-num text-[11px] sm:text-xs font-extrabold pk-text-primary"
+                  th:text="${wallet != null ? #numbers.formatDecimal(wallet.balance(), 0, 'POINT', 0, 'COMMA') + ' ₫' : '0 ₫'}"
+                >
+                  2.500.000 ₫
+                </span>
+              </a>
+              <a
+                th:href="@{/wallet}"
+                title="Nạp điểm nhanh"
+                aria-label="Nạp điểm nhanh"
+                class="flex h-6 w-6 items-center justify-center rounded-full pk-btn-primary text-xs font-bold shrink-0"
+              >
+                <svg
+                  class="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.25"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </a>
             </div>
 
             <!-- Avatar + Tên Tài Khoản Đang Đăng Nhập + Nút Đăng Xuất (/logout) -->
-            <div sec:authorize="isAuthenticated()" class="flex items-center gap-1.5 rounded-full pk-surface-muted pl-1 pr-1.5 sm:pl-1.5 sm:pr-2 py-1">
-                <div class="flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-[11px] font-extrabold uppercase text-white shrink-0"
-                     th:text="${currentUsername != null and !#strings.isEmpty(currentUsername) ? #strings.substring(currentUsername, 0, 1) : 'U'}">
-                    S
-                </div>
-                <span class="hidden sm:inline text-xs font-bold pk-text-primary whitespace-nowrap max-w-[90px] truncate"
-                      sec:authentication="name">satoshi</span>
-                <span sec:authorize="hasRole('ADMIN')"
-                      class="hidden md:inline rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[9px] font-extrabold text-rose-600">
-                    ADMIN
-                </span>
-                <form th:action="@{/logout}" method="post" class="inline-flex">
-                    <button type="submit"
-                            title="Đăng xuất"
-                            aria-label="Đăng xuất"
-                            class="flex h-6 w-6 items-center justify-center rounded-full hover:bg-rose-500/15 text-rose-600 transition shrink-0 cursor-pointer">
-                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                            <polyline points="16 17 21 12 16 7"/>
-                            <line x1="21" y1="12" x2="9" y2="12"/>
-                        </svg>
-                    </button>
-                </form>
+            <div
+              sec:authorize="isAuthenticated()"
+              class="flex items-center gap-1 xl:gap-1.5 rounded-full pk-surface-muted pl-1 pr-1.5 py-1"
+            >
+              <div
+                class="flex h-6 w-6 items-center justify-center rounded-full bg-rose-600 text-[11px] font-extrabold uppercase text-white shrink-0"
+                th:text="${currentUsername != null and !#strings.isEmpty(currentUsername) ? #strings.substring(currentUsername, 0, 1) : 'U'}"
+              >
+                S
+              </div>
+              <span
+                class="hidden sm:inline text-xs font-bold pk-text-primary whitespace-nowrap max-w-[78px] xl:max-w-[110px] truncate"
+                sec:authentication="name"
+                >satoshi</span
+              >
+              <span
+                sec:authorize="hasRole('ADMIN')"
+                class="hidden md:inline rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[9px] font-extrabold text-rose-600 shrink-0"
+              >
+                ADMIN
+              </span>
+              <form th:action="@{/logout}" method="post" class="inline-flex">
+                <button
+                  type="submit"
+                  title="Đăng xuất"
+                  aria-label="Đăng xuất"
+                  class="flex h-6 w-6 items-center justify-center rounded-full hover:bg-rose-500/15 text-rose-600 transition shrink-0 cursor-pointer"
+                >
+                  <svg
+                    class="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                </button>
+              </form>
             </div>
 
             <!-- Nút chuyển đổi Cream / Dark Mode -->
-            <button type="button"
-                    id="theme-toggle-btn"
-                    onclick="window.toggleBlindboxTheme()"
-                    title="Chuyển đổi giao diện Sáng Kem / Tối Obsidian"
-                    aria-label="Chuyển đổi giao diện Sáng / Tối"
-                    class="flex h-8 w-8 items-center justify-center rounded-full pk-surface hover:opacity-80 cursor-pointer transition shrink-0">
-                <svg id="theme-icon-moon" class="h-4 w-4 pk-text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
-                </svg>
-                <svg id="theme-icon-sun" class="h-4 w-4 text-amber-400 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="4"></circle>
-                    <path d="M12 2v2"></path>
-                    <path d="M12 20v2"></path>
-                    <path d="m4.93 4.93 1.41 1.41"></path>
-                    <path d="m17.66 17.66 1.41 1.41"></path>
-                    <path d="M2 12h2"></path>
-                    <path d="M20 12h2"></path>
-                    <path d="m6.34 17.66-1.41 1.41"></path>
-                    <path d="m19.07 4.93-1.41 1.41"></path>
-                </svg>
+            <button
+              type="button"
+              id="theme-toggle-btn"
+              onclick="window.toggleBlindboxTheme()"
+              title="Chuyển đổi giao diện Sáng Kem / Tối Obsidian"
+              aria-label="Chuyển đổi giao diện Sáng / Tối"
+              class="flex h-8 w-8 items-center justify-center rounded-full pk-surface hover:opacity-80 cursor-pointer transition shrink-0"
+            >
+              <svg
+                id="theme-icon-moon"
+                class="h-4 w-4 pk-text-primary"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+              </svg>
+              <svg
+                id="theme-icon-sun"
+                class="h-4 w-4 text-amber-400 hidden"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path>
+                <path d="M12 20v2"></path>
+                <path d="m4.93 4.93 1.41 1.41"></path>
+                <path d="m17.66 17.66 1.41 1.41"></path>
+                <path d="M2 12h2"></path>
+                <path d="M20 12h2"></path>
+                <path d="m6.34 17.66-1.41 1.41"></path>
+                <path d="m19.07 4.93-1.41 1.41"></path>
+              </svg>
             </button>
+          </div>
         </div>
-    </div>
-</header>
+      </header>
 
-<!-- ==================== MOBILE NAVIGATION DRAWER & BACKDROP (NẰM NGOÀI <header>, NỀN ĐẶC 100%) ==================== -->
-<div id="mobile-nav-backdrop"
-     onclick="window.toggleMobileNavDrawer(true)"
-     class="hidden lg:hidden"></div>
+      <!-- ==================== MOBILE NAVIGATION DRAWER & BACKDROP (NẰM NGOÀI <header>, NỀN ĐẶC 100%) ==================== -->
+      <div
+        id="mobile-nav-backdrop"
+        onclick="window.toggleMobileNavDrawer(true)"
+        class="hidden lg:hidden"
+      ></div>
 
-<aside id="mobile-nav-drawer"
-       aria-label="Menu điều hướng di động"
-       class="-translate-x-full transition-transform duration-300 ease-out flex flex-col justify-between p-5 lg:hidden">
-    <div class="space-y-5 overflow-y-auto">
-        <!-- Header Drawer -->
-        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+      <aside
+        id="mobile-nav-drawer"
+        aria-label="Menu điều hướng di động"
+        class="-translate-x-full transition-transform duration-300 ease-out flex flex-col justify-between p-5 lg:hidden"
+      >
+        <div class="space-y-5 overflow-y-auto">
+          <!-- Header Drawer -->
+          <div
+            class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4"
+          >
             <a th:href="@{/store}" class="flex items-center gap-2.5">
-                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-white shadow-md shrink-0">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                        <circle cx="12" cy="12" r="9"></circle>
-                        <circle cx="12" cy="12" r="2.5"></circle>
-                        <line x1="3" y1="12" x2="9.5" y2="12"></line>
-                        <line x1="14.5" y1="12" x2="21" y2="12"></line>
-                    </svg>
+              <div
+                class="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-white shadow-md shrink-0"
+              >
+                <svg
+                  class="h-5 w-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                >
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <circle cx="12" cy="12" r="2.5"></circle>
+                  <line x1="3" y1="12" x2="9.5" y2="12"></line>
+                  <line x1="14.5" y1="12" x2="21" y2="12"></line>
+                </svg>
+              </div>
+              <div>
+                <div class="text-sm font-extrabold pk-text-primary">
+                  Pokémon Blindbox
                 </div>
-                <div>
-                    <div class="text-sm font-extrabold pk-text-primary">Pokémon Blindbox</div>
-                    <div class="text-[11px] pk-text-secondary" sec:authorize="isAuthenticated()">
-                        Xin chào, <strong class="pk-text-primary" sec:authentication="name">satoshi</strong>
-                    </div>
+                <div
+                  class="text-[11px] pk-text-secondary"
+                  sec:authorize="isAuthenticated()"
+                >
+                  Xin chào,
+                  <strong class="pk-text-primary" sec:authentication="name"
+                    >satoshi</strong
+                  >
                 </div>
+              </div>
             </a>
-            <button type="button"
-                    onclick="window.toggleMobileNavDrawer(true)"
-                    aria-label="Đóng menu"
-                    class="flex h-8 w-8 items-center justify-center rounded-full pk-surface-muted pk-text-primary cursor-pointer shrink-0">
-                ✕
+            <button
+              type="button"
+              onclick="window.toggleMobileNavDrawer(true)"
+              aria-label="Đóng menu"
+              class="flex h-8 w-8 items-center justify-center rounded-full pk-surface-muted pk-text-primary cursor-pointer shrink-0"
+            >
+              ✕
             </button>
+          </div>
+
+          <!-- Danh sách 5 mục điều hướng đầy đủ -->
+          <nav class="flex flex-col gap-1.5">
+            <a
+              th:href="@{/store}"
+              th:classappend="${activeTab == 'store'} ? 'pk-btn-primary font-extrabold' : 'pk-surface-elevated pk-text-primary font-semibold hover:opacity-85'"
+              class="rounded-2xl px-4 py-3 text-sm flex items-center gap-3 transition"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+              >
+                <path
+                  d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"
+                />
+                <path d="m3.3 7 8.7 5 8.7-5" />
+                <path d="M12 22V12" />
+              </svg>
+              <span>Cửa hàng Box</span>
+            </a>
+
+            <a
+              th:href="@{/inventory}"
+              th:classappend="${activeTab == 'inventory' or activeTab == 'binder'} ? 'pk-btn-primary font-extrabold' : 'pk-surface-elevated pk-text-primary font-semibold hover:opacity-85'"
+              class="rounded-2xl px-4 py-3 text-sm flex items-center gap-3 transition"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+              >
+                <path
+                  d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"
+                />
+                <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                <path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5" />
+                <path d="M8 10h8" />
+              </svg>
+              <span>Kho đồ</span>
+            </a>
+
+            <a
+              th:href="@{/market}"
+              th:classappend="${activeTab == 'market'} ? 'pk-btn-primary font-extrabold' : 'pk-surface-elevated pk-text-primary font-semibold hover:opacity-85'"
+              class="rounded-2xl px-4 py-3 text-sm flex items-center gap-3 transition"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+              >
+                <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8" />
+                <path d="m16 16 6-6" />
+                <path d="m8 8 6-6" />
+                <path d="m9 7 8 8" />
+                <path d="m21 11-8-8" />
+              </svg>
+              <span>Sàn P2P</span>
+            </a>
+
+            <a
+              th:href="@{/wallet}"
+              th:classappend="${activeTab == 'wallet'} ? 'pk-btn-primary font-extrabold' : 'pk-surface-elevated pk-text-primary font-semibold hover:opacity-85'"
+              class="rounded-2xl px-4 py-3 text-sm flex items-center gap-3 transition"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+              >
+                <path
+                  d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"
+                />
+                <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
+              </svg>
+              <span>Nạp tiền</span>
+            </a>
+
+            <a
+              sec:authorize="hasRole('ADMIN')"
+              th:href="@{/admin/dashboard}"
+              th:classappend="${activeTab == 'admin'} ? 'pk-btn-primary font-extrabold' : 'pk-surface-elevated pk-text-primary font-semibold hover:opacity-85'"
+              class="rounded-2xl px-4 py-3 text-sm flex items-center gap-3 transition"
+            >
+              <svg
+                class="h-4 w-4 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+              >
+                <path
+                  d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+                />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span>Quản trị</span>
+            </a>
+          </nav>
         </div>
 
-        <!-- Danh sách 5 mục điều hướng đầy đủ -->
-        <nav class="flex flex-col gap-1.5">
-            <a th:href="@{/store}"
-               th:classappend="${activeTab == 'store'} ? 'pk-btn-primary font-extrabold' : 'pk-surface-elevated pk-text-primary font-semibold hover:opacity-85'"
-               class="rounded-2xl px-4 py-3 text-sm flex items-center gap-3 transition">
-                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-                    <path d="m3.3 7 8.7 5 8.7-5"/>
-                    <path d="M12 22V12"/>
-                </svg>
-                <span>Cửa hàng Box</span>
-            </a>
-
-            <a th:href="@{/inventory}"
-               th:classappend="${activeTab == 'inventory' or activeTab == 'binder'} ? 'pk-btn-primary font-extrabold' : 'pk-surface-elevated pk-text-primary font-semibold hover:opacity-85'"
-               class="rounded-2xl px-4 py-3 text-sm flex items-center gap-3 transition">
-                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                    <path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/>
-                    <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
-                    <path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5"/>
-                    <path d="M8 10h8"/>
-                </svg>
-                <span>Kho đồ</span>
-            </a>
-
-            <a th:href="@{/market}"
-               th:classappend="${activeTab == 'market'} ? 'pk-btn-primary font-extrabold' : 'pk-surface-elevated pk-text-primary font-semibold hover:opacity-85'"
-               class="rounded-2xl px-4 py-3 text-sm flex items-center gap-3 transition">
-                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                    <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8"/>
-                    <path d="m16 16 6-6"/>
-                    <path d="m8 8 6-6"/>
-                    <path d="m9 7 8 8"/>
-                    <path d="m21 11-8-8"/>
-                </svg>
-                <span>Sàn P2P</span>
-            </a>
-
-            <a th:href="@{/wallet}"
-               th:classappend="${activeTab == 'wallet'} ? 'pk-btn-primary font-extrabold' : 'pk-surface-elevated pk-text-primary font-semibold hover:opacity-85'"
-               class="rounded-2xl px-4 py-3 text-sm flex items-center gap-3 transition">
-                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/>
-                    <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
-                </svg>
-                <span>Nạp tiền</span>
-            </a>
-
-            <a sec:authorize="hasRole('ADMIN')"
-               th:href="@{/admin/dashboard}"
-               th:classappend="${activeTab == 'admin'} ? 'pk-btn-primary font-extrabold' : 'pk-surface-elevated pk-text-primary font-semibold hover:opacity-85'"
-               class="rounded-2xl px-4 py-3 text-sm flex items-center gap-3 transition">
-                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                </svg>
-                <span>Quản trị</span>
-            </a>
-        </nav>
-    </div>
-
-    <!-- Footer Drawer: Đăng xuất (POST kèm CSRF token, P0-05) -->
-    <div sec:authorize="isAuthenticated()" class="pt-4 border-t border-slate-200 dark:border-slate-800">
-        <form th:action="@{/logout}" method="post" class="w-full">
-            <button type="submit"
-                    class="w-full rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 px-4 py-3 text-sm font-extrabold text-rose-600 flex items-center justify-center gap-2 transition cursor-pointer">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
-                </svg>
-                <span>Đăng xuất tài khoản</span>
+        <!-- Footer Drawer: Đăng xuất (POST kèm CSRF token, P0-05) -->
+        <div
+          sec:authorize="isAuthenticated()"
+          class="pt-4 border-t border-slate-200 dark:border-slate-800"
+        >
+          <form th:action="@{/logout}" method="post" class="w-full">
+            <button
+              type="submit"
+              class="w-full rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 px-4 py-3 text-sm font-extrabold text-rose-600 flex items-center justify-center gap-2 transition cursor-pointer"
+            >
+              <svg
+                class="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Đăng xuất tài khoản</span>
             </button>
-        </form>
-    </div>
-</aside>
+          </form>
+        </div>
+      </aside>
 
-<!-- Global Toast Notification Container -->
-<div id="toast-container" class="fixed top-20 right-3 sm:right-5 z-50 flex flex-col gap-3 max-w-[calc(100vw-1.5rem)] sm:max-w-md w-full pointer-events-none"></div>
-</th:block>
+      <!-- Global Toast Notification Container -->
+      <div
+        id="toast-container"
+        class="fixed top-20 right-3 sm:right-5 z-50 flex flex-col gap-3 max-w-[calc(100vw-1.5rem)] sm:max-w-md w-full pointer-events-none"
+      ></div>
+    </th:block>
 
-<!-- ==================== FRAGMENT 3: COMMON SCRIPTS ==================== -->
-<th:block th:fragment="commonScripts">
-    <div id="app-user-context"
-         th:attr="data-user-id=${currentUserId ?: 1}, data-username=${currentUsername ?: 'satoshi'}"
-         hidden></div>
-    <script defer th:src="@{/js/common.js(v='20261120c')}"></script>
-</th:block>
-
-</body>
+    <!-- ==================== FRAGMENT 3: COMMON SCRIPTS ==================== -->
+    <th:block th:fragment="commonScripts">
+      <div
+        id="app-user-context"
+        th:attr="data-user-id=${currentUserId ?: 1}, data-username=${currentUsername ?: 'satoshi'}"
+        hidden
+      ></div>
+      <script defer th:src="@{/js/common.js(v='20261120c')}"></script>
+    </th:block>
+  </body>
 </html>

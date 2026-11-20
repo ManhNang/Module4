@@ -23,69 +23,19 @@
                 Cửa hàng Box
             </a>
         </div>
-
-        <!-- Nút chuyển nhanh giữa các thẻ trong bộ Delta Reign để kiểm chứng thông số & hiệu ứng Holographic -->
-        <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs font-semibold pk-text-secondary">Xem nhanh thẻ trong bộ:</span>
-            <a th:each="c : ${setCards}"
-               th:href="@{/cards/{id}(id=${c.id()})}"
-               th:classappend="${c.id() == card.id()} ? 'pk-btn-primary font-extrabold' : 'pk-surface pk-text-primary hover:opacity-80 font-semibold'"
-               class="rounded-full px-3.5 py-1.5 text-xs transition pk-num">
-                <span th:text="${c.formattedCardNumber()} + ' • ' + ${c.name()}">098 / 103 • Hầm hào huyền thoại</span>
-            </a>
-        </div>
     </div>
 
     <!-- ==================== KHUNG CHI TIẾT THẺ BÀI 2 CỘT ==================== -->
     <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-        <!-- Cột trái (5/12): Khung Trưng Bày Thẻ Bài 2D kèm 3D Tilt & Holographic Foil -->
-        <div class="lg:col-span-5 flex flex-col items-center space-y-4">
+        <!-- Cột trái (5/12): Lá bài Pokémon tràn viền (Full-Bleed 63:88) kèm 3D Tilt & Holographic Foil -->
+        <div class="lg:col-span-5 flex flex-col items-center">
             <div id="detail-card-showcase"
                  th:classappend="${isHoloRarity} ? 'is-holo-active' : ''"
-                 class="pk-holo-card pk-surface w-full max-w-[360px] aspect-[2.7/3.8] rounded-3xl p-5 flex flex-col justify-between cursor-grab active:cursor-grabbing select-none">
-
-                <!-- Header trên bề mặt thẻ -->
-                <div class="relative z-10 flex items-center justify-between text-xs">
-                    <span class="pk-num rounded-full pk-surface-muted px-3 py-1 font-extrabold pk-text-primary"
-                          th:text="${card.formattedCardNumber()}">
-                        098 / 103
-                    </span>
-                    <span class="rounded-full px-3 py-1 font-extrabold border"
-                          th:style="'border-color:' + ${card.rarityColorHex()} + '; color:' + ${card.rarityColorHex()} + '; background-color:' + ${card.rarityColorHex()} + '18'"
-                          th:text="${card.rarityName()}">
-                        Không phổ biến
-                    </span>
-                </div>
-
-                <!-- Ảnh thẻ bài 2D chính giữa (chuẩn tỉ lệ 5:7, object-fit: contain giữ nguyên 4 góc) -->
-                <div class="card-image-wrapper relative z-10 my-3 flex-1 rounded-2xl pk-surface-muted p-3">
-                    <img th:src="${card.imageUrl()}"
-                         th:alt="${card.name()}"
-                         onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"
-                         class="drop-shadow-2xl transition-transform duration-300"/>
-                </div>
-
-                <!-- Chân thẻ -->
-                <div class="relative z-10 flex items-center justify-between text-xs pt-1">
-                    <span class="font-extrabold pk-text-primary truncate" th:text="${card.name()}">Hầm hào huyền thoại</span>
-                    <span class="font-bold pk-text-secondary" th:text="${card.setCode()}">DLR</span>
-                </div>
-            </div>
-
-            <!-- Chú thích tương tác 3D Tilt & Holographic -->
-            <div class="flex flex-wrap items-center justify-center gap-2 text-xs pk-text-secondary">
-                <span th:if="${isHoloRarity}"
-                      class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                    <span>Đã kích hoạt lớp phủ Holographic 3D Tilt (Di chuột lên thẻ)</span>
-                </span>
-                <span th:unless="${isHoloRarity}"
-                      class="inline-flex items-center gap-1.5 rounded-full pk-surface-muted px-3 py-1 font-semibold pk-text-secondary">
-                    <span>Di chuột lên bề mặt thẻ để nghiêng 3D</span>
-                </span>
+                 class="pk-holo-card pk-card-fullbleed cursor-grab active:cursor-grabbing select-none">
+                <img th:src="${card.imageUrl()}"
+                     th:alt="${card.name()}"
+                     onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"/>
             </div>
         </div>
 
@@ -157,7 +107,7 @@
                         </div>
                     </div>
 
-                    <!-- Dòng iii: ❖ | Đặt | Link gạch chân "Delta Reign" (chuyển sang /market lọc sẵn bộ Delta Reign) -->
+                    <!-- Dòng iii: ❖ | Bộ thẻ | Link gạch chân "Delta Reign" (chuyển sang /market lọc sẵn bộ Delta Reign) -->
                     <div class="flex items-center justify-between py-4 gap-4">
                         <div class="flex items-center gap-3.5">
                             <span class="flex h-8 w-8 items-center justify-center rounded-lg pk-surface-muted pk-text-secondary">
@@ -169,7 +119,7 @@
                                     <polygon points="12 12 17 9 22 12 17 15 12 12"/>
                                 </svg>
                             </span>
-                            <span class="text-sm sm:text-base font-bold pk-text-primary">Đặt</span>
+                            <span class="text-sm sm:text-base font-bold pk-text-primary">Bộ thẻ</span>
                         </div>
                         <div class="text-right">
                             <a th:href="@{/market(setName=${card.setName()})}"
@@ -180,7 +130,7 @@
                         </div>
                     </div>
 
-                    <!-- Dòng iv: ✦ | Loài kèm badge nền hồng nhạt chữ đỏ "Bản Beta" | Link gạch chân "Hầm hào huyền thoại" -->
+                    <!-- Dòng iv: ✦ | Loài | Link gạch chân tên loài -->
                     <div class="flex items-center justify-between py-4 gap-4">
                         <div class="flex items-center gap-3.5 flex-wrap">
                             <span class="flex h-8 w-8 items-center justify-center rounded-lg pk-surface-muted pk-text-secondary">
@@ -190,10 +140,6 @@
                                 </svg>
                             </span>
                             <span class="text-sm sm:text-base font-bold pk-text-primary">Loài</span>
-                            <span th:if="${card.isBetaSpecies() == null or card.isBetaSpecies()}"
-                                  class="rounded-md bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-600 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30">
-                                Bản Beta
-                            </span>
                         </div>
                         <div class="text-right">
                             <a th:href="@{/market(speciesName=${card.speciesName()})}"

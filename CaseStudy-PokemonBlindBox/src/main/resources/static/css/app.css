@@ -464,7 +464,7 @@ select.pk-input {
     opacity: 0.96;
 }
 
-/* ==================== 2. LƯỚI 5 CỘT & GÓI BÀI FOIL 2D CÓ CHIỀU SÂU ==================== */
+/* ==================== 2. LƯỚI 5 CỘT & METALLIC FOIL BOOSTER PACK (POKÉMON TCG POCKET STYLE) ==================== */
 .pk-pack-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -489,25 +489,47 @@ select.pk-input {
     }
 }
 
+/* Vỏ Booster Pack ánh kim cao cấp (Delta Reign Metallic Foil) */
 .pk-pack-foil {
     aspect-ratio: 2.6 / 3.8;
-    background: var(--pack-body-bg);
-    border: 1.5px solid var(--pack-border);
-    box-shadow: 0 12px 26px -6px rgba(20, 25, 38, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    background:
+        radial-gradient(circle at 50% 34%, rgba(244, 63, 94, 0.22) 0%, transparent 56%),
+        radial-gradient(circle at 18% 82%, rgba(99, 102, 241, 0.24) 0%, transparent 52%),
+        repeating-linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.028) 0px,
+            rgba(255, 255, 255, 0.028) 1px,
+            transparent 1px,
+            transparent 11px
+        ),
+        linear-gradient(152deg, #0f172a 0%, #1e1b4b 44%, #31102f 82%, #0c1220 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    box-shadow:
+        0 14px 30px -6px rgba(15, 23, 42, 0.36),
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.12);
     position: relative;
     overflow: hidden;
     transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s ease, border-color 0.24s ease;
 }
 [data-theme="dark"] .pk-pack-foil {
-    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    box-shadow:
+        0 16px 34px -6px rgba(0, 0, 0, 0.65),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
-/* Ánh kim chéo tĩnh + Hiệu ứng ánh sáng lướt chéo (Foil Sheen Sweep) khi hover vào gói AVAILABLE */
+/* Ánh kim chéo tĩnh + Hiệu ứng Foil Sheen Sweep lướt chéo khi hover */
 .pk-pack-foil::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: var(--pack-sheen);
+    background: linear-gradient(
+        128deg,
+        rgba(255, 255, 255, 0) 22%,
+        rgba(255, 255, 255, 0.10) 44%,
+        rgba(251, 191, 36, 0.12) 52%,
+        rgba(255, 255, 255, 0) 70%
+    );
     pointer-events: none;
     z-index: 1;
 }
@@ -515,13 +537,13 @@ select.pk-input {
     content: "";
     position: absolute;
     top: -20%;
-    left: -130%;
-    width: 75%;
+    left: -135%;
+    width: 78%;
     height: 150%;
     background: linear-gradient(
         105deg,
         rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.52) 45%,
+        rgba(255, 255, 255, 0.42) 45%,
         rgba(251, 191, 36, 0.34) 55%,
         rgba(255, 255, 255, 0) 100%
     );
@@ -531,7 +553,7 @@ select.pk-input {
     transition: left 0.65s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .pk-pack-foil.is-available:hover::after {
-    left: 155%;
+    left: 160%;
 }
 
 /* Chuẩn khung thẻ bài tỉ lệ 5:7 (Pokémon TCG Pocket / Collectr) — giữ trọn vẹn 4 góc thẻ, không cắt xén */
@@ -555,52 +577,82 @@ select.pk-input {
     border-radius: 12px;
 }
 
-.pk-pack-foil.is-available:hover {
-    transform: translateY(-6px) scale(1.02);
-    border-color: #F59E0B;
-    box-shadow: var(--shadow-hover), 0 0 0 2px rgba(245, 158, 11, 0.28);
+/* Full-Bleed Pokémon Card Showcase (chuẩn tỷ lệ thẻ thật 63:88, không viền trắng thừa) */
+.pk-card-fullbleed {
+    width: 100%;
+    max-width: 380px;
+    aspect-ratio: 63 / 88;
+    height: auto;
+    padding: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    background: transparent;
+    box-shadow:
+        0 24px 50px -12px rgba(15, 23, 42, 0.34),
+        0 10px 22px -6px rgba(15, 23, 42, 0.20),
+        0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+[data-theme="dark"] .pk-card-fullbleed {
+    box-shadow:
+        0 28px 60px -12px rgba(0, 0, 0, 0.78),
+        0 12px 26px -6px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+.pk-card-fullbleed img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    border-radius: 16px;
 }
 
-/* Viền răng cưa ánh bạc tinh tế ở mép trên & dưới */
+.pk-pack-foil.is-available:hover {
+    transform: translateY(-6px) scale(1.018);
+    border-color: rgba(251, 191, 36, 0.82);
+    box-shadow:
+        0 22px 42px -8px rgba(15, 23, 42, 0.52),
+        0 0 24px -4px rgba(251, 191, 36, 0.36),
+        inset 0 1px 0 rgba(255, 255, 255, 0.38);
+}
+
+/* 2 Mép dập nhiệt ánh bạc sắc nét (Metallic Crimp Ridges) */
 .pk-foil-crimp-top,
 .pk-foil-crimp-bottom {
-    height: 9px;
+    height: 11px;
     width: 100%;
-    background: repeating-linear-gradient(
-        90deg,
-        #CBD5E1 0px,
-        #F8FAFC 2.5px,
-        #94A3B8 5px
-    );
-    border-bottom: 1px solid rgba(100, 116, 139, 0.30);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(15, 23, 42, 0.25) 100%),
+        repeating-linear-gradient(
+            90deg,
+            #94a3b8 0px,
+            #f8fafc 2px,
+            #cbd5e1 3.5px,
+            #64748b 5px
+        );
+    border-bottom: 1px solid rgba(255, 255, 255, 0.28);
     flex-shrink: 0;
     position: relative;
-    z-index: 2;
-}
-[data-theme="dark"] .pk-foil-crimp-top,
-[data-theme="dark"] .pk-foil-crimp-bottom {
-    background: repeating-linear-gradient(
-        90deg,
-        #334155 0px,
-        #64748B 2.5px,
-        #1E293B 5px
-    );
-    border-color: rgba(255, 255, 255, 0.12);
+    z-index: 3;
 }
 .pk-foil-crimp-bottom {
     border-bottom: none;
-    border-top: 1px solid rgba(100, 116, 139, 0.30);
+    border-top: 1px solid rgba(255, 255, 255, 0.28);
 }
 
-/* Huy hiệu Trung tâm Gói Bài có chiều sâu ánh kim chéo */
+/* Huy hiệu Trung tâm Gói Bài phát sáng nhẹ */
 .pk-pack-emblem {
-    background: linear-gradient(135deg, #F59E0B 0%, #E11D48 48%, #4F46E5 100%);
-    box-shadow: 0 10px 22px -4px rgba(225, 29, 72, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.65);
+    background: linear-gradient(135deg, #F59E0B 0%, #E11D48 48%, #6366F1 100%);
+    box-shadow:
+        0 0 26px -2px rgba(244, 63, 94, 0.55),
+        0 10px 22px -4px rgba(0, 0, 0, 0.5),
+        inset 0 1px 2px rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.32);
 }
 
 /* Nút mở gói bài gọn gàng trên 1 dòng không bao giờ tràn chữ ₫ */
 .pk-pack-open-btn {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     padding: 8px 12px;
     width: 100%;
     white-space: nowrap;
@@ -612,11 +664,23 @@ select.pk-input {
     justify-content: center;
 }
 
-/* Gói bài đã rút (SOLD / OPENED) chìm xuống khay */
+/* Ô khay rỗng tối giản cho Gói đã rút (Empty Slot) */
 .pk-pack-foil.is-withdrawn {
-    opacity: 0.42;
-    filter: grayscale(0.85);
-    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.12);
+    background: var(--bg-surface-muted) !important;
+    border: 1.5px dashed var(--border-strong) !important;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.05) !important;
+    opacity: 0.78;
+    filter: none;
+    cursor: default;
+}
+[data-theme="dark"] .pk-pack-foil.is-withdrawn {
+    background: rgba(15, 23, 42, 0.48) !important;
+    border-color: rgba(255, 255, 255, 0.13) !important;
+    box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.35) !important;
+}
+.pk-pack-foil.is-withdrawn::before,
+.pk-pack-foil.is-withdrawn::after {
+    display: none !important;
 }
 
 /* Silhouette CSS cho ô thẻ chưa mở trúng */
@@ -672,48 +736,221 @@ select.pk-input {
     opacity: 0.92;
 }
 
-/* ==================== 4. HOẠT ẢNH XÉ GÓI BÀI 2D & LẬT THẺ 3D (CARD FLIP) ==================== */
+/* ==================== 4. IMMERSIVE GACHA STAGE, TEAR PACK VFX, RARITY AURAS & CARD SPOTLIGHT ==================== */
+.pk-gacha-overlay {
+    background: rgba(7, 10, 19, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+.pk-gacha-stage {
+    width: min(1240px, 95vw);
+    max-height: 95vh;
+    background: linear-gradient(160deg, rgba(17, 24, 39, 0.92) 0%, rgba(11, 15, 25, 0.96) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    box-shadow: 0 32px 80px -12px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    color: #F8FAFC;
+}
+
+/* Hào quang sân khấu chuyển động nhẹ phía sau Hero Booster Pack */
+@keyframes pkAmbientPulse {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.72; }
+    50% { transform: scale(1.12) rotate(12deg); opacity: 1; }
+}
+.pk-stage-ambient-glow {
+    position: absolute;
+    width: 380px;
+    height: 380px;
+    border-radius: 9999px;
+    background: radial-gradient(
+        circle,
+        rgba(244, 63, 94, 0.30) 0%,
+        rgba(99, 102, 241, 0.22) 38%,
+        rgba(251, 191, 36, 0.10) 62%,
+        transparent 74%
+    );
+    filter: blur(26px);
+    pointer-events: none;
+    animation: pkAmbientPulse 5s ease-in-out infinite;
+}
+
+/* Hiệu ứng lơ lửng nhẹ (Floating) cho Hero Booster Pack */
+@keyframes pkHeroFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-9px); }
+}
+.pk-hero-pack-float {
+    animation: pkHeroFloat 3.6s ease-in-out infinite;
+    perspective: 1100px;
+}
+.pk-hero-pack-float:hover {
+    animation-play-state: paused;
+}
+
+/* Mép xé khớp 100% chiều rộng thân gói bài + 3D Parallax Tilt + Dynamic Holo Glare */
 .pk-tear-wrapper {
     position: relative;
-    width: 220px;
-    aspect-ratio: 2.6 / 3.8;
+    width: 268px;
     margin: 0 auto;
     user-select: none;
+    box-sizing: border-box;
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: transform 0.16s cubic-bezier(0.03, 0.98, 0.52, 0.99);
+}
+.pk-hero-glare {
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    pointer-events: none;
+    z-index: 20;
+    background: radial-gradient(
+        circle at var(--mx, 50%) var(--my, 35%),
+        rgba(255, 255, 255, 0.34) 0%,
+        rgba(251, 191, 36, 0.16) 28%,
+        transparent 64%
+    );
+    mix-blend-mode: screen;
+    opacity: var(--glare-opacity, 0.45);
+    transition: opacity 0.25s ease;
 }
 .pk-tear-top-flap {
-    transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1.5px solid rgba(255, 255, 255, 0.26);
+    border-bottom: none;
+    touch-action: none;
+    cursor: grab;
+    transition: transform 0.62s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease;
     transform-origin: right top;
 }
+.pk-tear-top-flap:active {
+    cursor: grabbing;
+}
 .pk-tear-wrapper.is-torn .pk-tear-top-flap {
-    transform: translate(110px, -48px) rotate(26deg) scale(0.92);
+    transform: translate(128px, -64px) rotate(28deg) scale(0.92) !important;
     opacity: 0;
 }
 .pk-tear-body {
-    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease;
+    width: 100%;
+    height: 326px;
+    box-sizing: border-box;
+    aspect-ratio: auto !important;
+    border-top: none !important;
+    transition: transform 0.58s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.48s ease;
 }
 .pk-tear-wrapper.is-torn .pk-tear-body {
-    transform: scale(1.08) translateY(12px);
+    transform: scale(1.08) translateY(14px);
     opacity: 0;
 }
+
+/* Đường cắt ánh sáng (Glowing Tear Line) + gợi ý kéo sang phải */
+@keyframes pkTearArrowSlide {
+    0%, 100% { transform: translateX(0); opacity: 0.7; }
+    50% { transform: translateX(5px); opacity: 1; }
+}
+.pk-tear-arrow {
+    display: inline-block;
+    animation: pkTearArrowSlide 1.3s ease-in-out infinite;
+}
 .pk-tear-cutline {
-    border-bottom: 2px dashed rgba(245, 158, 11, 0.85);
+    width: 100%;
+    box-sizing: border-box;
+    border-bottom: 2px dashed rgba(251, 191, 36, 0.95);
+    box-shadow: inset 0 -10px 18px -10px rgba(251, 191, 36, 0.55);
     position: relative;
+    overflow: hidden;
+}
+.pk-tear-progress-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0%;
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.35), rgba(255, 255, 255, 0.85));
+    pointer-events: none;
+    transition: width 0.06s linear;
+}
+.pk-tear-seam-flash {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 47px;
+    height: 7px;
+    pointer-events: none;
+    z-index: 30;
+    opacity: 0;
+    transform: scaleX(0);
+    transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pk-tear-wrapper.is-tearing-normal .pk-tear-seam-flash {
+    opacity: 1;
+    transform: scaleX(1.35);
+    background: linear-gradient(90deg, transparent, #ffffff, #fde68a, #ffffff, transparent);
+    box-shadow: 0 0 22px 6px rgba(253, 230, 138, 0.75);
+}
+.pk-tear-wrapper.is-tearing-ex .pk-tear-seam-flash {
+    opacity: 1;
+    transform: scaleX(1.65);
+    background: linear-gradient(90deg, transparent, #fef08a, #f59e0b, #ffffff, #f59e0b, transparent);
+    box-shadow: 0 0 38px 12px rgba(251, 191, 36, 0.92);
+}
+.pk-tear-wrapper.is-tearing-hyper .pk-tear-seam-flash {
+    opacity: 1;
+    transform: scaleX(1.85);
+    background: linear-gradient(90deg, #ff2a85, #fbbf24, #34d399, #38bdf8, #a855f7, #ff2a85);
+    box-shadow: 0 0 44px 14px rgba(168, 85, 247, 0.85), 0 0 28px 8px rgba(56, 189, 248, 0.85);
 }
 
-/* Lật lá bài 3D (Card Flip) */
+@keyframes pkPackShake {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    15% { transform: translate(-5px, -2px) rotate(-2deg); }
+    30% { transform: translate(6px, 2px) rotate(2.2deg); }
+    45% { transform: translate(-6px, 1px) rotate(-2.4deg); }
+    60% { transform: translate(6px, -2px) rotate(2deg); }
+    75% { transform: translate(-4px, 2px) rotate(-1.5deg); }
+    90% { transform: translate(3px, -1px) rotate(1deg); }
+}
+.pk-tear-wrapper.is-shaking {
+    animation: pkPackShake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes pkScreenShake {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    20% { transform: translate3d(-5px, 3px, 0); }
+    40% { transform: translate3d(5px, -3px, 0); }
+    60% { transform: translate3d(-4px, -2px, 0); }
+    80% { transform: translate3d(4px, 2px, 0); }
+}
+.pk-screen-shake {
+    animation: pkScreenShake 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes pkCardDealIn {
+    0% { opacity: 0; transform: translateY(28px) scale(0.86); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.pk-card-deal-in {
+    opacity: 0;
+    animation: pkCardDealIn 0.44s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Lật lá bài 3D (Card Flip) tối ưu kích thước lớn */
 .pk-flip-scene {
-    perspective: 1100px;
+    perspective: 1200px;
 }
 .pk-flip-inner {
     position: relative;
     width: 100%;
-    aspect-ratio: 2.7 / 3.8;
+    aspect-ratio: 5 / 7;
     transform-style: preserve-3d;
     transition: transform 0.68s cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
 }
 .pk-flip-scene.is-flipped .pk-flip-inner {
     transform: rotateY(180deg);
+}
+.pk-flip-scene.is-anticipation .pk-flip-inner {
+    animation: pkPackShake 0.56s ease-in-out both;
 }
 .pk-flip-face {
     position: absolute;
@@ -723,12 +960,109 @@ select.pk-input {
     border-radius: 1rem;
 }
 .pk-flip-back {
-    background: linear-gradient(145deg, #1E293B 0%, #0F172A 55%, #1E1B4B 100%);
-    border: 2px solid rgba(245, 158, 11, 0.55);
-    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.45);
+    background: radial-gradient(circle at 50% 35%, #1e293b 0%, #0f172a 62%, #090d16 100%);
+    border: 2px solid rgba(226, 232, 240, 0.32);
+    transition: transform 0.22s ease, box-shadow 0.25s ease;
+}
+.pk-flip-scene:not(.is-flipped):hover .pk-flip-back {
+    transform: translateY(-4px) scale(1.015);
 }
 .pk-flip-front {
     transform: rotateY(180deg);
+}
+
+/* Hào quang mặt sau thẻ (trạng thái úp) theo 5 cấp độ hiếm */
+.pk-aura-common {
+    border-color: rgba(226, 232, 240, 0.38);
+    box-shadow: 0 12px 26px -6px rgba(0, 0, 0, 0.55), 0 0 14px -4px rgba(226, 232, 240, 0.22);
+}
+.pk-aura-uncommon {
+    border-color: rgba(52, 211, 153, 0.72);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.55), 0 0 22px -2px rgba(52, 211, 153, 0.38);
+}
+.pk-aura-rare {
+    border-color: rgba(56, 189, 248, 0.88);
+    box-shadow: 0 14px 32px -6px rgba(0, 0, 0, 0.6), 0 0 28px 0 rgba(56, 189, 248, 0.52);
+}
+@keyframes pkPulseGold {
+    0%, 100% {
+        box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.65), 0 0 22px 2px rgba(251, 191, 36, 0.55), inset 0 0 14px rgba(251, 191, 36, 0.22);
+    }
+    50% {
+        box-shadow: 0 14px 38px -4px rgba(0, 0, 0, 0.7), 0 0 38px 7px rgba(251, 191, 36, 0.88), inset 0 0 22px rgba(251, 191, 36, 0.42);
+    }
+}
+.pk-aura-ex {
+    border: 2.5px solid #fbbf24;
+    animation: pkPulseGold 1.8s ease-in-out infinite;
+}
+@keyframes pkPrismaticShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes pkPulseHyper {
+    0%, 100% {
+        box-shadow: 0 14px 36px -6px rgba(0, 0, 0, 0.7), 0 0 26px 4px rgba(236, 72, 153, 0.62), 0 0 42px 6px rgba(56, 189, 248, 0.45);
+    }
+    50% {
+        box-shadow: 0 16px 42px -4px rgba(0, 0, 0, 0.75), 0 0 40px 9px rgba(168, 85, 247, 0.85), 0 0 56px 10px rgba(251, 191, 36, 0.58);
+    }
+}
+.pk-aura-hyper {
+    border: 3px solid transparent;
+    background:
+        radial-gradient(circle at 50% 35%, #1e1b4b 0%, #0f172a 62%, #090d16 100%) padding-box,
+        linear-gradient(125deg, #ff2a85, #fbbf24, #34d399, #38bdf8, #a855f7, #ff2a85) border-box;
+    background-size: 100% 100%, 260% 260%;
+    animation: pkPrismaticShift 2.6s linear infinite, pkPulseHyper 1.9s ease-in-out infinite;
+}
+
+/* Lớp ánh kim quét sáng cho thẻ EX / Hyper Rare sau khi lật */
+@keyframes pkHoloSweep {
+    0% { transform: translateX(-140%) skewX(-22deg); opacity: 0; }
+    20% { opacity: 0.9; }
+    100% { transform: translateX(180%) skewX(-22deg); opacity: 0; }
+}
+.pk-holo-shimmer::before {
+    content: "";
+    position: absolute;
+    top: -15%;
+    left: 0;
+    width: 65%;
+    height: 130%;
+    z-index: 22;
+    pointer-events: none;
+    background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.65) 45%,
+        rgba(251, 191, 36, 0.45) 55%,
+        transparent 100%
+    );
+    animation: pkHoloSweep 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Card Spotlight Zoom */
+@keyframes pkSpotlightZoom {
+    from { opacity: 0; transform: scale(0.84) translateY(12px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.pk-spotlight-enter {
+    animation: pkSpotlightZoom 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pk-tear-wrapper.is-shaking,
+    .pk-screen-shake,
+    .pk-aura-ex,
+    .pk-aura-hyper,
+    .pk-holo-shimmer::before,
+    .pk-card-deal-in,
+    .pk-spotlight-enter {
+        animation: none !important;
+        opacity: 1 !important;
+    }
 }
 
 @keyframes slideInRight {
