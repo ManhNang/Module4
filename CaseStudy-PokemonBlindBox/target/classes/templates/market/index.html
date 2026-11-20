@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('Sàn Giao Dịch P2P & Đấu Giá Trực Tuyến')}"></head>
+<body class="min-h-screen flex flex-col">
+
+<!-- Single-row Sticky Glass Navbar -->
+<div th:replace="~{fragments/header :: navbar('market')}"></div>
+
+<main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+
+    <!-- ==================== HEADER + THANH FILTER BAR NGANG GỌN GÀNG ĐỒNG BỘ CHIỀU CAO ==================== -->
+    <section class="pk-surface rounded-3xl p-5 sm:p-6 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight pk-text-primary">
+                    Sàn Giao Dịch P2P &amp; Đấu Giá Trực Tuyến
+                </h1>
+                <p class="text-xs sm:text-sm pk-text-secondary">
+                    Săn thẻ còn thiếu theo Bộ thẻ, Độ hiếm, Loài hoặc mở bán thẻ trùng từ Kho đồ của bạn.
+                </p>
+            </div>
+            <div th:if="${activeCrossFilter != null}"
+                 class="inline-flex items-center gap-2 rounded-full bg-rose-500/10 px-3.5 py-1.5 text-xs font-bold text-rose-600 dark:text-amber-400 border border-rose-500/20">
+                <span th:text="${activeCrossFilter}">Loài: Hầm hào huyền thoại</span>
+                <a th:href="@{/market}" class="hover:underline ml-1">✕</a>
+            </div>
+        </div>
+
+        <!-- Thanh Filter Bar ngang đồng bộ chiều cao h-10 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
+            <!-- Ô tìm kiếm tên thẻ -->
+            <div class="lg:col-span-2 relative min-w-0">
+                <svg class="h-4 w-4 pk-text-secondary absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.3-4.3"/>
+                </svg>
+                <input type="text" id="market-filter-search" oninput="window.applyMarketFilters()"
+                       placeholder="Tìm tên thẻ, số..."
+                       class="pk-input h-10 w-full rounded-xl pl-9 pr-3 text-xs sm:text-sm"/>
+            </div>
+
+            <!-- Lọc theo Bộ thẻ -->
+            <div class="lg:col-span-2 min-w-0">
+                <select id="market-filter-set" onchange="window.applyMarketFilters()"
+                        class="pk-input h-10 w-full rounded-xl px-3 text-xs sm:text-sm cursor-pointer">
+                    <option value="">Tất cả Bộ thẻ</option>
+                    <option th:each="s : ${cardSets}"
+                            th:value="${s.name()}"
+                            th:selected="${selectedSetName == s.name()}"
+                            th:text="${s.name()} + ' (' + ${s.code()} + ')'">Delta Reign (DLR)</option>
+                </select>
+            </div>
+
+            <!-- Lọc theo Độ hiếm -->
+            <div class="lg:col-span-2 min-w-0">
+                <select id="market-filter-rarity" onchange="window.applyMarketFilters()"
+                        class="pk-input h-10 w-full rounded-xl px-3 text-xs sm:text-sm cursor-pointer">
+                    <option value="">Tất cả Độ hiếm</option>
+                    <option th:each="r : ${rarities}" th:value="${r.name()}" th:text="${r.name()}">Không phổ biến</option>
+                </select>
+            </div>
+
+            <!-- Lọc theo Loài -->
+            <div class="lg:col-span-2 min-w-0">
+                <select id="market-filter-species" onchange="window.applyMarketFilters()"
+                        class="pk-input h-10 w-full rounded-xl px-3 text-xs sm:text-sm cursor-pointer">
+                    <option value="">Tất cả Loài</option>
+                    <option th:each="sp : ${speciesList}"
+                            th:value="${sp.name()}"
+                            th:selected="${selectedSpeciesName == sp.name()}"
+                            th:text="${sp.name()}">Hầm hào huyền thoại</option>
+                </select>
+            </div>
+
+            <!-- Lọc theo Loại giao dịch (Nới rộng col-span-3 + text gọn "Loại giao dịch") -->
+            <div class="lg:col-span-3 min-w-0">
+                <select id="market-filter-type" onchange="window.applyMarketFilters()"
+                        class="pk-input h-10 w-full rounded-xl px-3 text-xs sm:text-sm font-semibold cursor-pointer">
+                    <option value="ALL">Loại giao dịch</option>
+                    <option value="FIXED">Mua ngay (Fixed Price)</option>
+                    <option value="AUCTION">Đấu giá trực tiếp (LIVE)</option>
+                </select>
+            </div>
+
+            <!-- Nút Đặt lại -->
+            <div class="lg:col-span-1 min-w-0">
+                <button type="button" onclick="window.resetMarketFilters()"
+                        class="pk-surface-muted h-10 w-full rounded-xl text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition whitespace-nowrap px-2">
+                    Đặt lại
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== CHỌN THẺ TỪ KHO ĐỒ ĐỂ ĐĂNG BÁN HOẶC MỞ ĐẤU GIÁ ==================== -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+        <!-- Form Niêm Yết Mua Ngay (Fixed Price) -->
+        <div class="lg:col-span-6 pk-surface rounded-3xl p-5 space-y-3.5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                            <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/>
+                            <path d="M7 7h.01"/>
+                        </svg>
+                    </span>
+                    <h2 class="text-sm sm:text-base font-extrabold pk-text-primary">Đăng Bán Giá Cố Định</h2>
+                </div>
+                <span class="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400">Mua ngay</span>
+            </div>
+
+            <form id="create-listing-form" class="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3 items-end">
+                <div class="sm:col-span-2 min-w-0">
+                    <label for="listing-user-card-id" class="block text-[11px] font-semibold pk-text-secondary mb-1">Thẻ trong Kho đồ *</label>
+                    <select id="listing-user-card-id" required class="pk-input h-10 w-full rounded-xl px-3 text-xs cursor-pointer">
+                        <option value="" disabled selected>-- Chọn thẻ bài --</option>
+                        <option th:each="uc : ${myCards}"
+                                th:if="${!uc.isLocked()}"
+                                th:value="${uc.userCardId()}"
+                                th:selected="${sellUserCardId != null and sellUserCardId == uc.userCardId()}"
+                                th:text="'#' + ${uc.userCardId()} + ' • ' + ${uc.card().name()} + ' (' + ${uc.card().formattedCardNumber()} + ')'">
+                            #1 • Hầm hào huyền thoại (098 / 103)
+                        </option>
+                    </select>
+                </div>
+                <div class="min-w-0">
+                    <label for="listing-price" class="block text-[11px] font-semibold pk-text-secondary mb-1">Giá bán (₫) *</label>
+                    <input type="number" id="listing-price" min="1000" step="1000" value="120000" required
+                           class="pk-input pk-num h-10 w-full rounded-xl px-3 text-xs sm:text-sm font-extrabold"/>
+                </div>
+                <div class="min-w-0">
+                    <button type="submit"
+                            class="h-10 w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 text-xs sm:text-sm font-extrabold text-white shadow-md cursor-pointer transition whitespace-nowrap">
+                        Đăng bán
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Form Mở Phiên Đấu Giá Trực Tuyến (Live Auction) — CSS Grid linh hoạt chống cắt chữ số -->
+        <div class="lg:col-span-6 pk-surface rounded-3xl p-5 space-y-3.5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                            <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8"/>
+                            <path d="m16 16 6-6"/>
+                            <path d="m8 8 6-6"/>
+                        </svg>
+                    </span>
+                    <h2 class="text-sm sm:text-base font-extrabold pk-text-primary">Mở Phiên Đấu Giá Trực Tiếp</h2>
+                </div>
+                <span class="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2.5 py-0.5 text-[11px] font-extrabold text-rose-600 dark:text-rose-400">
+                    <span class="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                    LIVE
+                </span>
+            </div>
+
+            <form id="create-auction-form" class="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3 items-end">
+                <div class="sm:col-span-2 min-w-0">
+                    <label for="auction-user-card-id" class="block text-[11px] font-semibold pk-text-secondary mb-1">Thẻ trong Kho *</label>
+                    <select id="auction-user-card-id" required class="pk-input h-10 w-full rounded-xl px-3 text-xs cursor-pointer">
+                        <option value="" disabled selected>-- Chọn thẻ --</option>
+                        <option th:each="uc : ${myCards}"
+                                th:if="${!uc.isLocked()}"
+                                th:value="${uc.userCardId()}"
+                                th:selected="${sellUserCardId != null and sellUserCardId == uc.userCardId()}"
+                                th:text="'#' + ${uc.userCardId()} + ' • ' + ${uc.card().name()}">
+                            #1 • Mega Rayquaza ex
+                        </option>
+                    </select>
+                </div>
+                <div class="min-w-0">
+                    <label for="auction-start-price" class="block text-[11px] font-semibold pk-text-secondary mb-1">Khởi điểm (₫) *</label>
+                    <input type="number" id="auction-start-price" min="1000" step="1000" value="100000" required
+                           class="pk-input pk-num h-10 w-full rounded-xl px-3 text-xs sm:text-sm font-bold"/>
+                </div>
+                <div class="min-w-0">
+                    <label for="auction-min-increment" class="block text-[11px] font-semibold pk-text-secondary mb-1">Bước giá (₫) *</label>
+                    <input type="number" id="auction-min-increment" min="1000" step="1000" value="10000" required
+                           class="pk-input pk-num h-10 w-full rounded-xl px-3 text-xs sm:text-sm font-bold"/>
+                </div>
+                <div class="min-w-0">
+                    <label for="auction-duration" class="block text-[11px] font-semibold pk-text-secondary mb-1">Thời lượng (Phút) *</label>
+                    <input type="number" id="auction-duration" min="5" max="10080" value="30" required
+                           class="pk-input pk-num h-10 w-full rounded-xl px-3 text-xs sm:text-sm font-bold"/>
+                </div>
+                <div class="min-w-0">
+                    <button type="submit"
+                            class="pk-btn-primary h-10 w-full rounded-xl px-4 text-xs sm:text-sm font-extrabold cursor-pointer whitespace-nowrap">
+                        Mở Đấu Giá
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- ==================== KHU VỰC 1: ĐẤU GIÁ TRỰC TIẾP (BADGE ĐỎ NHẤP NHÁY LIVE + ĐỒNG HỒ ĐẾM NGƯỢC) ==================== -->
+    <section id="section-live-auctions" class="space-y-3.5">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white">
+                    <span class="h-1.5 w-1.5 rounded-full bg-white animate-ping"></span>
+                    LIVE
+                </span>
+                <h2 class="text-base sm:text-lg font-extrabold pk-text-primary">
+                    Đấu Giá Trực Tiếp (<span class="pk-num" th:text="${#lists.size(activeAuctions)}">0</span>)
+                </h2>
+            </div>
+        </div>
+
+        <div th:if="${#lists.isEmpty(activeAuctions)}"
+             class="pk-surface rounded-2xl p-6 text-center text-sm pk-text-secondary">
+            Chưa có phiên đấu giá trực tiếp nào. Hãy chọn một thẻ từ Kho đồ ở trên để mở phiên đấu giá!
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div th:each="auc : ${activeAuctions}"
+                 th:attr="data-market-type='AUCTION',
+                          data-card-name=${auc.card().name()},
+                          data-card-num=${auc.card().formattedCardNumber()},
+                          data-set-name=${auc.card().setName()},
+                          data-rarity-name=${auc.card().rarityName()},
+                          data-species-name=${auc.card().speciesName()}"
+                 class="market-item-card card-item pk-surface rounded-3xl p-4 border-2 border-rose-500/35 flex flex-col justify-between space-y-4 transition hover:border-rose-500/70">
+
+                <div class="flex items-start gap-3.5">
+                    <a th:href="@{/cards/{id}(id=${auc.card().id()})}" class="card-image-wrapper pk-card-frame !w-20 shrink-0 pk-surface-muted p-1">
+                        <img th:src="${auc.card().imageUrl()}"
+                             th:alt="${auc.card().name()}"
+                             onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"/>
+                    </a>
+                    <div class="min-w-0 flex-1 space-y-1.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-2.5 py-0.5 text-[10px] font-extrabold text-white">
+                                <span class="h-1.5 w-1.5 rounded-full bg-white animate-pulse"></span>
+                                LIVE AUCTION
+                            </span>
+                            <span class="pk-num text-xs font-bold pk-text-secondary" th:text="${auc.card().formattedCardNumber()}">098 / 103</span>
+                        </div>
+                        <a th:href="@{/cards/{id}(id=${auc.card().id()})}"
+                           class="block text-base font-extrabold pk-text-primary hover:underline truncate"
+                           th:text="${auc.card().name()}">Hầm hào huyền thoại</a>
+                        <div class="flex flex-wrap gap-1.5 text-[11px]">
+                            <a th:href="@{/market(setName=${auc.card().setName()})}"
+                               class="pk-surface-muted rounded-md px-2 py-0.5 font-bold pk-text-primary hover:opacity-80"
+                               th:text="${auc.card().setName()}">Delta Reign</a>
+                            <a th:href="@{/market(speciesName=${auc.card().speciesName()})}"
+                               class="pk-surface-muted rounded-md px-2 py-0.5 font-semibold pk-text-secondary hover:pk-text-primary"
+                               th:text="${auc.card().speciesName()}">Hầm hào huyền thoại</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Giá hiện tại & Đồng hồ đếm ngược nổi bật -->
+                <div class="pk-surface-elevated rounded-2xl p-3.5 grid grid-cols-2 gap-2 items-center">
+                    <div>
+                        <div class="text-[10px] font-bold uppercase pk-text-secondary">Giá hiện tại</div>
+                        <div class="pk-num text-base sm:text-lg font-extrabold text-rose-600 dark:text-amber-400"
+                             th:text="${#numbers.formatDecimal(auc.currentHighestBid(), 0, 'POINT', 0, 'COMMA')} + '₫'">
+                            120.000₫
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] font-bold uppercase pk-text-secondary">Còn lại</div>
+                        <div class="auction-card-timer pk-num text-sm sm:text-base font-extrabold text-rose-600 dark:text-rose-400"
+                             th:attr="data-end-time=${auc.endTime()}">
+                            --:--:--
+                        </div>
+                    </div>
+                </div>
+
+                <a th:href="@{/market/auctions/{id}(id=${auc.id()})}"
+                   class="pk-btn-primary w-full rounded-xl py-2.5 text-center text-xs font-extrabold">
+                    Vào Phòng Đấu Giá →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== KHU VỰC 2: MUA NGAY - GIÁ CỐ ĐỊNH (BADGE XANH LỤC + NÚT MUA NHANH) ==================== -->
+    <section id="section-fixed-listings" class="space-y-3.5">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="rounded-full bg-emerald-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white">Mua ngay</span>
+                <h2 class="text-base sm:text-lg font-extrabold pk-text-primary">
+                    Thẻ Bán Giá Cố Định (<span class="pk-num" th:text="${#lists.size(fixedPriceListings)}">0</span>)
+                </h2>
+            </div>
+        </div>
+
+        <div th:if="${#lists.isEmpty(fixedPriceListings)}"
+             class="pk-surface rounded-2xl p-6 text-center text-sm pk-text-secondary">
+            Chưa có thẻ bài nào đang rao bán giá cố định theo bộ lọc hiện tại.
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div th:each="item : ${fixedPriceListings}"
+                 th:attr="data-market-type='FIXED',
+                          data-card-name=${item.card().name()},
+                          data-card-num=${item.card().formattedCardNumber()},
+                          data-set-name=${item.card().setName()},
+                          data-rarity-name=${item.card().rarityName()},
+                          data-species-name=${item.card().speciesName()}"
+                 class="market-item-card card-item pk-surface rounded-2xl p-3 border border-emerald-500/30 flex flex-col justify-between space-y-2.5 hover:border-emerald-500/70 transition">
+
+                <div class="card-image-wrapper pk-card-frame pk-surface-muted p-1.5 group">
+                    <a th:href="@{/cards/{id}(id=${item.card().id()})}" class="flex items-center justify-center w-full h-full">
+                        <img th:src="${item.card().imageUrl()}"
+                             th:alt="${item.card().name()}"
+                             onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/208.png'"
+                             class="transition-transform duration-300 group-hover:scale-105"/>
+                    </a>
+                    <!-- Badge xanh lục "Mua ngay" góc trên trái -->
+                    <span class="absolute top-2 left-2 z-10 rounded-full bg-emerald-600/95 px-2.5 py-0.5 text-[10px] font-extrabold text-white shadow">
+                        Mua ngay
+                    </span>
+                    <span class="pk-num absolute top-2 right-2 z-10 rounded-md bg-slate-950/75 px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                        <span th:text="${item.card().formattedCardNumber()}">052 / 103</span>
+                    </span>
+                </div>
+
+                <div class="space-y-1">
+                    <a th:href="@{/cards/{id}(id=${item.card().id()})}"
+                       class="pk-line-clamp-2 block text-xs sm:text-sm font-extrabold pk-text-primary hover:underline leading-snug"
+                       th:text="${item.card().name()}">Steelix</a>
+                    <div class="text-[11px] font-bold"
+                         th:style="'color:' + ${item.card().rarityColorHex()}"
+                         th:text="${item.card().rarityName()} + ' • ' + ${item.card().speciesName()}">Hiếm • Steelix</div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                    <div class="pk-num text-sm font-extrabold text-emerald-600 dark:text-emerald-400"
+                         th:text="${#numbers.formatDecimal(item.price(), 0, 'POINT', 0, 'COMMA')} + '₫'">
+                        120.000₫
+                    </div>
+                    <button type="button"
+                            th:attr="data-listing-id=${item.id()}"
+                            onclick="window.buyFixedListing(parseInt(this.getAttribute('data-listing-id'), 10))"
+                            class="rounded-xl bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 text-xs font-extrabold text-white shadow cursor-pointer transition whitespace-nowrap">
+                        Mua nhanh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<div th:replace="~{fragments/header :: commonScripts}"></div>
+<script defer th:src="@{/js/pages/market.js}"></script>
+</body>
+</html>

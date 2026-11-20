@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head(${card.name()} + ' (' + ${card.formattedCardNumber()} + ')')}"></head>
+<body class="min-h-screen flex flex-col">
+
+<!-- Single-row Sticky Glass Navbar -->
+<div th:replace="~{fragments/header :: navbar('inventory')}"></div>
+
+<main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+
+    <!-- Thanh điều hướng phía trên & Chuyển nhanh giữa các thẻ trong bộ -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-2.5">
+            <a th:href="@{/inventory}"
+               class="pk-surface rounded-full px-4 py-2 text-xs font-bold pk-text-primary hover:opacity-80 transition inline-flex items-center gap-1.5">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6"/>
+                </svg>
+                <span>Quay lại Kho đồ</span>
+            </a>
+            <a th:href="@{/store}"
+               class="pk-surface-muted rounded-full px-3.5 py-2 text-xs font-semibold pk-text-secondary hover:pk-text-primary transition">
+                Cửa hàng Box
+            </a>
+        </div>
+
+        <!-- Nút chuyển nhanh giữa các thẻ trong bộ Delta Reign để kiểm chứng thông số & hiệu ứng Holographic -->
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold pk-text-secondary">Xem nhanh thẻ trong bộ:</span>
+            <a th:each="c : ${setCards}"
+               th:href="@{/cards/{id}(id=${c.id()})}"
+               th:classappend="${c.id() == card.id()} ? 'pk-btn-primary font-extrabold' : 'pk-surface pk-text-primary hover:opacity-80 font-semibold'"
+               class="rounded-full px-3.5 py-1.5 text-xs transition pk-num">
+                <span th:text="${c.formattedCardNumber()} + ' • ' + ${c.name()}">098 / 103 • Hầm hào huyền thoại</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- ==================== KHUNG CHI TIẾT THẺ BÀI 2 CỘT ==================== -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+        <!-- Cột trái (5/12): Khung Trưng Bày Thẻ Bài 2D kèm 3D Tilt & Holographic Foil -->
+        <div class="lg:col-span-5 flex flex-col items-center space-y-4">
+            <div id="detail-card-showcase"
+                 th:classappend="${isHoloRarity} ? 'is-holo-active' : ''"
+                 class="pk-holo-card pk-surface w-full max-w-[360px] aspect-[2.7/3.8] rounded-3xl p-5 flex flex-col justify-between cursor-grab active:cursor-grabbing select-none">
+
+                <!-- Header trên bề mặt thẻ -->
+                <div class="relative z-10 flex items-center justify-between text-xs">
+                    <span class="pk-num rounded-full pk-surface-muted px-3 py-1 font-extrabold pk-text-primary"
+                          th:text="${card.formattedCardNumber()}">
+                        098 / 103
+                    </span>
+                    <span class="rounded-full px-3 py-1 font-extrabold border"
+                          th:style="'border-color:' + ${card.rarityColorHex()} + '; color:' + ${card.rarityColorHex()} + '; background-color:' + ${card.rarityColorHex()} + '18'"
+                          th:text="${card.rarityName()}">
+                        Không phổ biến
+                    </span>
+                </div>
+
+                <!-- Ảnh thẻ bài 2D chính giữa (chuẩn tỉ lệ 5:7, object-fit: contain giữ nguyên 4 góc) -->
+                <div class="card-image-wrapper relative z-10 my-3 flex-1 rounded-2xl pk-surface-muted p-3">
+                    <img th:src="${card.imageUrl()}"
+                         th:alt="${card.name()}"
+                         onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"
+                         class="drop-shadow-2xl transition-transform duration-300"/>
+                </div>
+
+                <!-- Chân thẻ -->
+                <div class="relative z-10 flex items-center justify-between text-xs pt-1">
+                    <span class="font-extrabold pk-text-primary truncate" th:text="${card.name()}">Hầm hào huyền thoại</span>
+                    <span class="font-bold pk-text-secondary" th:text="${card.setCode()}">DLR</span>
+                </div>
+            </div>
+
+            <!-- Chú thích tương tác 3D Tilt & Holographic -->
+            <div class="flex flex-wrap items-center justify-center gap-2 text-xs pk-text-secondary">
+                <span th:if="${isHoloRarity}"
+                      class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    <span>Đã kích hoạt lớp phủ Holographic 3D Tilt (Di chuột lên thẻ)</span>
+                </span>
+                <span th:unless="${isHoloRarity}"
+                      class="inline-flex items-center gap-1.5 rounded-full pk-surface-muted px-3 py-1 font-semibold pk-text-secondary">
+                    <span>Di chuột lên bề mặt thẻ để nghiêng 3D</span>
+                </span>
+            </div>
+        </div>
+
+        <!-- ==================== CỘT PHẢI (7/12): BẢNG THÔNG SỐ THẺ BÀI (KHỚP CHÍNH XÁC BỐ CỤC MẪU) ==================== -->
+        <div class="lg:col-span-7 space-y-6">
+
+            <div class="pk-surface rounded-3xl p-7 sm:p-9 space-y-6">
+
+                <!-- 1a. Tiêu đề lớn: Tên thẻ bài (VD: "Hầm hào huyền thoại") -->
+                <div class="flex flex-wrap items-start justify-between gap-4 pb-2">
+                    <div>
+                        <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight pk-text-primary"
+                            th:text="${card.name()}">
+                            Hầm hào huyền thoại
+                        </h1>
+                    </div>
+
+                    <!-- Huy hiệu trạng thái sở hữu trong Kho đồ -->
+                    <div>
+                        <span th:if="${ownedCopiesCount > 0}"
+                              class="pk-num inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3.5 py-1.5 text-xs font-extrabold text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                            <span th:text="'Đã có trong Kho đồ (x' + ${ownedCopiesCount} + ')'">Đã có trong Kho đồ (x3)</span>
+                        </span>
+                        <span th:if="${ownedCopiesCount == 0}"
+                              class="inline-flex items-center gap-1.5 rounded-full pk-surface-muted px-3.5 py-1.5 text-xs font-bold pk-text-secondary">
+                            <span>Chưa sở hữu trong Kho đồ</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 1b. 4 Dòng thuộc tính có Icon SVG đồng bộ bên trái, nhãn in đậm bên trái và giá trị căn phải -->
+                <div class="divide-y divide-slate-200/80 dark:divide-slate-800/80 border-t border-b border-slate-200/80 dark:border-slate-800/80">
+
+                    <!-- Dòng i: # | Số | "098 / 103" -->
+                    <div class="flex items-center justify-between py-4 gap-4">
+                        <div class="flex items-center gap-3.5">
+                            <span class="flex h-8 w-8 items-center justify-center rounded-lg pk-surface-muted pk-text-secondary">
+                                <!-- Icon # (Hash SVG, stroke-width: 1.75) -->
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="4" x2="20" y1="9" y2="9"/>
+                                    <line x1="4" x2="20" y1="15" y2="15"/>
+                                    <line x1="10" x2="8" y1="3" y2="21"/>
+                                    <line x1="16" x2="14" y1="3" y2="21"/>
+                                </svg>
+                            </span>
+                            <span class="text-sm sm:text-base font-bold pk-text-primary">Số</span>
+                        </div>
+                        <div class="pk-num text-sm sm:text-base font-semibold pk-text-primary text-right"
+                             th:text="${card.formattedCardNumber()}">
+                            098 / 103
+                        </div>
+                    </div>
+
+                    <!-- Dòng ii: ☆ | Độ Hiếm | "Không phổ biến" -->
+                    <div class="flex items-center justify-between py-4 gap-4">
+                        <div class="flex items-center gap-3.5">
+                            <span class="flex h-8 w-8 items-center justify-center rounded-lg pk-surface-muted pk-text-secondary">
+                                <!-- Icon ☆ (Star Outline SVG, stroke-width: 1.75) -->
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                </svg>
+                            </span>
+                            <span class="text-sm sm:text-base font-bold pk-text-primary">Độ Hiếm</span>
+                        </div>
+                        <div class="text-sm sm:text-base font-semibold pk-text-primary text-right"
+                             th:text="${card.rarityName()}">
+                            Không phổ biến
+                        </div>
+                    </div>
+
+                    <!-- Dòng iii: ❖ | Đặt | Link gạch chân "Delta Reign" (chuyển sang /market lọc sẵn bộ Delta Reign) -->
+                    <div class="flex items-center justify-between py-4 gap-4">
+                        <div class="flex items-center gap-3.5">
+                            <span class="flex h-8 w-8 items-center justify-center rounded-lg pk-surface-muted pk-text-secondary">
+                                <!-- Icon ❖ (Four-Diamond Emblem SVG, stroke-width: 1.75) -->
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="12 2 15 7 12 12 9 7 12 2"/>
+                                    <polygon points="12 12 15 17 12 22 9 17 12 12"/>
+                                    <polygon points="2 12 7 9 12 12 7 15 2 12"/>
+                                    <polygon points="12 12 17 9 22 12 17 15 12 12"/>
+                                </svg>
+                            </span>
+                            <span class="text-sm sm:text-base font-bold pk-text-primary">Đặt</span>
+                        </div>
+                        <div class="text-right">
+                            <a th:href="@{/market(setName=${card.setName()})}"
+                               class="text-sm sm:text-base font-semibold pk-text-primary underline decoration-slate-400 underline-offset-4 hover:text-rose-600 dark:hover:text-amber-400 transition"
+                               th:text="${card.setName()}">
+                                Delta Reign
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Dòng iv: ✦ | Loài kèm badge nền hồng nhạt chữ đỏ "Bản Beta" | Link gạch chân "Hầm hào huyền thoại" -->
+                    <div class="flex items-center justify-between py-4 gap-4">
+                        <div class="flex items-center gap-3.5 flex-wrap">
+                            <span class="flex h-8 w-8 items-center justify-center rounded-lg pk-surface-muted pk-text-secondary">
+                                <!-- Icon ✦ (Four-Point Sparkle SVG, stroke-width: 1.75) -->
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 3c.5 4.5 4.5 8.5 9 9-4.5.5-8.5 4.5-9 9-.5-4.5-4.5-8.5-9-9 4.5-.5 8.5-4.5 9-9Z"/>
+                                </svg>
+                            </span>
+                            <span class="text-sm sm:text-base font-bold pk-text-primary">Loài</span>
+                            <span th:if="${card.isBetaSpecies() == null or card.isBetaSpecies()}"
+                                  class="rounded-md bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-600 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30">
+                                Bản Beta
+                            </span>
+                        </div>
+                        <div class="text-right">
+                            <a th:href="@{/market(speciesName=${card.speciesName()})}"
+                               class="text-sm sm:text-base font-semibold pk-text-primary underline decoration-slate-400 underline-offset-4 hover:text-rose-600 dark:hover:text-amber-400 transition"
+                               th:text="${card.speciesName()}">
+                                Hầm hào huyền thoại
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Các nút hành động nhanh dưới bảng thông số -->
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <a th:href="@{/market(speciesName=${card.speciesName()})}"
+                           class="pk-btn-primary rounded-xl px-5 py-2.5 text-xs sm:text-sm font-extrabold inline-flex items-center gap-2">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.3-4.3"/>
+                            </svg>
+                            <span>Tìm mua thẻ cùng Loài trên Sàn P2P</span>
+                        </a>
+
+                        <a th:if="${firstUnlockedUserCardId != null}"
+                           th:href="@{/market(sellUserCardId=${firstUnlockedUserCardId})}"
+                           class="pk-surface-elevated rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold pk-text-primary hover:opacity-80 transition">
+                            Đem bán bản sao đang có
+                        </a>
+                    </div>
+
+                    <a th:href="@{/inventory(tab='masterset')}"
+                       class="text-xs font-bold pk-text-secondary hover:pk-text-primary underline underline-offset-4">
+                        Xem vị trí trong lưới 103 ô →
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+</main>
+
+<div th:replace="~{fragments/header :: commonScripts}"></div>
+</body>
+</html>

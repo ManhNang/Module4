@@ -1,0 +1,10 @@
+target/
+.git/
+.gitignore
+.agent/
+.idea/
+.vscode/
+*.iml
+*.log
+*.md
+blindbox-concurrency-test.jmx

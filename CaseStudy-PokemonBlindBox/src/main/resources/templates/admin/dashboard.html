@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('Quản Trị Bộ Sưu Tập & Hộp Bài')}"></head>
+<body class="min-h-screen flex flex-col">
+
+<!-- Single-row Sticky Glass Navbar -->
+<div th:replace="~{fragments/header :: navbar('admin')}"></div>
+
+<main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+
+    <!-- ==================== HEADER + SET SWITCHER + 4 TAB PHÂN KHU ==================== -->
+    <section class="pk-surface rounded-3xl p-5 sm:p-6 space-y-5">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight pk-text-primary">
+                    Trung Tâm Quản Trị Pokémon Blindbox
+                </h1>
+                <p class="mt-0.5 text-xs sm:text-sm pk-text-secondary">
+                    Quản lý đa Bộ sưu tập, độ hiếm Holo 3D, loài, khuôn mẫu thẻ bài và phát hành/thu hồi Booster Box.
+                </p>
+            </div>
+
+            <!-- Set Switcher + Nút Tạo Bộ Sưu Tập Mới -->
+            <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                <div class="w-56 sm:w-64 min-w-0">
+                    <select id="admin-set-switcher"
+                            aria-label="Chọn Bộ sưu tập đang quản lý"
+                            onchange="window.location.href='/admin/dashboard?setId=' + this.value"
+                            class="pk-input h-10 w-full rounded-xl px-3 text-xs sm:text-sm font-bold cursor-pointer">
+                        <option th:each="s : ${cardSets}"
+                                th:value="${s.id()}"
+                                th:selected="${activeSet != null and activeSet.id() == s.id()}"
+                                th:text="${s.name()} + ' (' + ${s.code()} + ')' + (${s.isActive() != null and !s.isActive()} ? ' [Đã ẩn]' : '')">
+                            Delta Reign (DLR)
+                        </option>
+                    </select>
+                </div>
+
+                <button type="button"
+                        onclick="window.openCreateSetModal()"
+                        class="pk-btn-primary h-10 rounded-xl px-4 text-xs font-extrabold cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5">
+                    <span>+ Tạo Bộ Sưu Tập Mới</span>
+                </button>
+
+                <a th:href="@{/store}"
+                   class="pk-surface-muted h-10 rounded-xl px-3.5 text-xs font-bold pk-text-primary hover:opacity-80 transition inline-flex items-center whitespace-nowrap">
+                    Xem Cửa Hàng
+                </a>
+            </div>
+        </div>
+
+        <!-- 5 Tab phân khu rõ ràng -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 rounded-2xl pk-surface-muted p-1.5">
+            <button type="button" id="admin-tab-btn-sets" onclick="window.switchAdminTab('sets')"
+                    class="pk-btn-primary rounded-xl px-3.5 py-2.5 text-xs font-extrabold cursor-pointer transition text-center">
+                1. Bộ Thẻ &amp; Cấu Hình Box
+            </button>
+            <button type="button" id="admin-tab-btn-rarities" onclick="window.switchAdminTab('rarities')"
+                    class="rounded-xl px-3.5 py-2.5 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition text-center">
+                2. Tỷ Lệ Độ Hiếm
+            </button>
+            <button type="button" id="admin-tab-btn-cards" onclick="window.switchAdminTab('cards')"
+                    class="rounded-xl px-3.5 py-2.5 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition text-center">
+                3. Thẻ Bài &amp; Loài
+            </button>
+            <button type="button" id="admin-tab-btn-boxes" onclick="window.switchAdminTab('boxes')"
+                    class="rounded-xl px-3.5 py-2.5 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition text-center">
+                4. Quản Lý Lô Box
+            </button>
+            <button type="button" id="admin-tab-btn-users" onclick="window.switchAdminTab('users')"
+                    class="rounded-xl px-3.5 py-2.5 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition text-center">
+                5. Quản Lý Người Dùng
+            </button>
+        </div>
+    </section>
+
+    <!-- ==================== TAB 1: QUẢN LÝ ĐA BỘ THẺ & CẤU HÌNH BOX/PACK ==================== -->
+    <section id="admin-panel-sets" class="pk-surface rounded-3xl p-5 sm:p-6 space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-base font-extrabold pk-text-primary">Danh Sách Bộ Sưu Tập &amp; Cấu Hình Box/Pack</h2>
+                <p class="text-xs pk-text-secondary">Chọn bộ thẻ ở thanh trên để thao tác chi tiết, hoặc tạo mới / ẩn bộ sưu tập.</p>
+            </div>
+            <span id="card-sets-count" class="pk-num text-xs font-bold pk-text-secondary" th:text="${#lists.size(cardSets)} + ' bộ sưu tập'">1 bộ sưu tập</span>
+        </div>
+
+        <div class="w-full max-w-full overflow-x-auto rounded-2xl pk-surface-muted">
+            <table class="w-full text-left text-xs sm:text-sm">
+                <thead class="border-b border-slate-200 dark:border-slate-800 pk-text-secondary text-[11px] uppercase">
+                <tr>
+                    <th class="px-4 py-3">Mã Bộ</th>
+                    <th class="px-4 py-3">Tên Bộ Sưu Tập</th>
+                    <th class="px-4 py-3 text-center">Thẻ chuẩn</th>
+                    <th class="px-4 py-3 text-center">Thẻ / Gói</th>
+                    <th class="px-4 py-3 text-center">Gói / Hộp</th>
+                    <th class="px-4 py-3 text-right">Giá Gói / Hộp</th>
+                    <th class="px-4 py-3 text-center">Trạng thái</th>
+                    <th class="px-4 py-3 text-right">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody id="card-sets-tbody" class="divide-y divide-slate-200/70 dark:divide-slate-800/70">
+                <tr th:each="set : ${cardSets}"
+                    th:id="'set-row-' + ${set.id()}"
+                    th:classappend="${activeSet != null and activeSet.id() == set.id()} ? 'bg-rose-500/5' : ''">
+                    <td class="px-4 py-3 font-extrabold text-rose-600" th:text="${set.code()}">DLR</td>
+                    <td class="px-4 py-3 font-bold pk-text-primary">
+                        <a th:href="@{/admin/dashboard(setId=${set.id()})}" class="hover:underline" th:text="${set.name()}">Delta Reign</a>
+                    </td>
+                    <td class="px-4 py-3 text-center pk-num font-bold pk-text-primary" th:text="${set.baseSetTotal()}">103</td>
+                    <td class="px-4 py-3 text-center pk-num font-bold text-emerald-600" th:text="${set.cardsPerPack()}">5</td>
+                    <td class="px-4 py-3 text-center pk-num font-bold pk-text-primary" th:text="${set.packsPerBox()}">30</td>
+                    <td class="px-4 py-3 text-right pk-num text-xs">
+                        <div class="font-bold pk-text-primary" th:text="${#numbers.formatDecimal(set.packPrice(), 0, 'POINT', 0, 'COMMA')} + '₫'">45.000₫</div>
+                        <div class="pk-text-secondary" th:text="${#numbers.formatDecimal(set.boxPrice(), 0, 'POINT', 0, 'COMMA')} + '₫'">1.250.000₫</div>
+                    </td>
+                    <td class="px-4 py-3 text-center whitespace-nowrap set-status-cell">
+                        <span th:if="${set.isActive() == null or set.isActive()}"
+                              class="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600">
+                            Đang mở
+                        </span>
+                        <span th:if="${set.isActive() != null and !set.isActive()}"
+                              class="inline-flex items-center rounded-full bg-slate-500/20 px-2.5 py-0.5 text-[11px] font-bold pk-text-secondary">
+                            Đã ẩn
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                        <button type="button"
+                                th:attr="data-set-id=${set.id()}, data-set-name=${set.name()}"
+                                onclick="window.deleteCardSet(parseInt(this.getAttribute('data-set-id'), 10), this.getAttribute('data-set-name'))"
+                                class="text-xs font-bold text-rose-600 hover:underline cursor-pointer">
+                            Xóa / Ẩn
+                        </button>
+                    </td>
+                </tr>
+                <tr id="card-sets-empty-row" th:if="${#lists.isEmpty(cardSets)}">
+                    <td colspan="8" class="px-4 py-8 text-center text-xs pk-text-secondary">
+                        Chưa có bộ sưu tập nào. Hãy bấm "+ Tạo Bộ Sưu Tập Mới" để bắt đầu!
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <form id="update-set-config-form" th:if="${activeSet != null}" class="pk-surface-elevated rounded-2xl p-5 space-y-4">
+            <input type="hidden" id="config-set-id" th:value="${activeSet.id()}"/>
+            <div class="text-xs font-extrabold pk-text-primary">
+                Chỉnh sửa cấu hình bộ "<span th:text="${activeSet.name()}">Delta Reign</span>" (<span th:text="${activeSet.code()}">DLR</span>)
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Tên bộ sưu tập *</label>
+                    <input type="text" id="config-set-name" required th:value="${activeSet.name()}"
+                           class="pk-input h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Mã bộ (Code) *</label>
+                    <input type="text" id="config-set-code" required th:value="${activeSet.code()}"
+                           class="pk-input h-10 w-full rounded-xl px-3 text-sm font-bold uppercase"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Tổng số thẻ chuẩn *</label>
+                    <input type="number" id="config-base-total" min="1" required th:value="${activeSet.baseSetTotal()}"
+                           class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Số thẻ / gói</label>
+                    <input type="number" id="config-cards-per-pack" min="1" required
+                           th:value="${activeSet.cardsPerPack()}"
+                           class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Số gói / hộp</label>
+                    <input type="number" id="config-packs-per-box" min="1" required
+                           th:value="${activeSet.packsPerBox()}"
+                           class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Giá 1 gói (₫)</label>
+                    <input type="number" id="config-pack-price" min="1000" step="1000" required
+                           th:value="${activeSet.packPrice().longValue()}"
+                           class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Giá nguyên hộp (₫)</label>
+                    <input type="number" id="config-box-price" min="1000" step="1000" required
+                           th:value="${activeSet.boxPrice().longValue()}"
+                           class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <label class="inline-flex items-center gap-2 text-xs font-semibold pk-text-primary cursor-pointer">
+                    <input type="checkbox" id="config-set-active"
+                           th:checked="${activeSet.isActive() == null or activeSet.isActive()}"
+                           class="rounded border-slate-400 text-rose-600 focus:ring-rose-500"/>
+                    <span>Đang kích hoạt bộ sưu tập (hiển thị trên hệ thống)</span>
+                </label>
+                <button type="submit" class="pk-btn-primary rounded-xl px-5 py-2.5 text-xs font-extrabold cursor-pointer">
+                    Lưu Thông Tin &amp; Cấu Hình Bộ Thẻ
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- ==================== TAB 2: QUẢN LÝ & CẤU HÌNH TỶ LỆ ĐỘ HIẾM ==================== -->
+    <section id="admin-panel-rarities" class="hidden pk-surface rounded-3xl p-5 sm:p-6 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-base font-extrabold pk-text-primary">Quản Lý Độ Hiếm &amp; Trọng Số Rơi Thẻ</h2>
+                <p class="text-xs pk-text-secondary">Thêm mới, chỉnh sửa màu sắc/Holo 3D hoặc thay đổi trọng số rơi thẻ theo thời gian thực.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="pk-surface-elevated rounded-2xl px-4 py-2 flex flex-wrap items-center gap-3 text-xs">
+                    <div>
+                        <span class="pk-text-secondary">Tổng trọng số:</span>
+                        <strong id="total-weight-display" class="pk-num ml-1 text-sm font-extrabold pk-text-primary" th:text="${totalDropWeight}">1000</strong>
+                    </div>
+                    <span class="pk-text-muted">|</span>
+                    <div>
+                        <span class="pk-text-secondary">Tổng tỷ lệ:</span>
+                        <strong id="total-percent-display" class="pk-num ml-1 text-sm font-extrabold text-emerald-600">100.00%</strong>
+                    </div>
+                </div>
+                <button type="button"
+                        onclick="window.openRarityModal(null)"
+                        class="pk-btn-primary rounded-xl px-4 py-2.5 text-xs font-extrabold cursor-pointer whitespace-nowrap">
+                    + Thêm Độ Hiếm Mới
+                </button>
+            </div>
+        </div>
+
+        <form id="update-rarity-weights-form" class="space-y-3">
+            <div id="rarities-list" class="space-y-3">
+                <div th:each="rarity : ${rarities}"
+                     th:id="'rarity-card-' + ${rarity.id()}"
+                     th:attr="data-rarity-id=${rarity.id()}, data-drop-weight=${rarity.dropWeight()}"
+                     class="rarity-card-item pk-surface-elevated rounded-2xl p-4 space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="h-3.5 w-3.5 rounded-full shrink-0" th:style="'background-color:' + ${rarity.colorHex()}"></span>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-extrabold pk-text-primary" th:text="${rarity.name()}">Không phổ biến</span>
+                                    <span th:if="${rarity.isHolographic()}"
+                                          class="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-extrabold text-amber-600 dark:text-amber-300 border border-amber-500/30">
+                                        HOLO 3D
+                                    </span>
+                                </div>
+                                <div class="text-xs pk-text-secondary">
+                                    Tỷ lệ rơi thực tế:
+                                    <strong class="rarity-percent pk-num text-rose-600"
+                                            th:attr="data-rarity-id=${rarity.id()}">0.00%</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            <label class="text-xs font-semibold pk-text-secondary">Trọng số:</label>
+                            <input type="number" min="0" required
+                                   class="rarity-weight-input pk-input pk-num h-9 w-24 rounded-xl px-3 text-right text-sm font-extrabold"
+                                   th:attr="data-rarity-id=${rarity.id()}"
+                                   th:value="${rarity.dropWeight()}"
+                                   oninput="window.recalculateRarityPercentages()"/>
+                            <button type="button"
+                                    th:attr="data-id=${rarity.id()}, data-name=${rarity.name()}, data-weight=${rarity.dropWeight()}, data-color=${rarity.colorHex()}, data-holo=${rarity.isHolographic()}"
+                                    onclick="window.openRarityModal({id: parseInt(this.dataset.id,10), name: this.dataset.name, dropWeight: parseInt(this.dataset.weight,10), colorHex: this.dataset.color, isHolographic: this.dataset.holo === 'true'})"
+                                    class="pk-surface-muted rounded-xl px-3 py-1.5 text-xs font-bold pk-text-primary hover:opacity-80 cursor-pointer">
+                                Sửa
+                            </button>
+                            <button type="button"
+                                    th:attr="data-id=${rarity.id()}, data-name=${rarity.name()}"
+                                    onclick="window.deleteRarity(parseInt(this.dataset.id, 10), this.dataset.name)"
+                                    class="pk-surface-muted rounded-xl px-3 py-1.5 text-xs font-bold text-rose-600 hover:opacity-80 cursor-pointer">
+                                Xóa
+                            </button>
+                        </div>
+                    </div>
+                    <div class="h-2 w-full rounded-full pk-surface-muted overflow-hidden">
+                        <div class="rarity-bar h-full rounded-full transition-all duration-300"
+                             th:attr="data-rarity-id=${rarity.id()}"
+                             th:style="'width: 0%; background-color:' + ${rarity.colorHex()}"></div>
+                    </div>
+                </div>
+                <div id="rarities-empty-row" th:if="${#lists.isEmpty(rarities)}"
+                     class="pk-surface-elevated rounded-2xl p-6 text-center text-xs pk-text-secondary">
+                    Chưa có độ hiếm nào. Hãy bấm "+ Thêm Độ Hiếm Mới" để khởi tạo!
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="pk-btn-primary rounded-xl px-6 py-3 text-xs sm:text-sm font-extrabold cursor-pointer">
+                    Lưu Trọng Số Rơi Thẻ
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- ==================== TAB 3: CRUD THẺ BÀI + THÊM NHANH ĐỘ HIẾM / LOÀI ==================== -->
+    <div id="admin-panel-cards" class="hidden space-y-6">
+        <section class="pk-surface rounded-3xl p-5 sm:p-6 space-y-5">
+            <div>
+                <h2 class="text-base font-extrabold pk-text-primary">
+                    Thêm Mới Thẻ Bài Vào Bộ "<span th:text="${activeSet != null ? activeSet.name() : 'Delta Reign'}">Delta Reign</span>"
+                </h2>
+            </div>
+
+            <div id="card-conflict-alert" class="hidden rounded-2xl border-2 border-rose-500 bg-rose-500/10 p-4">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <div class="text-xs font-extrabold uppercase tracking-wider text-rose-600">Trùng số thứ tự thẻ trong bộ</div>
+                        <p id="card-conflict-message" class="mt-1 text-sm font-semibold pk-text-primary"></p>
+                    </div>
+                    <button type="button" onclick="document.getElementById('card-conflict-alert').classList.add('hidden')"
+                            class="pk-text-secondary hover:pk-text-primary font-bold cursor-pointer">✕</button>
+                </div>
+            </div>
+
+            <form id="create-card-template-form" class="space-y-4">
+                <input type="hidden" id="card-set-id" th:value="${activeSet != null ? activeSet.id() : 1}"/>
+                <input type="hidden" id="card-set-code" th:value="${activeSet != null ? activeSet.code() : 'DLR'}"/>
+                <input type="hidden" id="card-base-total" th:value="${activeSet != null ? activeSet.baseSetTotal() : 103}"/>
+
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                    <div class="sm:col-span-6">
+                        <label class="block text-xs font-semibold pk-text-secondary mb-1">Tên thẻ bài *</label>
+                        <input type="text" id="card-name" required placeholder="Nhập tên thẻ bài"
+                               class="pk-input h-10 w-full rounded-xl px-3.5 text-sm"/>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-semibold pk-text-secondary mb-1">Số thứ tự *</label>
+                        <input type="number" id="card-number" min="1" required th:value="${nextCardNumber}"
+                               oninput="window.updateFormattedNumberPreview()"
+                               class="pk-input pk-num h-10 w-full rounded-xl px-3.5 text-sm font-bold"/>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-semibold pk-text-secondary mb-1">Mã hiển thị</label>
+                        <div id="formatted-number-preview"
+                             class="pk-num pk-surface-muted flex h-10 items-center justify-center rounded-xl text-sm font-extrabold text-emerald-600">
+                            001 / 103
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-xs font-semibold pk-text-secondary">Độ hiếm *</label>
+                            <button type="button" onclick="window.openRarityModal(null, 'card-rarity-id')"
+                                    class="text-[11px] font-extrabold text-rose-600 hover:underline cursor-pointer">
+                                + Mới
+                            </button>
+                        </div>
+                        <select id="card-rarity-id" required
+                                data-searchable="true"
+                                data-search-placeholder="Tìm độ hiếm..."
+                                class="pk-input h-10 w-full rounded-xl px-3.5 text-sm cursor-pointer">
+                            <option value="" disabled selected>Chọn độ hiếm</option>
+                            <option th:each="r : ${rarities}" th:value="${r.id()}" th:text="${r.name()}">Không phổ biến</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-xs font-semibold pk-text-secondary">Loài *</label>
+                            <button type="button" onclick="window.openSpeciesModal(null, 'card-species-id')"
+                                    class="text-[11px] font-extrabold text-rose-600 hover:underline cursor-pointer">
+                                + Mới
+                            </button>
+                        </div>
+                        <select id="card-species-id" required
+                                data-searchable="true"
+                                data-search-placeholder="Tìm loài..."
+                                class="pk-input h-10 w-full rounded-xl px-3.5 text-sm cursor-pointer">
+                            <option value="" disabled selected>Chọn loài</option>
+                            <option th:each="sp : ${speciesList}" th:value="${sp.id()}" th:text="${sp.name()}">Hầm hào huyền thoại</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pk-surface-elevated rounded-2xl p-4 space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <label class="text-xs font-bold pk-text-primary">Ảnh thẻ bài 2D (JPG, PNG, WEBP ≤ 5MB)</label>
+                        <button type="button" id="btn-upload-cloudinary" onclick="window.uploadSelectedImageToCloudinary('card-image-file', 'card-image-url', 'card-number')"
+                                class="pk-surface rounded-full px-3.5 py-1.5 text-xs font-bold pk-text-primary hover:opacity-80 cursor-pointer transition">
+                            Tải ảnh lên Cloudinary
+                        </button>
+                    </div>
+                    <input type="file" id="card-image-file" accept="image/png,image/jpeg,image/webp"
+                           class="block w-full text-xs pk-text-secondary file:mr-4 file:rounded-full file:border-0 file:bg-rose-500/10 file:px-3.5 file:py-2 file:text-xs file:font-bold file:text-rose-600 cursor-pointer"/>
+                    <input type="url" id="card-image-url"
+                           placeholder="Nhập URL ảnh hoặc tải ảnh lên Cloudinary"
+                           value=""
+                           class="pk-input h-10 w-full rounded-xl px-3 text-xs"/>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-end gap-3">
+                    <button type="submit" class="pk-btn-primary rounded-xl px-5 py-2.5 text-xs sm:text-sm font-extrabold cursor-pointer">
+                        Thêm Thẻ Bài Mới
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Danh mục thẻ bài hiện có trong bộ đang chọn -->
+        <section class="pk-surface rounded-3xl p-5 sm:p-6 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-base font-extrabold pk-text-primary">
+                    Danh Mục Thẻ Bài Bộ "<span th:text="${activeSet != null ? activeSet.name() : 'Chưa chọn bộ'}">Delta Reign</span>"
+                </h3>
+                <span id="card-templates-count"
+                      class="pk-num rounded-full pk-surface-muted px-3 py-1 text-xs font-bold pk-text-secondary"
+                      th:text="${#lists.size(cardTemplates)} + ' thẻ bài'">3 thẻ bài</span>
+            </div>
+            <div class="w-full max-w-full overflow-x-auto rounded-2xl pk-surface-muted">
+                <table class="w-full text-left text-xs sm:text-sm">
+                    <thead class="border-b border-slate-200 dark:border-slate-800 pk-text-secondary uppercase text-[11px]">
+                    <tr>
+                        <th class="px-4 py-3">Số thứ tự</th>
+                        <th class="px-4 py-3">Tên thẻ bài</th>
+                        <th class="px-4 py-3">Độ hiếm</th>
+                        <th class="px-4 py-3">Loài</th>
+                        <th class="px-4 py-3 text-center">Trạng thái</th>
+                        <th class="px-4 py-3 text-right">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody id="card-templates-tbody" class="divide-y divide-slate-200/70 dark:divide-slate-800/70">
+                    <tr th:each="card : ${cardTemplates}"
+                        th:id="'card-row-' + ${card.id()}"
+                        th:attr="data-card-number=${card.cardNumber()}, data-rarity-id=${card.rarityId()}">
+                        <td class="px-4 py-3 pk-num font-extrabold text-emerald-600 whitespace-nowrap" th:text="${card.formattedCardNumber()}">098 / 103</td>
+                        <td class="px-4 py-3">
+                            <button type="button"
+                                    onclick="window.openCardPreviewModal(this)"
+                                    th:attr="data-name=${card.name()}, data-num=${card.formattedCardNumber()}, data-img=${card.imageUrl()}, data-rarity=${card.rarityName()}, data-color=${card.rarityColorHex()}, data-species=${card.speciesName()}, data-holo=${card.rarityIsHolographic()}"
+                                    class="card-preview-trigger text-left font-bold pk-text-primary hover:underline hover:text-rose-600 cursor-pointer transition"
+                                    th:text="${card.name()}">Hầm hào huyền thoại</button>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="card-rarity-badge rounded-full px-2.5 py-0.5 text-xs font-bold border"
+                                  th:style="'border-color:' + ${card.rarityColorHex()} + '; color:' + ${card.rarityColorHex()}"
+                                  th:text="${card.rarityName()}">Không phổ biến</span>
+                        </td>
+                        <td class="px-4 py-3 font-semibold pk-text-secondary" th:text="${card.speciesName()}">Hầm hào huyền thoại</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap card-status-cell">
+                            <span th:if="${card.isActive() == null or card.isActive()}"
+                                  class="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600">
+                                Đang mở
+                            </span>
+                            <span th:if="${card.isActive() != null and !card.isActive()}"
+                                  class="rounded-full bg-slate-500/20 px-2.5 py-0.5 text-[11px] font-bold pk-text-secondary">
+                                Đã ẩn
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
+                            <button type="button"
+                                    th:attr="data-id=${card.id()}, data-name=${card.name()}, data-num=${card.cardNumber()}, data-img=${card.imageUrl()}, data-rarity=${card.rarityId()}, data-species=${card.speciesId()}"
+                                    onclick="window.openEditCardModal(this)"
+                                    class="font-bold pk-text-primary hover:underline cursor-pointer">
+                                Sửa
+                            </button>
+                            <button type="button"
+                                    th:attr="data-id=${card.id()}, data-name=${card.name()}"
+                                    onclick="window.deleteCardTemplate(parseInt(this.dataset.id, 10), this.dataset.name)"
+                                    class="font-bold text-rose-600 hover:underline cursor-pointer">
+                                Xóa / Ẩn
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="card-templates-empty-row" th:if="${#lists.isEmpty(cardTemplates)}">
+                        <td colspan="6" class="px-4 py-8 text-center text-xs pk-text-secondary">
+                            Bộ sưu tập này chưa có thẻ bài nào. Hãy thêm thẻ đầu tiên ở biểu mẫu phía trên!
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Thanh phân trang Danh Mục Thẻ Bài (tối đa 13 thẻ / trang) -->
+            <div id="cards-pagination-bar" class="hidden flex flex-wrap items-center justify-between gap-3 pt-1">
+                <span id="cards-pagination-info" class="pk-num text-xs font-semibold pk-text-secondary">Hiển thị 1–13 / 13 thẻ</span>
+                <div id="cards-pagination-controls" class="flex flex-wrap items-center gap-1.5"></div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ==================== TAB 4: QUẢN LÝ LÔ BOOSTER BOX THEO BỘ ==================== -->
+    <section id="admin-panel-boxes" class="hidden pk-surface rounded-3xl p-5 sm:p-6 space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-5 space-y-4">
+                <div>
+                    <h2 class="text-base font-extrabold pk-text-primary">Phát Hành &amp; Thu Hồi Booster Box</h2>
+                    <p class="text-xs pk-text-secondary mt-0.5">Chỉ cho phép thu hồi các hộp bài còn nguyên seal (chưa bán bất kỳ gói nào).</p>
+                </div>
+
+                <!-- Form phát hành thêm Box -->
+                <form id="create-box-batch-form" class="pk-surface-elevated rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="pk-text-secondary">Bộ sưu tập:</span>
+                        <span class="font-bold pk-text-primary" th:text="${activeSet != null ? activeSet.name() + ' (' + activeSet.code() + ')' : 'Chưa chọn bộ'}">Delta Reign (DLR)</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="pk-text-secondary">Quy cách đóng gói:</span>
+                        <span class="pk-num font-bold text-emerald-600"
+                              th:text="${(activeSet != null ? activeSet.cardsPerPack() : 5) + ' thẻ/gói • ' + (activeSet != null ? activeSet.packsPerBox() : 30) + ' gói/hộp'}">
+                            5 thẻ/gói • 30 gói/hộp
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="pk-text-secondary">Số hộp nguyên seal hiện có:</span>
+                        <span id="sealed-box-count" class="pk-num font-extrabold text-rose-600" th:text="${sealedAvailableBoxCount} + ' hộp'">1 hộp</span>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold pk-text-secondary mb-1">Số lượng hộp cần phát hành thêm *</label>
+                        <input type="number" id="batch-box-quantity" min="1" max="100" value="3" required
+                               class="pk-input pk-num h-10 w-full rounded-xl px-3.5 text-base font-extrabold"/>
+                    </div>
+                    <button type="submit" class="pk-btn-primary w-full rounded-xl py-3 text-xs sm:text-sm font-extrabold cursor-pointer">
+                        + Phát Hành Lô Hộp Bài Mới
+                    </button>
+                </form>
+
+                <!-- Form thu hồi nhanh nhiều Box nguyên seal -->
+                <form id="reduce-box-batch-form" class="pk-surface-elevated rounded-2xl p-4 space-y-3">
+                    <div class="text-xs font-extrabold pk-text-primary">Thu Hồi Nhanh Hộp Nguyên Seal</div>
+                    <div class="flex items-center gap-2.5">
+                        <input type="number" id="reduce-box-quantity" min="1" max="100" value="1" required
+                               class="pk-input pk-num h-10 flex-1 rounded-xl px-3.5 text-sm font-extrabold"/>
+                        <button type="submit"
+                                class="pk-surface-muted h-10 rounded-xl px-4 text-xs font-extrabold text-rose-600 hover:opacity-80 cursor-pointer whitespace-nowrap">
+                            Thu hồi hộp
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="lg:col-span-7 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-extrabold pk-text-primary">
+                        Danh Sách Hộp Bài Thuộc "<span th:text="${activeSet != null ? activeSet.name() : ''}">Delta Reign</span>"
+                    </h3>
+                    <span id="total-box-count" class="pk-num text-xs font-bold pk-text-secondary" th:text="${#lists.size(boosterBoxes)} + ' hộp'">1 hộp</span>
+                </div>
+                <div id="booster-boxes-list" class="max-h-96 overflow-y-auto rounded-2xl pk-surface-muted divide-y divide-slate-200/70 dark:divide-slate-800/70">
+                    <div th:each="box : ${boosterBoxes}"
+                         th:id="'box-row-' + ${box.id()}"
+                         th:attr="data-box-code=${box.boxCode()}, data-sealed=${box.status().name() == 'AVAILABLE' and box.remainingPacks() == box.totalPacks()}"
+                         class="box-list-item p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div>
+                            <div class="pk-num font-bold pk-text-primary" th:text="${box.boxCode()}">DLR-BOX-0001</div>
+                            <div class="pk-num text-[11px] pk-text-secondary">
+                                <span th:text="${box.snapshotCardsPerPack()} + ' thẻ/gói'">5 thẻ/gói</span>
+                                • Còn <strong class="pk-text-primary" th:text="${box.remainingPacks()} + '/' + ${box.totalPacks()}">30/30</strong> gói
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span th:if="${box.status().name() == 'AVAILABLE' and box.remainingPacks() == box.totalPacks()}"
+                                  class="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 whitespace-nowrap">
+                                Nguyên seal
+                            </span>
+                            <span th:unless="${box.status().name() == 'AVAILABLE' and box.remainingPacks() == box.totalPacks()}"
+                                  class="rounded-full pk-surface px-2.5 py-0.5 text-[10px] font-semibold pk-text-secondary whitespace-nowrap"
+                                  th:text="${box.status().name() == 'SOLD_OUT'} ? 'Đã bán hết' : 'Đang bán lẻ'">
+                                Đang bán lẻ
+                            </span>
+                            <button th:if="${box.status().name() == 'AVAILABLE' and box.remainingPacks() == box.totalPacks()}"
+                                    type="button"
+                                    th:attr="data-box-id=${box.id()}, data-box-code=${box.boxCode()}"
+                                    onclick="window.deleteSingleSealedBox(parseInt(this.dataset.boxId, 10), this.dataset.boxCode)"
+                                    class="pk-surface rounded-lg px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:opacity-80 cursor-pointer whitespace-nowrap">
+                                Xóa / Thu hồi
+                            </button>
+                        </div>
+                    </div>
+                    <div id="booster-boxes-empty-row" th:if="${#lists.isEmpty(boosterBoxes)}" class="p-6 text-center text-xs pk-text-secondary">
+                        Bộ sưu tập này chưa có hộp bài nào. Hãy phát hành lô hộp bài đầu tiên!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== TAB 5: QUẢN LÝ NGƯỜI DÙNG (100% AJAX) ==================== -->
+    <section id="admin-panel-users" class="hidden pk-surface rounded-3xl p-5 sm:p-6 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-base font-extrabold pk-text-primary">Quản Lý Người Dùng, Phân Quyền &amp; Đối Soát Ví</h2>
+                <p class="text-xs pk-text-secondary">Tìm kiếm tài khoản, khóa/mở khóa đăng nhập, đổi quyền User ↔ Admin, xem lịch sử giao dịch và cộng/trừ bù ví.</p>
+            </div>
+            <span id="admin-users-total" class="pk-num rounded-full pk-surface-muted px-3 py-1 text-xs font-bold pk-text-secondary">0 người dùng</span>
+        </div>
+
+        <!-- Thanh tìm kiếm & lọc User -->
+        <form id="admin-users-filter-form" class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+            <div class="sm:col-span-5">
+                <input type="text" id="user-search-keyword" placeholder="Tìm theo username hoặc email..."
+                       class="pk-input h-10 w-full rounded-xl px-3.5 text-xs sm:text-sm"/>
+            </div>
+            <div class="sm:col-span-3">
+                <select id="user-filter-role" class="pk-input h-10 w-full rounded-xl px-3 text-xs sm:text-sm cursor-pointer">
+                    <option value="">Tất cả quyền</option>
+                    <option value="ROLE_USER">Người chơi (USER)</option>
+                    <option value="ROLE_ADMIN">Quản trị viên (ADMIN)</option>
+                </select>
+            </div>
+            <div class="sm:col-span-2">
+                <select id="user-filter-locked" class="pk-input h-10 w-full rounded-xl px-3 text-xs sm:text-sm cursor-pointer">
+                    <option value="">Mọi trạng thái</option>
+                    <option value="false">Hoạt động</option>
+                    <option value="true">Đã khóa</option>
+                </select>
+            </div>
+            <div class="sm:col-span-2">
+                <button type="submit" class="pk-btn-primary h-10 w-full rounded-xl px-4 text-xs font-extrabold cursor-pointer whitespace-nowrap">
+                    Tìm kiếm
+                </button>
+            </div>
+        </form>
+
+        <!-- Bảng danh sách Người dùng -->
+        <div class="w-full max-w-full overflow-x-auto rounded-2xl pk-surface-muted">
+            <table class="w-full text-left text-xs sm:text-sm">
+                <thead class="border-b border-slate-200 dark:border-slate-800 pk-text-secondary uppercase text-[11px]">
+                <tr>
+                    <th class="px-4 py-3">Tài khoản</th>
+                    <th class="px-4 py-3 text-center">Quyền</th>
+                    <th class="px-4 py-3 text-right">Số dư Ví / Đang cọc</th>
+                    <th class="px-4 py-3 text-center">Thẻ sở hữu</th>
+                    <th class="px-4 py-3 text-center">Trạng thái</th>
+                    <th class="px-4 py-3 text-right">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody id="admin-users-tbody" class="divide-y divide-slate-200/70 dark:divide-slate-800/70">
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-xs pk-text-secondary">
+                        Đang tải danh sách người dùng...
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Phân trang -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <span id="users-pagination-info" class="pk-num text-xs font-semibold pk-text-secondary">Trang 1 / 1</span>
+            <div class="flex items-center gap-2">
+                <button type="button" id="btn-users-prev" onclick="window.changeAdminUsersPage(-1)" disabled
+                        class="pk-surface-muted rounded-xl px-3.5 py-2 text-xs font-bold pk-text-primary disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed">
+                    ← Trước
+                </button>
+                <button type="button" id="btn-users-next" onclick="window.changeAdminUsersPage(1)" disabled
+                        class="pk-surface-muted rounded-xl px-3.5 py-2 text-xs font-bold pk-text-primary disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed">
+                    Sau →
+                </button>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- ==================== MODAL 1: TẠO BỘ SƯU TẬP MỚI ==================== -->
+<div id="modal-create-set" onclick="if (event.target === this) window.closeModal('modal-create-set')"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="pk-surface w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+            <h3 class="text-base font-extrabold pk-text-primary">Tạo Bộ Sưu Tập Mới</h3>
+            <button type="button" onclick="window.closeModal('modal-create-set')" class="pk-text-secondary hover:pk-text-primary font-bold cursor-pointer">✕</button>
+        </div>
+        <form id="form-create-set" class="space-y-3.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Tên bộ sưu tập *</label>
+                    <input type="text" id="new-set-name" required placeholder="VD: Scarlet Storm" class="pk-input h-10 w-full rounded-xl px-3 text-sm"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Mã bộ (Code) *</label>
+                    <input type="text" id="new-set-code" required placeholder="VD: SCS" class="pk-input h-10 w-full rounded-xl px-3 text-sm font-bold uppercase"/>
+                </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Thẻ chuẩn *</label>
+                    <input type="number" id="new-set-total" min="1" value="100" required class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Thẻ / gói *</label>
+                    <input type="number" id="new-set-cards-per-pack" min="1" value="5" required class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Gói / hộp *</label>
+                    <input type="number" id="new-set-packs-per-box" min="1" value="30" required class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Giá 1 gói (₫) *</label>
+                    <input type="number" id="new-set-pack-price" min="1000" step="1000" value="45000" required class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Giá nguyên hộp (₫) *</label>
+                    <input type="number" id="new-set-box-price" min="1000" step="1000" value="1250000" required class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="window.closeModal('modal-create-set')" class="pk-surface-muted rounded-xl px-4 py-2 text-xs font-bold pk-text-primary cursor-pointer">Hủy</button>
+                <button type="submit" class="pk-btn-primary rounded-xl px-5 py-2 text-xs font-extrabold cursor-pointer">Tạo Bộ Sưu Tập</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== MODAL 2: THÊM / SỬA ĐỘ HIẾM (RARITY) ==================== -->
+<div id="modal-rarity" onclick="if (event.target === this) window.closeModal('modal-rarity')"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="pk-surface w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+            <h3 id="modal-rarity-title" class="text-base font-extrabold pk-text-primary">Thêm Độ Hiếm Mới</h3>
+            <button type="button" onclick="window.closeModal('modal-rarity')" class="pk-text-secondary hover:pk-text-primary font-bold cursor-pointer">✕</button>
+        </div>
+        <form id="form-upsert-rarity" class="space-y-3.5">
+            <input type="hidden" id="rarity-modal-id"/>
+            <input type="hidden" id="rarity-modal-target-select"/>
+            <div>
+                <label class="block text-xs font-semibold pk-text-secondary mb-1">Tên độ hiếm *</label>
+                <input type="text" id="rarity-modal-name" required placeholder="VD: Illustration Rare" class="pk-input h-10 w-full rounded-xl px-3 text-sm"/>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Trọng số rơi *</label>
+                    <input type="number" id="rarity-modal-weight" min="0" value="30" required class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Mã màu Hex *</label>
+                    <div class="flex items-center gap-2">
+                        <input type="color" id="rarity-modal-color-picker" value="#EC4899"
+                               oninput="document.getElementById('rarity-modal-color').value = this.value.toUpperCase()"
+                               class="h-10 w-12 rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent cursor-pointer p-1"/>
+                        <input type="text" id="rarity-modal-color" value="#EC4899" pattern="^#[0-9a-fA-F]{6}$" required
+                               oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value)) document.getElementById('rarity-modal-color-picker').value = this.value"
+                               class="pk-input pk-num h-10 w-full rounded-xl px-3 text-xs font-bold uppercase"/>
+                    </div>
+                </div>
+            </div>
+            <label class="inline-flex items-center gap-2 text-xs font-semibold pk-text-primary cursor-pointer">
+                <input type="checkbox" id="rarity-modal-holo" class="rounded border-slate-400 text-rose-600 focus:ring-rose-500"/>
+                <span>Kích hoạt hiệu ứng Holographic 3D Tilt cho độ hiếm này</span>
+            </label>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="window.closeModal('modal-rarity')" class="pk-surface-muted rounded-xl px-4 py-2 text-xs font-bold pk-text-primary cursor-pointer">Hủy</button>
+                <button type="submit" class="pk-btn-primary rounded-xl px-5 py-2 text-xs font-extrabold cursor-pointer">Lưu Độ Hiếm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== MODAL 3: THÊM NHANH LOÀI (CARD SPECIES) ==================== -->
+<div id="modal-species" onclick="if (event.target === this) window.closeModal('modal-species')"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="pk-surface w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+            <h3 class="text-base font-extrabold pk-text-primary">Thêm Loài Pokémon Mới</h3>
+            <button type="button" onclick="window.closeModal('modal-species')" class="pk-text-secondary hover:pk-text-primary font-bold cursor-pointer">✕</button>
+        </div>
+        <form id="form-create-species" class="space-y-3.5">
+            <input type="hidden" id="species-modal-target-select"/>
+            <div>
+                <label class="block text-xs font-semibold pk-text-secondary mb-1">Tên loài *</label>
+                <input type="text" id="species-modal-name" required placeholder="VD: Charizard, Gengar..." class="pk-input h-10 w-full rounded-xl px-3 text-sm"/>
+            </div>
+            <label class="inline-flex items-center gap-2 text-xs font-semibold pk-text-primary cursor-pointer">
+                <input type="checkbox" id="species-modal-beta" checked class="rounded border-slate-400 text-rose-600 focus:ring-rose-500"/>
+                <span>Gắn nhãn "Bản Beta" cho loài mới</span>
+            </label>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="window.closeModal('modal-species')" class="pk-surface-muted rounded-xl px-4 py-2 text-xs font-bold pk-text-primary cursor-pointer">Hủy</button>
+                <button type="submit" class="pk-btn-primary rounded-xl px-5 py-2 text-xs font-extrabold cursor-pointer">Tạo Loài Mới</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== MODAL 4: CHỈNH SỬA THẺ BÀI (CARD TEMPLATE) ==================== -->
+<div id="modal-edit-card" onclick="if (event.target === this) window.closeModal('modal-edit-card')"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="pk-surface w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+            <h3 class="text-base font-extrabold pk-text-primary">Chỉnh Sửa Thông Tin Thẻ Bài</h3>
+            <button type="button" onclick="window.closeModal('modal-edit-card')" class="pk-text-secondary hover:pk-text-primary font-bold cursor-pointer">✕</button>
+        </div>
+        <form id="form-edit-card" class="space-y-3.5">
+            <input type="hidden" id="edit-card-id"/>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Tên thẻ bài *</label>
+                    <input type="text" id="edit-card-name" required class="pk-input h-10 w-full rounded-xl px-3 text-sm"/>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold pk-text-secondary mb-1">Số thứ tự *</label>
+                    <input type="number" id="edit-card-number" min="1" required class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-xs font-semibold pk-text-secondary">Độ hiếm *</label>
+                        <button type="button" onclick="window.openRarityModal(null, 'edit-card-rarity-id')" class="text-[11px] font-extrabold text-rose-600 hover:underline cursor-pointer">+ Mới</button>
+                    </div>
+                    <select id="edit-card-rarity-id" required
+                            data-searchable="true"
+                            data-search-placeholder="Tìm độ hiếm..."
+                            class="pk-input h-10 w-full rounded-xl px-3 text-sm cursor-pointer">
+                        <option th:each="r : ${rarities}" th:value="${r.id()}" th:text="${r.name()}">Không phổ biến</option>
+                    </select>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-xs font-semibold pk-text-secondary">Loài *</label>
+                        <button type="button" onclick="window.openSpeciesModal(null, 'edit-card-species-id')" class="text-[11px] font-extrabold text-rose-600 hover:underline cursor-pointer">+ Mới</button>
+                    </div>
+                    <select id="edit-card-species-id" required
+                            data-searchable="true"
+                            data-search-placeholder="Tìm loài..."
+                            class="pk-input h-10 w-full rounded-xl px-3 text-sm cursor-pointer">
+                        <option th:each="sp : ${speciesList}" th:value="${sp.id()}" th:text="${sp.name()}">Hầm hào huyền thoại</option>
+                    </select>
+                </div>
+            </div>
+            <div class="pk-surface-elevated rounded-2xl p-3.5 space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                    <label class="text-xs font-bold pk-text-primary">Cập nhật ảnh thẻ bài (tùy chọn)</label>
+                    <button type="button" onclick="window.uploadSelectedImageToCloudinary('edit-card-image-file', 'edit-card-image-url', 'edit-card-number')"
+                            class="pk-surface rounded-full px-3 py-1 text-[11px] font-bold pk-text-primary hover:opacity-80 cursor-pointer">
+                        Tải ảnh lên Cloudinary
+                    </button>
+                </div>
+                <input type="file" id="edit-card-image-file" accept="image/png,image/jpeg,image/webp"
+                       class="block w-full text-xs pk-text-secondary file:mr-3 file:rounded-full file:border-0 file:bg-rose-500/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-rose-600 cursor-pointer"/>
+                <input type="url" id="edit-card-image-url" required class="pk-input h-10 w-full rounded-xl px-3 text-xs"/>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="window.closeModal('modal-edit-card')" class="pk-surface-muted rounded-xl px-4 py-2 text-xs font-bold pk-text-primary cursor-pointer">Hủy</button>
+                <button type="submit" class="pk-btn-primary rounded-xl px-5 py-2 text-xs font-extrabold cursor-pointer">Lưu Thay Đổi</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==================== MODAL 5: MINI POPUP XEM TRƯỚC ẢNH THẺ BÀI ==================== -->
+<div id="modal-card-preview" onclick="if (event.target === this) window.closeModal('modal-card-preview')"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+    <div class="pk-surface w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4">
+        <div class="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div class="min-w-0 space-y-1">
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <span id="preview-card-num" class="pk-num text-xs font-extrabold text-emerald-600">098 / 103</span>
+                    <span id="preview-card-rarity" class="rounded-full border px-2 py-0.5 text-[10px] font-bold">Độ hiếm</span>
+                    <span id="preview-card-holo"
+                          class="hidden rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-extrabold text-amber-600 dark:text-amber-300 border border-amber-500/30">
+                        HOLO 3D
+                    </span>
+                </div>
+                <h3 id="preview-card-name" class="text-base font-extrabold pk-text-primary leading-snug break-words">Tên thẻ bài</h3>
+            </div>
+            <button type="button" onclick="window.closeModal('modal-card-preview')"
+                    aria-label="Đóng xem trước ảnh thẻ"
+                    class="pk-text-secondary hover:pk-text-primary font-bold cursor-pointer shrink-0">✕</button>
+        </div>
+
+        <!-- Khung ảnh chuẩn 5:7 -->
+        <div class="pk-card-frame pk-surface-muted p-2 border border-slate-200/70 dark:border-slate-800">
+            <img id="preview-card-img" src="" alt="Ảnh thẻ bài" class="w-full h-full object-contain rounded-xl"/>
+            <div id="preview-card-img-error"
+                 class="hidden absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-rose-500/10 rounded-xl">
+                <span class="text-xs font-extrabold text-rose-600">Không tải được ảnh — kiểm tra lại URL!</span>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pt-1 text-xs">
+            <span class="pk-text-secondary truncate">
+                Loài: <strong id="preview-card-species" class="pk-text-primary">---</strong>
+            </span>
+            <a id="preview-card-open-raw" href="#" target="_blank" rel="noopener noreferrer"
+               class="pk-surface-muted rounded-xl px-3 py-1.5 font-bold pk-text-primary hover:opacity-80 whitespace-nowrap">
+                Mở ảnh gốc ↗
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL 6: LỊCH SỬ VÍ & ĐIỀU CHỈNH SỐ DƯ USER ==================== -->
+<div id="modal-user-wallet" onclick="if (event.target === this) window.closeModal('modal-user-wallet')"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+    <div class="pk-surface w-full max-w-2xl rounded-3xl p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
+        <div class="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div>
+                <h3 class="text-base font-extrabold pk-text-primary">
+                    Ví &amp; Lịch Sử Giao Dịch — <span id="wallet-modal-username" class="text-rose-600">username</span>
+                </h3>
+                <p class="mt-0.5 text-xs pk-text-secondary">
+                    Khả dụng: <strong id="wallet-modal-balance" class="pk-num text-emerald-600">0 ₫</strong>
+                    • Đang cọc đấu giá: <strong id="wallet-modal-locked" class="pk-num pk-text-primary">0 ₫</strong>
+                </p>
+            </div>
+            <button type="button" onclick="window.closeModal('modal-user-wallet')"
+                    aria-label="Đóng lịch sử ví"
+                    class="pk-text-secondary hover:pk-text-primary font-bold cursor-pointer">✕</button>
+        </div>
+
+        <!-- Form Cộng / Trừ bù ví thủ công -->
+        <form id="form-adjust-user-wallet" class="pk-surface-elevated rounded-2xl p-4 space-y-3">
+            <input type="hidden" id="adjust-wallet-user-id"/>
+            <div class="text-xs font-extrabold pk-text-primary">Điều Chỉnh Số Dư Ví Thủ Công (Audit Log: ADMIN_ADJUSTMENT)</div>
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <div class="sm:col-span-4">
+                    <label class="block text-[11px] font-semibold pk-text-secondary mb-1">Loại điều chỉnh *</label>
+                    <select id="adjust-wallet-credit" class="pk-input h-10 w-full rounded-xl px-3 text-xs font-bold cursor-pointer">
+                        <option value="true">+ Cộng bù ví</option>
+                        <option value="false">- Trừ bù ví</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-4">
+                    <label class="block text-[11px] font-semibold pk-text-secondary mb-1">Số tiền (₫) *</label>
+                    <input type="number" id="adjust-wallet-amount" min="1000" max="500000000" step="1000" required placeholder="50000"
+                           class="pk-input pk-num h-10 w-full rounded-xl px-3 text-sm font-bold"/>
+                </div>
+                <div class="sm:col-span-4 flex items-end">
+                    <button type="submit" class="pk-btn-primary h-10 w-full rounded-xl px-4 text-xs font-extrabold cursor-pointer">
+                        Xác Nhận Điều Chỉnh
+                    </button>
+                </div>
+            </div>
+            <div>
+                <label class="block text-[11px] font-semibold pk-text-secondary mb-1">Lý do điều chỉnh (bắt buộc) *</label>
+                <input type="text" id="adjust-wallet-reason" required maxlength="255"
+                       placeholder="VD: Bù giao dịch VNPay lỗi mạng #VNP123..."
+                       class="pk-input h-10 w-full rounded-xl px-3 text-xs"/>
+            </div>
+        </form>
+
+        <!-- Lịch sử 50 giao dịch gần nhất -->
+        <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs">
+                <span class="font-extrabold pk-text-primary">50 Giao Dịch Ví Gần Nhất</span>
+                <span id="wallet-modal-tx-count" class="pk-num pk-text-secondary">0 giao dịch</span>
+            </div>
+            <div id="user-transactions-list"
+                 class="max-h-72 overflow-y-auto rounded-2xl pk-surface-muted divide-y divide-slate-200/70 dark:divide-slate-800/70 text-xs">
+                <div class="p-4 text-center pk-text-secondary">Đang tải lịch sử giao dịch...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/header :: commonScripts}"></div>
+<script defer th:src="@{/js/pages/admin-dashboard.js(v='20261120c')}"></script>
+</body>
+</html>

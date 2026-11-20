@@ -1,0 +1,25 @@
+# Cấu hình dành riêng cho môi trường phát triển nội bộ (dev)
+# Loại trừ SessionAutoConfiguration trên local dev khi chưa chạy Redis Server (Spring Boot 3.x)
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.session.SessionAutoConfiguration
+  thymeleaf:
+    cache: false
+  web:
+    resources:
+      cache:
+        period: 0
+        cachecontrol:
+          no-store: true
+          no-cache: true
+          max-age: 0s
+          cache-public: false
+      chain:
+        strategy:
+          content:
+            enabled: false
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true

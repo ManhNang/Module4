@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('Ví Điện Tử & Nạp Điểm VNPay')}"></head>
+<body class="min-h-screen flex flex-col">
+
+<!-- Single-row Sticky Glass Navbar -->
+<div th:replace="~{fragments/header :: navbar('wallet')}"></div>
+
+<main class="mx-auto w-full max-w-7xl flex-1 px-4 py-7 sm:px-6 lg:px-8 space-y-7">
+
+    <!-- Grid: Thông tin số dư & Form chọn mệnh giá nạp VNPay -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Cột trái (5/12): Thẻ Ví Điện Tử -->
+        <section class="lg:col-span-5 space-y-5">
+            <div class="pk-surface rounded-3xl p-6 sm:p-7 space-y-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/>
+                                <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider pk-text-secondary">Ví Nhà Sưu Tầm</span>
+                            <div class="text-sm font-extrabold pk-text-primary">
+                                Trainer #<span class="pk-num" th:text="${currentUserId}">1</span>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                        Đang hoạt động
+                    </span>
+                </div>
+
+                <div>
+                    <div class="text-xs font-semibold pk-text-secondary">Số dư khả dụng</div>
+                    <div id="wallet-page-balance"
+                         class="mt-1 pk-num text-3xl sm:text-4xl font-extrabold text-emerald-600 dark:text-emerald-400"
+                         th:text="${#numbers.formatDecimal(wallet.balance(), 0, 'POINT', 0, 'COMMA')} + ' ₫'">
+                        2.500.000 ₫
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-4 border-t border-slate-200 dark:border-slate-800 text-xs">
+                    <div class="pk-surface-elevated rounded-2xl p-3.5">
+                        <div class="pk-text-secondary font-semibold">Đang tạm giữ đấu giá</div>
+                        <div class="mt-1 pk-num text-sm font-extrabold text-amber-600 dark:text-amber-400"
+                             th:text="${#numbers.formatDecimal(wallet.lockedBalance(), 0, 'POINT', 0, 'COMMA')} + ' ₫'">
+                            0 ₫
+                        </div>
+                    </div>
+                    <div class="pk-surface-elevated rounded-2xl p-3.5">
+                        <div class="pk-text-secondary font-semibold">Cổng thanh toán</div>
+                        <div class="mt-1 text-sm font-extrabold pk-text-primary">
+                            VNPay Sandbox
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Khung xác nhận nhanh giao dịch vừa tạo -->
+            <div id="generated-vnpay-box" class="hidden pk-surface rounded-3xl p-5 border-2 border-amber-500/40 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                        Đã tạo yêu cầu nạp điểm
+                    </span>
+                    <span id="generated-txn-ref" class="pk-num text-xs font-bold pk-text-primary"></span>
+                </div>
+                <p class="text-xs pk-text-secondary">
+                    Bạn có thể mở trang thanh toán VNPay Sandbox hoặc xác nhận hoàn tất giao dịch thử nghiệm ngay tại đây:
+                </p>
+                <div class="flex flex-wrap gap-2.5 pt-1">
+                    <a id="btn-open-vnpay-url" href="#" target="_blank"
+                       class="pk-btn-primary rounded-xl px-4 py-2 text-xs font-extrabold">
+                        Mở Cổng VNPay Sandbox
+                    </a>
+                    <button type="button" id="btn-simulate-ipn"
+                            class="pk-surface-elevated rounded-xl px-4 py-2 text-xs font-bold pk-text-primary hover:opacity-80 cursor-pointer transition">
+                        Xác Nhận Nạp Thử Nghiệm
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cột phải (7/12): Form chọn mệnh giá nạp điểm qua VNPay -->
+        <section class="lg:col-span-7 pk-surface rounded-3xl p-6 sm:p-7 space-y-5">
+            <div>
+                <h2 class="text-lg font-extrabold pk-text-primary">Nạp Điểm Vào Ví</h2>
+                <p class="text-xs pk-text-secondary mt-0.5">
+                    Chọn mệnh giá nạp nhanh bên dưới hoặc nhập số tiền tùy ý (tối thiểu 10.000 ₫).
+                </p>
+            </div>
+
+            <form id="vnpay-deposit-form" class="space-y-5">
+                <input type="hidden" id="deposit-user-id" th:value="${currentUserId}"/>
+
+                <!-- Mệnh giá chọn nhanh có trạng thái Active viền nổi bật -->
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                    <button type="button" data-preset="50000" onclick="window.selectPresetAmount(50000, this)"
+                            class="wallet-preset-btn pk-surface-elevated hover:opacity-90 rounded-2xl p-3 text-center cursor-pointer transition border-2 border-transparent">
+                        <div class="pk-num text-sm font-extrabold pk-text-primary">50.000₫</div>
+                        <div class="text-[10px] pk-text-secondary mt-0.5">1 gói lẻ</div>
+                    </button>
+                    <button type="button" data-preset="100000" onclick="window.selectPresetAmount(100000, this)"
+                            class="wallet-preset-btn pk-surface-elevated hover:opacity-90 rounded-2xl p-3 text-center cursor-pointer transition border-2 border-transparent">
+                        <div class="pk-num text-sm font-extrabold pk-text-primary">100.000₫</div>
+                        <div class="text-[10px] pk-text-secondary mt-0.5">2 gói lẻ</div>
+                    </button>
+                    <button type="button" data-preset="200000" onclick="window.selectPresetAmount(200000, this)"
+                            class="wallet-preset-btn pk-surface-elevated hover:opacity-90 rounded-2xl p-3 text-center cursor-pointer transition border-2 border-rose-500 ring-2 ring-rose-500/25">
+                        <div class="pk-num text-sm font-extrabold text-rose-600 dark:text-amber-400">200.000₫</div>
+                        <div class="text-[10px] font-bold text-rose-600 dark:text-amber-400 mt-0.5">Phổ biến</div>
+                    </button>
+                    <button type="button" data-preset="500000" onclick="window.selectPresetAmount(500000, this)"
+                            class="wallet-preset-btn pk-surface-elevated hover:opacity-90 rounded-2xl p-3 text-center cursor-pointer transition border-2 border-transparent">
+                        <div class="pk-num text-sm font-extrabold pk-text-primary">500.000₫</div>
+                        <div class="text-[10px] pk-text-secondary mt-0.5">Săn thẻ EX</div>
+                    </button>
+                    <button type="button" data-preset="1000000" onclick="window.selectPresetAmount(1000000, this)"
+                            class="wallet-preset-btn pk-surface-elevated hover:opacity-90 rounded-2xl p-3 text-center cursor-pointer transition border-2 border-transparent col-span-2 sm:col-span-1">
+                        <div class="pk-num text-sm font-extrabold text-emerald-600 dark:text-emerald-400">1.000.000₫</div>
+                        <div class="text-[10px] pk-text-secondary mt-0.5">Đại gia Box</div>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold pk-text-secondary mb-1">Số tiền nạp (₫) *</label>
+                        <input type="number" id="deposit-amount" min="10000" step="1000" value="200000" required
+                               class="pk-input pk-num w-full rounded-xl px-4 py-2.5 text-base font-extrabold"/>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold pk-text-secondary mb-1">Ngân hàng thanh toán</label>
+                        <select id="deposit-bank-code"
+                                class="pk-input w-full rounded-xl px-3.5 py-2.5 text-sm cursor-pointer">
+                            <option value="NCB">Ngân hàng NCB (Thẻ ATM Nội địa)</option>
+                            <option value="VNPAYQR">Quét mã VNPAYQR</option>
+                            <option value="INTCARD">Thẻ Quốc tế (Visa / MasterCard)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-end gap-3 pt-1">
+                    <button type="button" onclick="window.createUrlAndStayForTest()"
+                            class="pk-surface-muted rounded-xl px-4 py-3 text-xs font-bold pk-text-primary hover:opacity-80 cursor-pointer transition">
+                        Tạo giao dịch nạp thử nghiệm nhanh
+                    </button>
+
+                    <button type="submit"
+                            class="pk-btn-primary rounded-xl px-6 py-3 text-xs sm:text-sm font-extrabold cursor-pointer">
+                        Tiến Hành Thanh Toán VNPay
+                    </button>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    <!-- ==================== BẢNG LỊCH SỬ BIẾN ĐỘNG SỐ DƯ (TINH GỌN 4 CỘT + POPUP CHI TIẾT) ==================== -->
+    <section class="pk-surface rounded-3xl p-5 sm:p-6 space-y-4">
+        <div class="flex items-center justify-between gap-2">
+            <div>
+                <h2 class="text-base font-extrabold pk-text-primary">Lịch Sử Giao Dịch Ví</h2>
+                <p class="text-[11px] pk-text-secondary mt-0.5">Bấm vào từng dòng giao dịch để xem chi tiết đầy đủ.</p>
+            </div>
+            <span class="pk-num text-xs font-semibold pk-text-secondary whitespace-nowrap" th:text="${#lists.size(transactions)} + ' giao dịch'">1 giao dịch</span>
+        </div>
+
+        <div class="overflow-hidden rounded-2xl pk-surface-muted">
+            <table class="w-full text-left text-xs sm:text-sm table-fixed sm:table-auto">
+                <thead class="border-b border-slate-200 dark:border-slate-800 pk-text-secondary uppercase text-[11px]">
+                <tr>
+                    <th class="px-3 sm:px-4 py-3">Giao dịch</th>
+                    <th class="px-2 sm:px-4 py-3 text-right whitespace-nowrap">Biến động</th>
+                    <th class="px-2 sm:px-4 py-3 text-center whitespace-nowrap">Trạng thái</th>
+                    <th class="px-2 sm:px-4 py-3 text-right whitespace-nowrap w-14 sm:w-24">Chi tiết</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200/70 dark:divide-slate-800/70">
+                <tr th:each="tx : ${transactions}"
+                    th:with="typeName=${tx.type().name()},
+                             friendlyType=${typeName == 'DEPOSIT_VNPAY' ? 'Nạp điểm VNPay' :
+                                           (typeName == 'PURCHASE_PACK' ? 'Mở gói bài lẻ' :
+                                           (typeName == 'PURCHASE_BOX' ? 'Mua nguyên hộp' :
+                                           (typeName == 'AUCTION_BID_HOLD' ? 'Tạm giữ đấu giá' :
+                                           (typeName == 'AUCTION_BID_REFUND' ? 'Hoàn cọc đấu giá' :
+                                           (typeName == 'AUCTION_SETTLEMENT' ? 'Thanh toán P2P / Đấu giá' :
+                                           (typeName == 'MARKET_PURCHASE' ? 'Mua thẻ Sàn P2P' :
+                                           (typeName == 'MARKET_SALE' ? 'Bán thẻ Sàn P2P' : typeName)))))))},
+                             isCredit=${typeName == 'DEPOSIT_VNPAY' or typeName == 'AUCTION_BID_REFUND' or typeName == 'MARKET_SALE'},
+                             signedAmount=(${isCredit} ? '+' : '-') + ${#numbers.formatDecimal(tx.amount(), 0, 'POINT', 0, 'COMMA')} + ' ₫',
+                             formattedBalanceAfter=${tx.balanceAfter() != null ? #numbers.formatDecimal(tx.balanceAfter(), 0, 'POINT', 0, 'COMMA') + ' ₫' : '---'},
+                             formattedTime=${tx.createdAt() != null ? #temporals.format(tx.createdAt(), 'dd/MM/yyyy HH:mm:ss') : '---'},
+                             shortTime=${tx.createdAt() != null ? #temporals.format(tx.createdAt(), 'dd/MM/yyyy HH:mm') : ''}"
+                    th:attr="data-txn-ref=${tx.vnpTxnRef()},
+                             data-friendly-type=${friendlyType},
+                             data-signed-amount=${signedAmount},
+                             data-is-credit=${isCredit},
+                             data-balance-after=${formattedBalanceAfter},
+                             data-status=${tx.status().name()},
+                             data-time=${formattedTime},
+                             data-desc=${tx.description()}"
+                    onclick="window.openTxDetailModal(this)"
+                    class="cursor-pointer hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition">
+
+                    <!-- Cột 1: Giao dịch (Tên tiếng Việt thân thiện + Thời gian bên dưới) -->
+                    <td class="px-3 sm:px-4 py-3">
+                        <div class="font-bold pk-text-primary truncate" th:text="${friendlyType}">Nạp điểm VNPay</div>
+                        <div class="pk-num text-[11px] pk-text-secondary mt-0.5" th:text="${shortTime}">18/11/2026 10:30</div>
+                    </td>
+
+                    <!-- Cột 2: Biến động -->
+                    <td class="px-2 sm:px-4 py-3 text-right pk-num font-extrabold whitespace-nowrap"
+                        th:classappend="${isCredit} ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
+                        th:text="${signedAmount}">
+                        +200.000 ₫
+                    </td>
+
+                    <!-- Cột 3: Trạng thái (Badge 1 dòng không rớt chữ) -->
+                    <td class="px-2 sm:px-4 py-3 text-center whitespace-nowrap">
+                        <span th:if="${tx.status().name() == 'SUCCESS'}"
+                              class="inline-flex items-center whitespace-nowrap rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            Hoàn tất
+                        </span>
+                        <span th:if="${tx.status().name() == 'PENDING'}"
+                              class="inline-flex items-center whitespace-nowrap rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                            Đang chờ
+                        </span>
+                        <span th:if="${tx.status().name() == 'FAILED'}"
+                              class="inline-flex items-center whitespace-nowrap rounded-full bg-rose-500/15 px-2.5 py-0.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                            Thất bại
+                        </span>
+                    </td>
+
+                    <!-- Cột 4: Nút xem Chi tiết -->
+                    <td class="px-2 sm:px-4 py-3 text-right whitespace-nowrap">
+                        <button type="button"
+                                onclick="event.stopPropagation(); window.openTxDetailModal(this.closest('tr'))"
+                                title="Xem chi tiết giao dịch"
+                                aria-label="Xem chi tiết giao dịch"
+                                class="pk-surface inline-flex h-8 w-8 sm:w-auto sm:px-2.5 items-center justify-center gap-1 rounded-xl text-xs font-bold pk-text-primary hover:opacity-80 cursor-pointer transition">
+                            <svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <span class="hidden sm:inline">Xem</span>
+                        </button>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(transactions)}">
+                    <td colspan="4" class="px-4 py-8 text-center text-xs sm:text-sm pk-text-secondary">
+                        Chưa có giao dịch nào trong lịch sử ví của bạn.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+<!-- ==================== MINI POPUP (MODAL) CHI TIẾT GIAO DỊCH ==================== -->
+<div id="tx-detail-modal"
+     onclick="if (event.target === this) window.closeTxDetailModal()"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="pk-surface w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-5">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3.5">
+            <div>
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-amber-400">
+                    Biên Lai Điện Tử
+                </span>
+                <h3 class="text-lg font-extrabold pk-text-primary">Chi Tiết Giao Dịch</h3>
+            </div>
+            <button type="button"
+                    onclick="window.closeTxDetailModal()"
+                    aria-label="Đóng chi tiết giao dịch"
+                    class="flex h-8 w-8 items-center justify-center rounded-full pk-surface-muted pk-text-primary hover:opacity-80 cursor-pointer">
+                ✕
+            </button>
+        </div>
+
+        <!-- Số tiền biến động nổi bật -->
+        <div class="pk-surface-elevated rounded-2xl p-4 text-center space-y-1">
+            <div class="text-xs font-semibold pk-text-secondary" id="modal-tx-type">Nạp điểm VNPay</div>
+            <div class="pk-num text-2xl sm:text-3xl font-extrabold" id="modal-tx-amount">+200.000 ₫</div>
+            <div class="pt-1" id="modal-tx-status-badge"></div>
+        </div>
+
+        <!-- Bảng thông tin đầy đủ -->
+        <div class="divide-y divide-slate-200/70 dark:divide-slate-800/70 text-xs sm:text-sm">
+            <div class="flex items-center justify-between py-2.5 gap-3">
+                <span class="pk-text-secondary shrink-0">Mã giao dịch</span>
+                <span id="modal-tx-ref" class="pk-num font-bold pk-text-primary text-right break-all">VNP1_20261118</span>
+            </div>
+            <div class="flex items-center justify-between py-2.5 gap-3">
+                <span class="pk-text-secondary shrink-0">Số dư sau giao dịch</span>
+                <span id="modal-tx-balance-after" class="pk-num font-extrabold pk-text-primary text-right">2.500.000 ₫</span>
+            </div>
+            <div class="flex items-center justify-between py-2.5 gap-3">
+                <span class="pk-text-secondary shrink-0">Thời gian chính xác</span>
+                <span id="modal-tx-time" class="pk-num font-semibold pk-text-primary text-right">18/11/2026 10:30:00</span>
+            </div>
+            <div class="py-2.5 space-y-1">
+                <span class="pk-text-secondary block">Nội dung chi tiết</span>
+                <p id="modal-tx-desc" class="font-semibold pk-text-primary leading-relaxed">Nạp điểm ví</p>
+            </div>
+        </div>
+
+        <!-- Nút hành động (Hiện nút Xác nhận nạp nếu đang PENDING) -->
+        <div class="flex items-center justify-end gap-2.5 pt-2">
+            <button type="button"
+                    id="modal-tx-confirm-btn"
+                    class="hidden pk-btn-primary rounded-xl px-4 py-2.5 text-xs font-extrabold cursor-pointer">
+                Xác nhận nạp ngay
+            </button>
+            <button type="button"
+                    onclick="window.closeTxDetailModal()"
+                    class="pk-surface-muted rounded-xl px-4 py-2.5 text-xs font-bold pk-text-primary hover:opacity-80 cursor-pointer transition">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/header :: commonScripts}"></div>
+<script defer th:src="@{/js/pages/wallet.js}"></script>
+</body>
+</html>

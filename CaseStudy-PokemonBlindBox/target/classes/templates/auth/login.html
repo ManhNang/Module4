@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('Đăng Nhập Tài Khoản')}"></head>
+<body class="min-h-screen flex flex-col justify-center items-center px-4 py-8">
+
+<!-- Split-Card Layout mang phong cách Bộ Sưu Tập Thẻ Bài Blindbox -->
+<div class="pk-surface w-full max-w-4xl rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 shadow-2xl">
+
+    <!-- Cột trái (5/12): Banner Thương Hiệu (Ẩn trên Mobile < lg để form hiện ngay lập tức) -->
+    <div class="hidden lg:flex lg:col-span-5 relative overflow-hidden bg-gradient-to-br from-rose-600 via-rose-700 to-indigo-900 p-8 text-white flex-col justify-between">
+        <!-- Họa tiết Pokéball chìm cỡ lớn ở nền -->
+        <svg class="pointer-events-none absolute -right-16 -bottom-16 h-64 w-64 text-white/10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+            <circle cx="12" cy="12" r="9"></circle>
+            <circle cx="12" cy="12" r="2.5"></circle>
+            <line x1="3" y1="12" x2="9.5" y2="12"></line>
+            <line x1="14.5" y1="12" x2="21" y2="12"></line>
+        </svg>
+
+        <div class="relative z-10 flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 backdrop-blur-md border border-white/25 shrink-0">
+                <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <circle cx="12" cy="12" r="2.5"></circle>
+                    <line x1="3" y1="12" x2="9.5" y2="12"></line>
+                    <line x1="14.5" y1="12" x2="21" y2="12"></line>
+                </svg>
+            </div>
+            <div>
+                <div class="text-lg font-extrabold tracking-tight">Pokémon Blindbox</div>
+                <div class="text-xs text-rose-100/90">Delta Reign • Expansion Series</div>
+            </div>
+        </div>
+
+        <div class="relative z-10 my-8 space-y-3">
+            <span class="inline-block rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wider backdrop-blur-sm">
+                103 Thẻ Chuẩn + Secret Rare
+            </span>
+            <h2 class="text-2xl sm:text-[26px] font-extrabold leading-snug [text-wrap:balance]">
+                Mở Hộp Blindbox &amp; Sưu Tầm Thẻ Bài 3D
+            </h2>
+            <p class="text-xs sm:text-sm text-rose-100/90 leading-relaxed [text-wrap:pretty]">
+                Khám phá khay Booster Box thời gian thực, sưu tầm trọn bộ 103 ô Delta Reign và giao dịch P2P trực tuyến cùng cộng đồng.
+            </p>
+        </div>
+
+        <div class="relative z-10 grid grid-cols-2 gap-2.5">
+            <div class="rounded-2xl bg-white/10 px-3 py-2.5 backdrop-blur-sm border border-white/15">
+                <div class="text-xs font-extrabold text-amber-300">Holographic 3D</div>
+                <div class="text-[10.5px] text-rose-100/90 mt-0.5 leading-snug whitespace-nowrap">Ánh kim theo chuột</div>
+            </div>
+            <div class="rounded-2xl bg-white/10 px-3 py-2.5 backdrop-blur-sm border border-white/15">
+                <div class="text-xs font-extrabold text-emerald-300">Đấu Giá LIVE</div>
+                <div class="text-[10.5px] text-rose-100/90 mt-0.5 leading-snug whitespace-nowrap">Nhảy giá thời gian thực</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cột phải (7/12): Form Đăng Nhập + Tài khoản trải nghiệm nhanh -->
+    <div class="lg:col-span-7 p-6 sm:p-9 flex flex-col justify-center space-y-5">
+        <!-- Header Logo gọn nhẹ chỉ hiện trên Mobile (< lg) -->
+        <div class="flex lg:hidden items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div class="flex items-center gap-2.5">
+                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-white shadow-md">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <circle cx="12" cy="12" r="2.5"></circle>
+                        <line x1="3" y1="12" x2="9.5" y2="12"></line>
+                        <line x1="14.5" y1="12" x2="21" y2="12"></line>
+                    </svg>
+                </div>
+                <div>
+                    <div class="text-sm font-extrabold pk-text-primary leading-tight">Pokémon Blindbox</div>
+                    <div class="text-[11px] pk-text-secondary">Delta Reign Series</div>
+                </div>
+            </div>
+            <span class="rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-extrabold text-rose-600 dark:text-amber-400">
+                103 Thẻ Chuẩn
+            </span>
+        </div>
+
+        <div class="flex items-start justify-between gap-3">
+            <div>
+                <h1 class="text-2xl font-extrabold pk-text-primary">Đăng Nhập</h1>
+                <p class="mt-1 text-xs sm:text-sm pk-text-secondary">
+                    Chào mừng nhà sưu tầm quay trở lại!
+                </p>
+            </div>
+
+            <button type="button" onclick="window.toggleBlindboxTheme()" title="Đổi giao diện Sáng / Tối"
+                    class="flex h-9 w-9 items-center justify-center rounded-full pk-surface-muted cursor-pointer transition shrink-0">
+                <svg id="theme-icon-moon" class="h-4 w-4 pk-text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+                </svg>
+                <svg id="theme-icon-sun" class="h-4 w-4 text-amber-400 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2"></path><path d="M12 20v2"></path>
+                    <path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path>
+                    <path d="M2 12h2"></path><path d="M20 12h2"></path>
+                    <path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div th:if="${param.error}"
+             class="rounded-2xl border border-rose-500/50 bg-rose-500/10 p-3.5 text-xs sm:text-sm font-semibold text-rose-600 dark:text-rose-400">
+            Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng thử lại!
+        </div>
+
+        <div th:if="${param.logout}"
+             class="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-3.5 text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+            Bạn đã đăng xuất khỏi hệ thống an toàn.
+        </div>
+
+        <div th:if="${registeredMessage != null}"
+             class="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-3.5 text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400"
+             th:text="${registeredMessage}">
+        </div>
+
+        <form th:action="@{/login}" method="post" class="space-y-4">
+            <div>
+                <label for="username" class="block text-xs font-bold pk-text-secondary mb-1.5">Tên đăng nhập</label>
+                <input type="text" id="username" name="username" required autofocus
+                       placeholder="Nhập tên đăng nhập (VD: satoshi)"
+                       class="pk-input w-full rounded-xl px-4 py-3 text-sm font-semibold"/>
+            </div>
+
+            <div>
+                <label for="password" class="block text-xs font-bold pk-text-secondary mb-1.5">Mật khẩu</label>
+                <div class="relative">
+                    <input type="password" id="password" name="password" required
+                           placeholder="••••••••"
+                           class="pk-input w-full rounded-xl pl-4 pr-11 py-3 text-sm font-semibold"/>
+                    <button type="button"
+                            onclick="window.togglePasswordVisibility('password', this)"
+                            aria-label="Hiện hoặc ẩn mật khẩu"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg pk-text-secondary hover:pk-text-primary cursor-pointer transition">
+                        <svg class="icon-eye h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <svg class="icon-eye-off h-4 w-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+                            <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/>
+                            <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/>
+                            <line x1="2" x2="22" y1="2" y2="22"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit"
+                    class="pk-btn-primary w-full rounded-xl py-3.5 text-sm font-extrabold cursor-pointer">
+                Đăng Nhập Ngay
+            </button>
+        </form>
+
+        <!-- Tài khoản quản trị đăng nhập nhanh -->
+        <div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+            <div class="flex items-center justify-between text-[11px]">
+                <span class="font-bold uppercase tracking-wider pk-text-secondary">TÀI KHOẢN QUẢN TRỊ:</span>
+                <span id="quickfill-feedback" class="hidden font-bold text-emerald-600 dark:text-emerald-400">Đã điền sẵn!</span>
+            </div>
+            <div class="grid grid-cols-1 gap-2.5">
+                <button type="button"
+                        onclick="window.quickFillCredentials('nangdzai2k', '123456', this)"
+                        class="quickfill-btn pk-surface-elevated hover:border-rose-500 rounded-2xl p-3 text-left border-2 border-transparent cursor-pointer transition flex items-center justify-between w-full">
+                    <div>
+                        <div class="text-xs font-extrabold text-rose-600 dark:text-amber-400">Quản trị viên (Admin)</div>
+                        <div class="pk-num text-[11px] pk-text-secondary">nangdzai2k / 123456</div>
+                    </div>
+                    <span class="rounded-full bg-rose-500/15 px-2.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-amber-400 shrink-0">Chọn</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="text-center text-xs pk-text-secondary">
+            Chưa có tài khoản?
+            <a th:href="@{/register}" class="font-extrabold text-rose-600 dark:text-amber-400 hover:underline ml-1">
+                Đăng ký tài khoản mới →
+            </a>
+        </div>
+    </div>
+</div>
+
+<script defer th:src="@{/js/pages/auth.js}"></script>
+</body>
+</html>

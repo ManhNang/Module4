@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/header :: head('Kho Đồ & Tiến Độ Bộ Thẻ Delta Reign')}"></head>
+<body class="min-h-screen flex flex-col">
+
+<!-- Single-row Sticky Glass Navbar -->
+<div th:replace="~{fragments/header :: navbar('inventory')}"></div>
+
+<main id="binder-main"
+      th:attr="data-initial-tab=${initialTab ?: 'inventory'}"
+      class="mx-auto w-full max-w-7xl flex-1 px-4 py-7 sm:px-6 lg:px-8 space-y-7">
+
+    <!-- ==================== HEADER KHO ĐỒ & CHUYỂN ĐỔI 2 TAB CON MƯỢT MÀ ==================== -->
+    <section class="pk-surface rounded-3xl p-6 sm:p-7 space-y-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+            <div>
+                <div class="inline-flex items-center gap-2 rounded-full bg-rose-500/10 px-3 py-1 text-xs font-bold text-rose-600 dark:text-amber-400 border border-rose-500/20">
+                    <!-- Icon Chiếc Ba Lô SVG -->
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/>
+                        <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                        <path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5"/>
+                        <path d="M8 10h8"/>
+                    </svg>
+                    <span>Kho Đồ Nhà Sưu Tầm</span>
+                </div>
+                <h1 class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight pk-text-primary">
+                    Kho Đồ Cá Nhân &amp; Bộ Sưu Tập "<span th:text="${progress.setName()}">Delta Reign</span>"
+                </h1>
+                <p class="mt-1 text-xs sm:text-sm pk-text-secondary">
+                    Quản lý các thẻ bài bạn đang sở hữu trong kho và theo dõi tiến độ hoàn thành 103 ô thẻ chuẩn.
+                </p>
+            </div>
+
+            <!-- Bộ chuyển đổi 2 Tab con mượt mà -->
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-1.5 rounded-2xl pk-surface-muted p-1.5 w-full lg:w-auto shrink-0">
+                <button type="button"
+                        id="btn-tab-inventory"
+                        onclick="window.switchInventoryTab('inventory')"
+                        class="pk-btn-primary flex-1 lg:flex-none justify-center rounded-xl px-4 py-2.5 text-xs sm:text-sm font-extrabold transition flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                    <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="18" height="18" x="3" y="3" rx="2"/>
+                        <path d="M3 9h18"/>
+                        <path d="M9 21V9"/>
+                    </svg>
+                    <span>Tủ Đồ Cá Nhân (<span class="pk-num" th:text="${#lists.size(myCards)}">4</span>)</span>
+                </button>
+
+                <button type="button"
+                        id="btn-tab-masterset"
+                        onclick="window.switchInventoryTab('masterset')"
+                        class="flex-1 lg:flex-none justify-center rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold pk-text-secondary hover:pk-text-primary transition flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                    <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                    </svg>
+                    <span>Tiến Độ Bộ Thẻ (<span class="pk-num" th:text="${progress.ownedBaseCardCount()} + '/103'">2/103</span>)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Cụm thống kê nhanh tiến độ & kho đồ -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-2 border-t border-slate-200 dark:border-slate-800">
+            <div class="pk-surface-elevated rounded-2xl p-4">
+                <div class="text-xs font-semibold pk-text-secondary">Tổng thẻ trong kho</div>
+                <div class="mt-1 pk-num text-xl font-extrabold pk-text-primary" th:text="${#lists.size(myCards)} + ' thẻ'">4 thẻ</div>
+            </div>
+
+            <div class="pk-surface-elevated rounded-2xl p-4">
+                <div class="text-xs font-semibold pk-text-secondary">Sẵn sàng giao dịch</div>
+                <div class="mt-1 pk-num text-xl font-extrabold text-emerald-600 dark:text-emerald-400" th:text="${unlockedCardCount} + ' thẻ'">4 thẻ</div>
+            </div>
+
+            <div class="pk-surface-elevated rounded-2xl p-4">
+                <div class="text-xs font-semibold pk-text-secondary">Tiến độ Thẻ Chuẩn</div>
+                <div class="mt-1 flex items-baseline gap-1.5">
+                    <span class="pk-num text-xl font-extrabold text-emerald-600 dark:text-emerald-400"
+                          th:text="${progress.ownedBaseCardCount()} + ' / ' + ${progress.baseSetTotal()}">2 / 103</span>
+                    <span class="pk-num text-xs font-bold pk-text-secondary"
+                          th:text="'(' + ${progress.baseCompletionPercentage()} + '%)'">(1.94%)</span>
+                </div>
+            </div>
+
+            <div class="pk-surface-elevated rounded-2xl p-4">
+                <div class="text-xs font-semibold pk-text-secondary">Thẻ Secret Đặc Biệt</div>
+                <div class="mt-1 pk-num text-xl font-extrabold text-rose-600 dark:text-amber-400"
+                     th:text="${progress.ownedSecretRareCount()} + ' / ' + ${progress.totalSecretRareInSet()}">0 / 1</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================================================================================== -->
+    <!-- TAB 1: TỦ ĐỒ CÁ NHÂN (MY CARDS) - HIỂN THỊ THẺ SỞ HỮU, SỐ LƯỢNG TRÙNG & NÚT ĐEM BÁN -->
+    <!-- ================================================================================== -->
+    <div id="panel-tab-inventory" class="space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-extrabold pk-text-primary">
+                    Thẻ Bài Đang Sở Hữu (<span class="pk-num" th:text="${#lists.size(myCards)}">4</span>)
+                </h2>
+                <p class="text-xs pk-text-secondary">
+                    Mỗi thẻ bài có thể được giữ trong bộ sưu tập hoặc bấm <strong>"Đem bán / Đấu giá"</strong> để đưa lên Sàn P2P.
+                </p>
+            </div>
+            <a th:href="@{/store}"
+               class="pk-btn-primary rounded-full px-4 py-2 text-xs font-extrabold flex items-center gap-1.5">
+                <span>Mở thêm gói bài mới →</span>
+            </a>
+        </div>
+
+        <div th:if="${#lists.isEmpty(myCards)}"
+             class="pk-surface rounded-3xl p-10 text-center space-y-4">
+            <p class="text-sm pk-text-secondary">Kho đồ của bạn hiện chưa có thẻ bài nào.</p>
+            <a th:href="@{/store}" class="pk-btn-primary inline-block rounded-xl px-5 py-2.5 text-xs font-extrabold">
+                Đến Cửa Hàng Mở Gói Bài Ngay
+            </a>
+        </div>
+
+        <div id="my-cards-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+            <div th:each="uc : ${myCards}"
+                 th:attr="data-template-id=${uc.card().id()}, data-is-locked=${uc.isLocked()}"
+                 class="my-card-item card-item pk-surface rounded-2xl p-3 flex flex-col justify-between space-y-2.5 transition">
+
+                <!-- Khung thẻ bài chuẩn 5:7 (object-fit: contain; giữ trọn 4 góc thẻ) kèm badge nổi góc trên phải & góc dưới trái -->
+                <div class="card-image-wrapper pk-card-frame pk-surface-muted p-1.5 group">
+                    <a th:href="@{/cards/{id}(id=${uc.card().id()})}" class="flex items-center justify-center w-full h-full">
+                        <img th:src="${uc.card().imageUrl()}"
+                             th:alt="${uc.card().name()}"
+                             onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"
+                             class="transition-transform duration-300 group-hover:scale-105"/>
+                    </a>
+
+                    <!-- Badge số lượng sở hữu (x2, x3) nổi gọn ở góc trên phải -->
+                    <span class="pk-num absolute top-2 right-2 z-10 rounded-full bg-slate-950/85 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-400 shadow-md backdrop-blur-sm border border-white/15"
+                          th:text="'x' + ${templateCopyCounts.getOrDefault(uc.card().id(), 1L)}">
+                        x3
+                    </span>
+
+                    <!-- Badge trạng thái nổi gọn ở góc dưới trái -->
+                    <span th:if="${uc.isLocked()}"
+                          class="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-amber-500/95 px-2.5 py-0.5 text-[10px] font-extrabold text-slate-950 shadow-md">
+                        Đang treo sàn
+                    </span>
+                    <span th:if="${!uc.isLocked()}"
+                          class="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-emerald-600/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-md backdrop-blur-sm">
+                        Trong kho
+                    </span>
+                </div>
+
+                <!-- Thông tin gọn gàng bên dưới thẻ (Tên thẻ hiển thị tối đa 2 dòng không bị cắt cụt) -->
+                <div class="space-y-1.5 pt-0.5 flex-1 flex flex-col justify-between">
+                    <div class="flex items-start justify-between gap-1.5">
+                        <a th:href="@{/cards/{id}(id=${uc.card().id()})}"
+                           class="pk-line-clamp-2 text-xs sm:text-sm font-extrabold pk-text-primary hover:underline leading-snug"
+                           th:text="${uc.card().name()}">Hầm hào huyền thoại</a>
+                        <span class="pk-num text-[11px] font-bold pk-text-secondary shrink-0 mt-0.5"
+                              th:text="${uc.card().formattedCardNumber()}">098 / 103</span>
+                    </div>
+
+                    <div class="pt-1">
+                        <a th:if="${!uc.isLocked()}"
+                           th:href="@{/market(sellUserCardId=${uc.userCardId()})}"
+                           class="pk-btn-primary w-full rounded-xl py-2 px-3 text-xs font-extrabold flex items-center justify-center gap-1.5">
+                            <span>Đem bán / Đấu giá</span>
+                        </a>
+                        <a th:if="${uc.isLocked()}"
+                           th:href="@{/market}"
+                           class="pk-surface-muted w-full rounded-xl py-2 px-3 text-xs font-bold pk-text-secondary flex items-center justify-center">
+                            <span>Xem trên Sàn P2P →</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================================== -->
+    <!-- TAB 2: TIẾN ĐỘ BỘ THẺ (MASTER SET 103 Ô SÁNG / MỜ & BỘ LỌC)                        -->
+    <!-- ================================================================================== -->
+    <div id="panel-tab-masterset" class="hidden space-y-6">
+
+        <!-- Thanh Progress Bar trực quan -->
+        <section class="pk-surface rounded-3xl p-5 sm:p-6 space-y-3">
+            <div class="flex justify-between text-xs font-semibold">
+                <span class="pk-text-secondary">
+                    Tiến độ sưu tầm bộ <strong class="pk-text-primary" th:text="${progress.setName()}">Delta Reign</strong>:
+                    <strong class="pk-num text-emerald-600 dark:text-emerald-400" th:text="${progress.ownedBaseCardCount()} + ' / ' + ${progress.baseSetTotal()}">2 / 103</strong> thẻ chuẩn
+                </span>
+                <span class="pk-num font-bold text-rose-600 dark:text-amber-400" th:text="${progress.baseCompletionPercentage()} + '% Hoàn thành'">1.94%</span>
+            </div>
+            <div class="h-3 w-full overflow-hidden rounded-full pk-surface-muted p-0.5">
+                <div class="h-full rounded-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 transition-all duration-500"
+                     th:style="'width: ' + (${progress.baseCompletionPercentage()} > 2 ? ${progress.baseCompletionPercentage()} : 2) + '%'"></div>
+            </div>
+        </section>
+
+        <!-- Thanh Bộ lọc tra cứu -->
+        <section class="pk-surface rounded-3xl p-5 sm:p-6 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-sm font-extrabold pk-text-primary">
+                    <svg class="h-4 w-4 text-rose-600 dark:text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.3-4.3"/>
+                    </svg>
+                    <span>Bộ Lọc Tra Cứu Thẻ Bài</span>
+                </div>
+
+                <div class="flex items-center gap-2 text-xs">
+                    <button type="button"
+                            onclick="window.applyPresetFilter('Hầm hào huyền thoại', '98', 'Không phổ biến', 'Delta Reign', 'Hầm hào huyền thoại')"
+                            class="pk-surface-elevated rounded-full px-3.5 py-1.5 font-bold pk-text-primary hover:opacity-80 cursor-pointer transition">
+                        Tìm nhanh thẻ #098 (Hầm hào huyền thoại)
+                    </button>
+                    <button type="button"
+                            onclick="window.resetBinderFilter()"
+                            class="pk-surface-muted rounded-full px-3.5 py-1.5 font-semibold pk-text-secondary hover:pk-text-primary cursor-pointer transition">
+                        Xóa bộ lọc
+                    </button>
+                </div>
+            </div>
+
+            <form id="binder-filter-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3">
+                <div class="lg:col-span-2 min-w-0">
+                    <label for="filter-name" class="block text-xs font-semibold pk-text-secondary mb-1">Tên thẻ</label>
+                    <input type="text" id="filter-name" placeholder="Steelix, Hầm hào..."
+                           oninput="window.filterBinderGridClientSide()"
+                           class="pk-input w-full rounded-xl px-3 py-2 text-xs sm:text-sm"/>
+                </div>
+
+                <div class="lg:col-span-1 min-w-0">
+                    <label for="filter-number" class="block text-xs font-semibold pk-text-secondary mb-1">Số TT</label>
+                    <input type="number" id="filter-number" min="1" placeholder="98"
+                           oninput="window.filterBinderGridClientSide()"
+                           class="pk-input pk-num w-full rounded-xl px-2.5 py-2 text-xs sm:text-sm font-bold"/>
+                </div>
+
+                <div class="lg:col-span-2 min-w-0">
+                    <label for="filter-rarity" class="block text-xs font-semibold pk-text-secondary mb-1">Độ hiếm</label>
+                    <select id="filter-rarity" onchange="window.filterBinderGridClientSide()"
+                            class="pk-input w-full rounded-xl px-3 py-2 text-xs sm:text-sm cursor-pointer">
+                        <option value="">Tất cả độ hiếm</option>
+                        <option th:each="r : ${rarities}" th:value="${r.name()}" th:text="${r.name()}">Không phổ biến</option>
+                    </select>
+                </div>
+
+                <div class="lg:col-span-3 min-w-0">
+                    <label for="filter-set" class="block text-xs font-semibold pk-text-secondary mb-1">Bộ thẻ</label>
+                    <select id="filter-set" onchange="window.filterBinderGridClientSide()"
+                            class="pk-input w-full rounded-xl px-3 py-2 text-xs sm:text-sm cursor-pointer">
+                        <option th:each="s : ${cardSets}" th:value="${s.name()}" th:text="${s.name()} + ' (' + ${s.code()} + ')'">Delta Reign (DLR)</option>
+                    </select>
+                </div>
+
+                <div class="lg:col-span-2 min-w-0">
+                    <label for="filter-species" class="block text-xs font-semibold pk-text-secondary mb-1">Loài</label>
+                    <select id="filter-species" onchange="window.filterBinderGridClientSide()"
+                            class="pk-input w-full rounded-xl px-3 py-2 text-xs sm:text-sm cursor-pointer">
+                        <option value="">Tất cả loài</option>
+                        <option th:each="sp : ${speciesList}" th:value="${sp.name()}" th:text="${sp.name()}">Hầm hào huyền thoại</option>
+                    </select>
+                </div>
+
+                <div class="lg:col-span-2 flex items-end">
+                    <button type="submit"
+                            class="pk-btn-primary w-full rounded-xl py-2.5 px-4 text-xs sm:text-sm font-extrabold cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap">
+                        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.3-4.3"/>
+                        </svg>
+                        <span>Tìm kiếm</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Kết quả tìm kiếm chi tiết -->
+            <div id="api-search-results-box" class="hidden pk-surface-elevated rounded-2xl p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span id="api-search-summary" class="text-xs font-bold pk-text-primary">Kết quả tra cứu:</span>
+                    <button type="button" onclick="document.getElementById('api-search-results-box').classList.add('hidden')"
+                            class="text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer">Đóng ✕</button>
+                </div>
+                <div id="api-search-cards-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+            </div>
+        </section>
+
+        <!-- Lưới 103 ô thẻ chuẩn (Kích thước đồng đều tuyệt đối 5:7, ô chưa sở hữu có viền nét đứt tinh tế) -->
+        <section class="space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="text-lg font-extrabold pk-text-primary">
+                    Lưới 103 Ô Thẻ Chuẩn (<span class="pk-num">#001</span> – <span class="pk-num">#103</span>)
+                </h2>
+                <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold pk-text-secondary">
+                    <input type="checkbox" id="toggle-only-configured" onchange="window.filterBinderGridClientSide()"
+                           class="rounded border-slate-400 text-rose-600 focus:ring-rose-500"/>
+                    <span>Chỉ hiển thị thẻ đã phát hành trong bộ</span>
+                </label>
+            </div>
+
+            <div id="binder-slots-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div th:each="slot : ${progress.baseSetSlots()}"
+                     th:attr="data-card-number=${slot.cardNumber()},
+                              data-has-template=${slot.cardTemplate() != null},
+                              data-card-name=${slot.cardTemplate() != null ? slot.cardTemplate().name() : ''},
+                              data-rarity=${slot.cardTemplate() != null ? slot.cardTemplate().rarityName() : ''},
+                              data-species=${slot.cardTemplate() != null ? slot.cardTemplate().speciesName() : ''}"
+                     th:classappend="${slot.isOwned()} ? 'card-item pk-surface ring-2 ring-emerald-500/40' : 'pk-surface-muted border-2 border-dashed border-slate-300 dark:border-slate-700/80'"
+                     class="binder-slot-item rounded-2xl p-2.5 flex flex-col justify-between transition">
+
+                    <!-- Khung thẻ bài tỉ lệ chuẩn 5:7 bằng nhau tuyệt đối giữa ô sáng và ô bóng mờ -->
+                    <div class="card-image-wrapper pk-card-frame pk-surface-elevated p-1.5">
+                        <a th:if="${slot.cardTemplate() != null}"
+                           th:href="@{/cards/{id}(id=${slot.cardTemplate().id()})}"
+                           class="flex items-center justify-center w-full h-full">
+                            <img th:src="${slot.cardTemplate().imageUrl()}"
+                                 th:alt="${slot.cardTemplate().name()}"
+                                 onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/208.png'"
+                                 th:classappend="${!slot.isOwned()} ? 'card-silhouette'"/>
+                        </a>
+
+                        <div th:if="${slot.cardTemplate() == null}"
+                             class="card-silhouette w-full h-full flex flex-col items-center justify-center text-center p-2 select-none">
+                            <svg class="h-10 w-10 pk-text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <circle cx="12" cy="12" r="2.5"></circle>
+                                <line x1="3" y1="12" x2="9.5" y2="12"></line>
+                                <line x1="14.5" y1="12" x2="21" y2="12"></line>
+                            </svg>
+                        </div>
+
+                        <!-- Số thứ tự #001..#103 góc trên trái -->
+                        <span class="pk-num absolute top-1.5 left-1.5 z-10 rounded-md bg-slate-950/75 px-1.5 py-0.5 text-[10px] font-extrabold text-white backdrop-blur-sm"
+                              th:text="'#' + ${#numbers.formatInteger(slot.cardNumber(), 3)}">
+                            #098
+                        </span>
+
+                        <!-- Badge số lượng sở hữu góc trên phải (chỉ hiện khi đã sở hữu) -->
+                        <span th:if="${slot.isOwned()}"
+                              class="pk-num absolute top-1.5 right-1.5 z-10 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-extrabold text-white shadow"
+                              th:text="'x' + ${slot.ownedQuantity()}">
+                            x1
+                        </span>
+                    </div>
+
+                    <!-- Chân ô có chiều cao cố định (h-10) để mọi ô trong lưới thẳng hàng tuyệt đối -->
+                    <div class="h-10 pt-2 flex flex-col justify-center">
+                        <a th:if="${slot.cardTemplate() != null}"
+                           th:href="@{/cards/{id}(id=${slot.cardTemplate().id()})}"
+                           class="text-xs font-extrabold pk-text-primary hover:underline truncate"
+                           th:text="${slot.cardTemplate().name()}">
+                            Hầm hào huyền thoại
+                        </a>
+                        <span th:if="${slot.cardTemplate() != null}"
+                              class="pk-num text-[10px] font-semibold pk-text-secondary truncate"
+                              th:text="${slot.formattedCardNumber()} + ' • ' + ${slot.cardTemplate().rarityName()}">
+                            098 / 103
+                        </span>
+                        <span th:if="${slot.cardTemplate() == null}"
+                              class="pk-num text-[11px] font-semibold pk-text-secondary text-center"
+                              th:text="${slot.formattedCardNumber()}">
+                            001 / 103
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Khu vực riêng biệt bên dưới cho các Thẻ Secret Vượt Khung (> 103) -->
+        <section th:if="${!#lists.isEmpty(progress.secretRareSlots())}"
+                 class="pk-surface rounded-3xl p-5 sm:p-6 border-2 border-amber-500/30 space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="h-5 w-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    <h2 class="text-base font-extrabold pk-text-primary">Thẻ Secret Vượt Khung (&gt; 103)</h2>
+                </div>
+                <span class="pk-num text-xs font-bold text-rose-600 dark:text-amber-400"
+                      th:text="${progress.ownedSecretRareCount()} + ' / ' + ${progress.totalSecretRareInSet()} + ' thẻ Secret'">
+                    0 / 1 thẻ Secret
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div th:each="slot : ${progress.secretRareSlots()}"
+                     th:attr="data-card-number=${slot.cardNumber()},
+                              data-card-name=${slot.cardTemplate() != null ? slot.cardTemplate().name() : ''},
+                              data-rarity=${slot.cardTemplate() != null ? slot.cardTemplate().rarityName() : ''},
+                              data-species=${slot.cardTemplate() != null ? slot.cardTemplate().speciesName() : ''}"
+                     th:classappend="${slot.isOwned()} ? 'card-item pk-surface ring-2 ring-amber-500/50' : 'pk-surface-muted border-2 border-dashed border-amber-500/40'"
+                     class="binder-slot-item rounded-2xl p-2.5 flex flex-col justify-between">
+
+                    <div class="card-image-wrapper pk-card-frame pk-surface-elevated p-1.5">
+                        <a th:if="${slot.cardTemplate() != null}"
+                           th:href="@{/cards/{id}(id=${slot.cardTemplate().id()})}"
+                           class="flex items-center justify-center w-full h-full">
+                            <img th:src="${slot.cardTemplate().imageUrl()}"
+                                 th:alt="${slot.cardTemplate().name()}"
+                                 onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"
+                                 th:classappend="${!slot.isOwned()} ? 'card-silhouette'"/>
+                        </a>
+                        <span class="pk-num absolute top-1.5 left-1.5 z-10 rounded-md bg-rose-600/90 px-1.5 py-0.5 text-[10px] font-extrabold text-white"
+                              th:text="${slot.formattedCardNumber()}">141 / 103</span>
+                        <span th:if="${slot.isOwned()}"
+                              class="pk-num absolute top-1.5 right-1.5 z-10 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-extrabold text-slate-950"
+                              th:text="'x' + ${slot.ownedQuantity()}">x1</span>
+                    </div>
+
+                    <div class="h-10 pt-2 flex flex-col justify-center" th:if="${slot.cardTemplate() != null}">
+                        <a th:href="@{/cards/{id}(id=${slot.cardTemplate().id()})}"
+                           class="text-xs font-extrabold pk-text-primary hover:underline truncate"
+                           th:text="${slot.cardTemplate().name()}">Mega Rayquaza ex</a>
+                        <span class="text-[10px] font-bold text-rose-600 dark:text-amber-400 truncate"
+                              th:text="${slot.cardTemplate().rarityName()}">Hyper Rare</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+</main>
+
+<div th:replace="~{fragments/header :: commonScripts}"></div>
+<script defer th:src="@{/js/pages/binder.js}"></script>
+</body>
+</html>

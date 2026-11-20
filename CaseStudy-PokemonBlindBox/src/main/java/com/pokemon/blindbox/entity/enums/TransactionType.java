@@ -1,0 +1,13 @@
+package com.pokemon.blindbox.entity.enums;
+
+public enum TransactionType {
+    DEPOSIT_VNPAY,
+    PURCHASE_PACK,
+    PURCHASE_BOX,
+    AUCTION_BID_HOLD,
+    AUCTION_BID_REFUND,
+    AUCTION_SETTLEMENT,
+    MARKET_PURCHASE,
+    MARKET_SALE,
+    ADMIN_ADJUSTMENT
+}

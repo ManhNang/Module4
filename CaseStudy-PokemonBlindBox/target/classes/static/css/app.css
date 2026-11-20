@@ -1,0 +1,740 @@
+/* ==================== 1. DUAL-THEME CSS VARIABLES ==================== */
+:root {
+    /* Cream Mode (Mặc định - Chuẩn Pokémon TCG Pocket) */
+    --bg-primary: #F7F5F0;
+    --bg-dot-pattern: rgba(24, 24, 27, 0.045);
+    --bg-surface: #FFFFFF;
+    --bg-surface-muted: #F2EFE9;
+    --bg-surface-elevated: #FAF8F5;
+    --bg-navbar: rgba(255, 255, 255, 0.90);
+    --border-subtle: #E6E2D8;
+    --border-strong: #D5CFC2;
+    --text-primary: #18181B;
+    --text-secondary: #64748B;
+    --text-muted: #94A3B8;
+    --accent-primary: #E11D48;
+    --accent-primary-hover: #BE123C;
+    --accent-amber: #D97706;
+    --accent-emerald: #059669;
+    --shadow-card: 0 10px 30px -5px rgba(20, 25, 38, 0.06), 0 4px 12px -2px rgba(20, 25, 38, 0.04);
+    --shadow-hover: 0 20px 38px -8px rgba(20, 25, 38, 0.14), 0 8px 16px -4px rgba(20, 25, 38, 0.06);
+    --pack-body-bg: linear-gradient(140deg, #FFFFFF 0%, #F7F3E8 38%, #EFE9DA 72%, #FDFBF7 100%);
+    --pack-border: #D6CFC2;
+    --pack-sheen: linear-gradient(125deg, rgba(255, 255, 255, 0) 28%, rgba(255, 255, 255, 0.72) 48%, rgba(251, 191, 36, 0.16) 54%, rgba(255, 255, 255, 0) 72%);
+}
+
+[data-theme="dark"] {
+    /* Obsidian Dark Mode (Giao diện Tối chuẩn tương phản WCAG AA) */
+    --bg-primary: #0b0f19;
+    --bg-dot-pattern: rgba(255, 255, 255, 0.035);
+    --bg-surface: #111827;
+    --bg-surface-muted: rgba(15, 23, 42, 0.92);
+    --bg-surface-elevated: #161e2e;
+    --bg-navbar: rgba(11, 15, 25, 0.92);
+    --border-subtle: rgba(255, 255, 255, 0.10);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --accent-primary: #fb7185;
+    --accent-primary-hover: #fda4af;
+    --accent-amber: #F59E0B;
+    --accent-emerald: #34d399;
+    --accent-info: #60a5fa;
+    --shadow-card: 0 14px 34px -6px rgba(0, 0, 0, 0.50), 0 4px 12px -2px rgba(0, 0, 0, 0.35);
+    --shadow-hover: 0 22px 44px -8px rgba(0, 0, 0, 0.65), 0 0 24px -4px rgba(251, 113, 133, 0.24);
+    --pack-body-bg: linear-gradient(140deg, #222B3E 0%, #161C2A 45%, #0F141E 80%, #1D2536 100%);
+    --pack-border: rgba(255, 255, 255, 0.15);
+    --pack-sheen: linear-gradient(125deg, rgba(255, 255, 255, 0) 28%, rgba(255, 255, 255, 0.10) 48%, rgba(245, 158, 11, 0.14) 54%, rgba(255, 255, 255, 0) 72%);
+}
+
+/* ==================== DARK MODE WCAG AA CONTRAST OVERRIDES ==================== */
+/* 1. Màu đỏ nhấn (Primary / Danger / Price / Links / Badges) -> Đỏ san hô sáng #fb7185 (hover #fda4af) */
+[data-theme="dark"] .text-rose-600,
+[data-theme="dark"] .text-rose-500,
+[data-theme="dark"] .text-red-600,
+[data-theme="dark"] .text-rose-600.dark\:text-amber-400,
+[data-theme="dark"] .text-rose-600.dark\:text-rose-400 {
+    color: #fb7185 !important;
+}
+[data-theme="dark"] a.text-rose-600:hover,
+[data-theme="dark"] button.text-rose-600:hover,
+[data-theme="dark"] .hover\:text-rose-600:hover {
+    color: #fda4af !important;
+}
+[data-theme="dark"] input[type="file"]::file-selector-button {
+    color: #fb7185 !important;
+    background-color: rgba(251, 113, 133, 0.16) !important;
+    border: 1px solid rgba(251, 113, 133, 0.35) !important;
+}
+
+/* 2. Màu xanh lá / xanh ngọc (Success) -> #34d399 */
+[data-theme="dark"] .text-emerald-600,
+[data-theme="dark"] .text-emerald-500,
+[data-theme="dark"] .text-green-600,
+[data-theme="dark"] .dark\:text-emerald-400 {
+    color: #34d399 !important;
+}
+
+/* 3. Màu xanh dương (Info / Độ hiếm Hiếm) -> #60a5fa & Hyper Rare đỏ -> #fb7185 */
+[data-theme="dark"] [style*="#3B82F6"],
+[data-theme="dark"] [style*="#3b82f6"],
+[data-theme="dark"] [style*="#2563EB"],
+[data-theme="dark"] [style*="#2563eb"] {
+    color: #60a5fa !important;
+    border-color: rgba(96, 165, 250, 0.55) !important;
+}
+[data-theme="dark"] [style*="#E11D48"],
+[data-theme="dark"] [style*="#e11d48"],
+[data-theme="dark"] [style*="#EF4444"],
+[data-theme="dark"] [style*="#ef4444"] {
+    color: #fb7185 !important;
+    border-color: rgba(251, 113, 133, 0.55) !important;
+}
+
+/* 4. Thanh tiến trình Số gói còn lại & Nút phụ trên nền tối */
+[data-theme="dark"] .pk-progress-track {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+}
+[data-theme="dark"] button.pk-surface-muted,
+[data-theme="dark"] a.pk-surface-muted,
+[data-theme="dark"] .pk-btn-secondary {
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
+/* 5. Nâng độ nổi khối (Elevation) cho Khung Thẻ Bài & Nền ảnh Pokémon trên Dark Mode */
+[data-theme="dark"] .card-item {
+    background-color: #161e2e !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+[data-theme="dark"] .card-item:hover {
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    box-shadow: 0 14px 30px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+[data-theme="dark"] .card-image-wrapper {
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.08) 0%, rgba(15, 23, 42, 0.6) 75%) !important;
+}
+
+/* Giới hạn tên thẻ tối đa 2 dòng mượt mà */
+.pk-line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ==================== MOBILE DRAWER & BACKDROP (NỀN ĐẶC HOÀN TOÀN, TÁCH KHỎI HEADER) ==================== */
+#mobile-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9998;
+}
+#mobile-nav-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: min(300px, 85vw);
+    z-index: 9999;
+    background-color: #fdfbf7;
+    border-right: 1px solid #e6e2d8;
+    box-shadow: 12px 0 36px rgba(0, 0, 0, 0.18);
+}
+[data-theme="dark"] #mobile-nav-drawer {
+    background-color: #0f172a;
+    border-right: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 14px 0 42px rgba(0, 0, 0, 0.65);
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+}
+
+body {
+    font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-primary);
+    background-image: radial-gradient(var(--bg-dot-pattern) 1px, transparent 1px);
+    background-size: 20px 20px;
+    color: var(--text-primary);
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.pk-surface {
+    background: var(--bg-surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-card);
+}
+
+.pk-surface-muted {
+    background: var(--bg-surface-muted);
+    border: 1px solid var(--border-subtle);
+}
+
+.pk-surface-elevated {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+}
+
+.pk-navbar {
+    background: var(--bg-navbar);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.pk-text-primary { color: var(--text-primary); }
+.pk-text-secondary { color: var(--text-secondary); }
+.pk-text-muted { color: var(--text-muted); }
+
+/* Định dạng số tiền và bộ đếm không bao giờ rớt dòng */
+.pk-num {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.pk-input {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.pk-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
+}
+[data-theme="dark"] .pk-input:focus {
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
+}
+
+/* Chống cắt chữ trên mọi thẻ <select> dropdown (fallback khi JS chưa khởi tạo) */
+select.pk-input {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 38px !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* ==================== CUSTOM DROPDOWN COMPONENT (DUAL-THEME CREAM & DARK MODE) ==================== */
+.pk-select-wrap {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+.pk-select-trigger {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 38px 10px 14px;
+    border-radius: 12px;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.pk-select-trigger:hover {
+    border-color: var(--accent-primary);
+}
+.pk-select-trigger:focus-visible,
+.pk-select-trigger.is-open {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.14);
+}
+[data-theme="dark"] .pk-select-trigger {
+    background: #161e2e;
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #F8FAFC;
+}
+[data-theme="dark"] .pk-select-trigger:focus-visible,
+[data-theme="dark"] .pk-select-trigger.is-open {
+    border-color: #fb7185;
+    box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.20);
+}
+.pk-select-trigger-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.25;
+}
+.pk-select-trigger-text.is-placeholder {
+    color: var(--text-secondary);
+}
+.pk-select-chevron {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    margin-top: -8px;
+    color: var(--text-secondary);
+    pointer-events: none;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+.pk-select-trigger.is-open .pk-select-chevron {
+    transform: rotate(180deg);
+    color: var(--accent-primary);
+}
+
+/* Danh sách xổ xuống gắn trực tiếp lên body (z-index: 9995, không bao giờ bị che bởi thẻ/bảng) */
+.pk-select-menu {
+    position: fixed;
+    z-index: 9995;
+    border-radius: 12px;
+    padding: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #FFFFFF;
+    border: 1px solid #E6E2D8;
+    box-shadow: 0 18px 40px -8px rgba(20, 25, 38, 0.16), 0 6px 14px -4px rgba(20, 25, 38, 0.08);
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 0.16s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.16s ease;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+.pk-select-menu.is-open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+    visibility: visible;
+}
+.pk-select-menu.is-upward {
+    transform: translateY(6px) scale(0.985);
+}
+.pk-select-menu.is-upward.is-open {
+    transform: translateY(0) scale(1);
+}
+[data-theme="dark"] .pk-select-menu {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 22px 48px -8px rgba(0, 0, 0, 0.70), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+.pk-select-menu::-webkit-scrollbar {
+    width: 6px;
+}
+.pk-select-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+.pk-select-menu::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.35);
+    border-radius: 9999px;
+}
+.pk-select-option {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.14s ease, color 0.14s ease;
+}
+.pk-select-option:hover:not(:disabled) {
+    background: rgba(24, 24, 27, 0.055);
+}
+[data-theme="dark"] .pk-select-option {
+    color: #F1F5F9;
+}
+[data-theme="dark"] .pk-select-option:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+}
+.pk-select-option.is-selected {
+    background: rgba(225, 29, 72, 0.09);
+    color: #E11D48;
+    font-weight: 700;
+}
+[data-theme="dark"] .pk-select-option.is-selected {
+    background: rgba(251, 113, 133, 0.16);
+    color: #fb7185;
+    font-weight: 700;
+}
+.pk-select-option:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+}
+.pk-select-option-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pk-select-check {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.14s ease;
+}
+.pk-select-option.is-selected .pk-select-check {
+    opacity: 1;
+}
+.pk-select-search-wrap {
+    position: sticky;
+    top: -6px;
+    z-index: 2;
+    background: #FFFFFF;
+    padding: 4px 2px 6px 2px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #E6E2D8;
+}
+[data-theme="dark"] .pk-select-search-wrap {
+    background: #1e293b;
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+.pk-select-search-input {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-surface-elevated);
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pk-select-search-input:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.14);
+}
+[data-theme="dark"] .pk-select-search-input {
+    background: #0f172a;
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #F8FAFC;
+}
+[data-theme="dark"] .pk-select-search-input:focus {
+    border-color: #fb7185;
+    box-shadow: 0 0 0 2px rgba(251, 113, 133, 0.20);
+}
+.pk-select-empty {
+    padding: 12px 10px;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.pk-btn-primary {
+    background: linear-gradient(135deg, #E11D48 0%, #BE123C 100%);
+    color: #FFFFFF;
+    box-shadow: 0 8px 20px -4px rgba(225, 29, 72, 0.32);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+[data-theme="dark"] .pk-btn-primary {
+    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+    color: #0B0E14;
+    box-shadow: 0 8px 22px -4px rgba(245, 158, 11, 0.32);
+}
+.pk-btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    opacity: 0.96;
+}
+
+/* ==================== 2. LƯỚI 5 CỘT & GÓI BÀI FOIL 2D CÓ CHIỀU SÂU ==================== */
+.pk-pack-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+@media (min-width: 640px) {
+    .pk-pack-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+}
+@media (min-width: 768px) {
+    .pk-pack-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 20px;
+    }
+}
+@media (min-width: 1024px) {
+    .pk-pack-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 20px;
+    }
+}
+
+.pk-pack-foil {
+    aspect-ratio: 2.6 / 3.8;
+    background: var(--pack-body-bg);
+    border: 1.5px solid var(--pack-border);
+    box-shadow: 0 12px 26px -6px rgba(20, 25, 38, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s ease, border-color 0.24s ease;
+}
+[data-theme="dark"] .pk-pack-foil {
+    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* Ánh kim chéo tĩnh + Hiệu ứng ánh sáng lướt chéo (Foil Sheen Sweep) khi hover vào gói AVAILABLE */
+.pk-pack-foil::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--pack-sheen);
+    pointer-events: none;
+    z-index: 1;
+}
+.pk-pack-foil.is-available::after {
+    content: "";
+    position: absolute;
+    top: -20%;
+    left: -130%;
+    width: 75%;
+    height: 150%;
+    background: linear-gradient(
+        105deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.52) 45%,
+        rgba(251, 191, 36, 0.34) 55%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    transform: skewX(-22deg);
+    pointer-events: none;
+    z-index: 15;
+    transition: left 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pk-pack-foil.is-available:hover::after {
+    left: 155%;
+}
+
+/* Chuẩn khung thẻ bài tỉ lệ 5:7 (Pokémon TCG Pocket / Collectr) — giữ trọn vẹn 4 góc thẻ, không cắt xén */
+.card-image-wrapper,
+.pk-card-frame {
+    width: 100%;
+    aspect-ratio: 5 / 7;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.card-image-wrapper img,
+.pk-card-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    border-radius: 12px;
+}
+
+.pk-pack-foil.is-available:hover {
+    transform: translateY(-6px) scale(1.02);
+    border-color: #F59E0B;
+    box-shadow: var(--shadow-hover), 0 0 0 2px rgba(245, 158, 11, 0.28);
+}
+
+/* Viền răng cưa ánh bạc tinh tế ở mép trên & dưới */
+.pk-foil-crimp-top,
+.pk-foil-crimp-bottom {
+    height: 9px;
+    width: 100%;
+    background: repeating-linear-gradient(
+        90deg,
+        #CBD5E1 0px,
+        #F8FAFC 2.5px,
+        #94A3B8 5px
+    );
+    border-bottom: 1px solid rgba(100, 116, 139, 0.30);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+}
+[data-theme="dark"] .pk-foil-crimp-top,
+[data-theme="dark"] .pk-foil-crimp-bottom {
+    background: repeating-linear-gradient(
+        90deg,
+        #334155 0px,
+        #64748B 2.5px,
+        #1E293B 5px
+    );
+    border-color: rgba(255, 255, 255, 0.12);
+}
+.pk-foil-crimp-bottom {
+    border-bottom: none;
+    border-top: 1px solid rgba(100, 116, 139, 0.30);
+}
+
+/* Huy hiệu Trung tâm Gói Bài có chiều sâu ánh kim chéo */
+.pk-pack-emblem {
+    background: linear-gradient(135deg, #F59E0B 0%, #E11D48 48%, #4F46E5 100%);
+    box-shadow: 0 10px 22px -4px rgba(225, 29, 72, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.65);
+}
+
+/* Nút mở gói bài gọn gàng trên 1 dòng không bao giờ tràn chữ ₫ */
+.pk-pack-open-btn {
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Gói bài đã rút (SOLD / OPENED) chìm xuống khay */
+.pk-pack-foil.is-withdrawn {
+    opacity: 0.42;
+    filter: grayscale(0.85);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* Silhouette CSS cho ô thẻ chưa mở trúng */
+.card-silhouette {
+    filter: brightness(0) opacity(0.3);
+    transition: filter 0.25s ease, transform 0.25s ease;
+}
+[data-theme="dark"] .card-silhouette {
+    filter: brightness(0) invert(1) opacity(0.18);
+}
+
+/* ==================== 3. 3D TILT & HOLOGRAPHIC FOIL CSS (HIẾM / EX / HYPER RARE) ==================== */
+.pk-holo-card {
+    position: relative;
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: transform 0.18s cubic-bezier(0.03, 0.98, 0.52, 0.99), box-shadow 0.25s ease;
+    overflow: hidden;
+}
+.pk-holo-card.is-holo-active {
+    box-shadow: 0 18px 36px -8px rgba(225, 29, 72, 0.22), 0 0 24px -4px rgba(245, 158, 11, 0.28);
+}
+.pk-holo-card.is-holo-active::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+    background-image:
+        radial-gradient(
+            circle at var(--mx, 50%) var(--my, 50%),
+            rgba(255, 255, 255, 0.55) 0%,
+            rgba(255, 255, 255, 0.12) 32%,
+            transparent 65%
+        ),
+        linear-gradient(
+            118deg,
+            transparent 15%,
+            rgba(255, 42, 133, 0.42) 32%,
+            rgba(255, 214, 10, 0.48) 46%,
+            rgba(16, 185, 129, 0.45) 58%,
+            rgba(59, 130, 246, 0.46) 70%,
+            rgba(168, 85, 247, 0.42) 82%,
+            transparent 95%
+        );
+    background-size: 180% 180%;
+    background-position: var(--bgx, 50%) var(--bgy, 50%);
+    mix-blend-mode: color-dodge;
+    opacity: var(--holo-opacity, 0.55);
+    transition: opacity 0.25s ease;
+}
+.pk-holo-card.is-holo-active:hover::after {
+    opacity: 0.92;
+}
+
+/* ==================== 4. HOẠT ẢNH XÉ GÓI BÀI 2D & LẬT THẺ 3D (CARD FLIP) ==================== */
+.pk-tear-wrapper {
+    position: relative;
+    width: 220px;
+    aspect-ratio: 2.6 / 3.8;
+    margin: 0 auto;
+    user-select: none;
+}
+.pk-tear-top-flap {
+    transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease;
+    transform-origin: right top;
+}
+.pk-tear-wrapper.is-torn .pk-tear-top-flap {
+    transform: translate(110px, -48px) rotate(26deg) scale(0.92);
+    opacity: 0;
+}
+.pk-tear-body {
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s ease;
+}
+.pk-tear-wrapper.is-torn .pk-tear-body {
+    transform: scale(1.08) translateY(12px);
+    opacity: 0;
+}
+.pk-tear-cutline {
+    border-bottom: 2px dashed rgba(245, 158, 11, 0.85);
+    position: relative;
+}
+
+/* Lật lá bài 3D (Card Flip) */
+.pk-flip-scene {
+    perspective: 1100px;
+}
+.pk-flip-inner {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2.7 / 3.8;
+    transform-style: preserve-3d;
+    transition: transform 0.68s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+}
+.pk-flip-scene.is-flipped .pk-flip-inner {
+    transform: rotateY(180deg);
+}
+.pk-flip-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 1rem;
+}
+.pk-flip-back {
+    background: linear-gradient(145deg, #1E293B 0%, #0F172A 55%, #1E1B4B 100%);
+    border: 2px solid rgba(245, 158, 11, 0.55);
+    box-shadow: 0 14px 28px -6px rgba(0, 0, 0, 0.45);
+}
+.pk-flip-front {
+    transform: rotateY(180deg);
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+.toast-enter {
+    animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

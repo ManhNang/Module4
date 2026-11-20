@@ -1,0 +1,93 @@
+# ==============================================================================
+# Docker Compose khởi chạy đồng bộ App Backend (Spring Boot 3 + Thymeleaf),
+# Database (MySQL 8.0) và Redis Cache (Redis 7.4 Alpine) kèm cấu hình Healthcheck
+# ==============================================================================
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: pokemon-blindbox-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: pokemon_blindbox
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      TZ: Asia/Ho_Chi_Minh
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - blindbox-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 25s
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: pokemon-blindbox-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - blindbox-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: pokemon-blindbox-app:1.0.0
+    container_name: pokemon-blindbox-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SPRING_SESSION_STORE_TYPE: ${SPRING_SESSION_STORE_TYPE:-redis}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/pokemon_blindbox?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-demo-pokemon-blindbox}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-123456789012345}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-demo_secret_key}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE:-DEMO_TMN_CODE}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET:-DEMO_VNPAY_HMAC_SHA512_SECRET_KEY_2026}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:8080/wallet/vnpay-return}
+    networks:
+      - blindbox-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+networks:
+  blindbox-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
