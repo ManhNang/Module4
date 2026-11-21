@@ -2,11 +2,14 @@ package com.pokemon.blindbox.service;
 
 import com.pokemon.blindbox.entity.Auction;
 import com.pokemon.blindbox.entity.UserCard;
+import com.pokemon.blindbox.entity.UserSealedItem;
 import com.pokemon.blindbox.entity.Wallet;
 import com.pokemon.blindbox.entity.enums.AuctionStatus;
+import com.pokemon.blindbox.entity.enums.MarketItemType;
 import com.pokemon.blindbox.entity.enums.TransactionType;
 import com.pokemon.blindbox.repository.AuctionRepository;
 import com.pokemon.blindbox.repository.UserCardRepository;
+import com.pokemon.blindbox.repository.UserSealedItemRepository;
 import com.pokemon.blindbox.repository.WalletRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +38,7 @@ public class AuctionSettlementService {
 
     private final AuctionRepository auctionRepository;
     private final UserCardRepository userCardRepository;
+    private final UserSealedItemRepository userSealedItemRepository;
     private final WalletRepository walletRepository;
     private final WalletService walletService;
     private final TransactionTemplate requiresNewTxTemplate;
@@ -42,12 +46,14 @@ public class AuctionSettlementService {
     public AuctionSettlementService(
             AuctionRepository auctionRepository,
             UserCardRepository userCardRepository,
+            UserSealedItemRepository userSealedItemRepository,
             WalletRepository walletRepository,
             WalletService walletService,
             PlatformTransactionManager transactionManager
     ) {
         this.auctionRepository = auctionRepository;
         this.userCardRepository = userCardRepository;
+        this.userSealedItemRepository = userSealedItemRepository;
         this.walletRepository = walletRepository;
         this.walletService = walletService;
         this.requiresNewTxTemplate = new TransactionTemplate(transactionManager);
@@ -81,21 +87,28 @@ public class AuctionSettlementService {
             return;
         }
 
-        // 2. Khóa UserCard
-        UserCard card = userCardRepository.findByIdForUpdate(auction.getUserCard().getId())
-                .orElse(auction.getUserCard());
+        boolean isSealed = auction.getItemType() == MarketItemType.PACK || auction.getItemType() == MarketItemType.BOX;
+        UserCard card = (!isSealed && auction.getUserCard() != null)
+                ? userCardRepository.findByIdForUpdate(auction.getUserCard().getId()).orElse(auction.getUserCard())
+                : null;
+        UserSealedItem sealed = (isSealed && auction.getSealedItem() != null)
+                ? userSealedItemRepository.findByIdForUpdate(auction.getSealedItem().getId()).orElse(auction.getSealedItem())
+                : null;
 
         Long winnerId = auction.getHighestBidderId();
         if (winnerId == null) {
-            // Không có người đặt giá -> Hủy phiên & mở khóa thẻ trả lại cho người bán
-            card.setIsLocked(false);
-            userCardRepository.saveAndFlush(card);
+            if (isSealed && sealed != null) {
+                sealed.setIsLocked(false);
+                userSealedItemRepository.saveAndFlush(sealed);
+            } else if (card != null) {
+                card.setIsLocked(false);
+                userCardRepository.saveAndFlush(card);
+            }
 
             auction.setStatus(AuctionStatus.CANCELLED);
             auctionRepository.saveAndFlush(auction);
 
-            log.info("[AUCTION-SETTLEMENT] Cancelled auction #{} (no bids), unlocked userCard #{}",
-                    auctionId, card.getId());
+            log.info("[AUCTION-SETTLEMENT] Cancelled auction #{} (no bids), unlocked asset", auctionId);
             return;
         }
 
@@ -122,18 +135,24 @@ public class AuctionSettlementService {
                 sellerWallet,
                 TransactionType.MARKET_SALE,
                 winningAmount,
-                "Nhận tiền bán thẻ từ phiên đấu giá #" + auctionId
+                "Nhận tiền bán vật phẩm từ phiên đấu giá #" + auctionId
         );
 
-        // Chuyển quyền sở hữu thẻ sang người thắng & mở khóa
-        card.setUserId(winnerId);
-        card.setIsLocked(false);
-        userCardRepository.saveAndFlush(card);
+        // Chuyển quyền sở hữu sang người thắng & mở khóa
+        if (isSealed && sealed != null) {
+            sealed.setUserId(winnerId);
+            sealed.setIsLocked(false);
+            userSealedItemRepository.saveAndFlush(sealed);
+        } else if (card != null) {
+            card.setUserId(winnerId);
+            card.setIsLocked(false);
+            userCardRepository.saveAndFlush(card);
+        }
 
         auction.setStatus(AuctionStatus.SETTLED);
         auctionRepository.saveAndFlush(auction);
 
-        log.info("[AUCTION-SETTLEMENT] Completed auction #{}: winner={}, seller={}, amount={}, userCard={}",
-                auctionId, winnerId, sellerId, winningAmount, card.getId());
+        log.info("[AUCTION-SETTLEMENT] Completed auction #{}: winner={}, seller={}, amount={}, itemType={}",
+                auctionId, winnerId, sellerId, winningAmount, auction.getItemType());
     }
 }

@@ -65,9 +65,11 @@ public class SecurityConfig {
                                 "/binder/**",
                                 "/cards/**",
                                 "/market/**",
+                                "/sanctuary/**",
                                 "/wallet/**",
                                 "/ws-blindbox/**",
-                                "/api/v1/**"
+                                "/api/v1/**",
+                                "/api/inventory/**"
                         ).hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated()
                 )
@@ -78,11 +80,16 @@ public class SecurityConfig {
                         .failureUrl("/login?error=true")
                         .permitAll()
                 )
+                .rememberMe(rm -> rm
+                        .key("pk-blindbox-remember-me-2026")
+                        .rememberMeParameter("remember-me")
+                        .tokenValiditySeconds(60 * 60 * 24 * 14)
+                )
                 .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "POST"))
                         .logoutSuccessUrl("/login?logout=true")
                         .invalidateHttpSession(true)
-                        .deleteCookies("JSESSIONID", "XSRF-TOKEN")
+                        .deleteCookies("JSESSIONID", "XSRF-TOKEN", "remember-me")
                         .permitAll()
                 )
                 .exceptionHandling(ex -> ex

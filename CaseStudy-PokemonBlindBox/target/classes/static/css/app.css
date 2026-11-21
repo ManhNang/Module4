@@ -49,16 +49,15 @@
 }
 
 /* ==================== DARK MODE WCAG AA CONTRAST OVERRIDES ==================== */
-/* 1. Màu đỏ nhấn (Primary / Danger / Price / Links / Badges) -> Đỏ san hô sáng #fb7185 (hover #fda4af) */
-[data-theme="dark"] .text-rose-600,
-[data-theme="dark"] .text-rose-500,
+/* 1. Màu đỏ nhấn (Primary / Danger / Badges) -> Đỏ san hô sáng #fb7185 (hover #fda4af) */
+[data-theme="dark"] .text-rose-600:not(.dark\:text-amber-400),
+[data-theme="dark"] .text-rose-500:not(.dark\:text-amber-400),
 [data-theme="dark"] .text-red-600,
-[data-theme="dark"] .text-rose-600.dark\:text-amber-400,
 [data-theme="dark"] .text-rose-600.dark\:text-rose-400 {
     color: #fb7185 !important;
 }
-[data-theme="dark"] a.text-rose-600:hover,
-[data-theme="dark"] button.text-rose-600:hover,
+[data-theme="dark"] a.text-rose-600:not(.dark\:text-amber-400):hover,
+[data-theme="dark"] button.text-rose-600:not(.dark\:text-amber-400):hover,
 [data-theme="dark"] .hover\:text-rose-600:hover {
     color: #fda4af !important;
 }
@@ -556,11 +555,11 @@ select.pk-input {
     left: 160%;
 }
 
-/* Chuẩn khung thẻ bài tỉ lệ 5:7 (Pokémon TCG Pocket / Collectr) — giữ trọn vẹn 4 góc thẻ, không cắt xén */
+/* Chuẩn khung thẻ bài tỉ lệ Pokémon TCG thật 63:88 — full-bleed, không viền thừa hai bên */
 .card-image-wrapper,
 .pk-card-frame {
     width: 100%;
-    aspect-ratio: 5 / 7;
+    aspect-ratio: 63 / 88;
     border-radius: 12px;
     overflow: hidden;
     position: relative;
@@ -572,9 +571,10 @@ select.pk-input {
 .pk-card-frame img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
-    border-radius: 12px;
+    border-radius: inherit;
+    display: block;
 }
 
 /* Full-Bleed Pokémon Card Showcase (chuẩn tỷ lệ thẻ thật 63:88, không viền trắng thừa) */
@@ -741,6 +741,7 @@ select.pk-input {
     background: rgba(7, 10, 19, 0.92);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    overflow: hidden !important;
 }
 .pk-gacha-stage {
     width: min(1240px, 95vw);
@@ -1052,6 +1053,156 @@ select.pk-input {
     animation: pkSpotlightZoom 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Lock scroll trên body khi mở Gacha Modal (tránh thanh cuộn bật lên khi rung/xé gói) */
+html.pk-modal-lock,
+body.pk-modal-lock {
+    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+}
+
+/* Tách riêng chế độ overflow giữa Mở 1 Pack (khóa tuyệt đối overflow: hidden) và Mở nhanh 5 Pack (chỉ cuộn lưới 30 thẻ) */
+.pk-gacha-stage.is-single-pack,
+.pk-gacha-stage.is-single-pack #vault-stage-tear,
+.pk-gacha-stage.is-single-pack #vault-stage-cards,
+.pk-gacha-stage.is-single-pack #vault-drawn-cards-grid {
+    overflow: hidden !important;
+}
+.pk-gacha-stage.is-multi-pack #vault-drawn-cards-grid {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Khung thẻ đã lật có hiệu ứng hover gợi ý bấm phóng to */
+.pk-flip-scene.is-flipped .pk-flip-inner {
+    cursor: zoom-in;
+}
+.pk-flip-scene.is-flipped:hover .pk-flip-front {
+    box-shadow: 0 18px 34px -8px rgba(0, 0, 0, 0.72), 0 0 0 2px rgba(251, 191, 36, 0.55);
+}
+
+/* Custom Scrollbar tối giản đồng bộ Dark Mode cho lưới thẻ trong Modal Gacha */
+.pk-dark-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+.pk-dark-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.pk-dark-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.pk-dark-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+}
+.pk-dark-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.38);
+}
+
+/* Card Lightbox 3D Tilt Wrapper */
+.pk-lightbox-card-wrap {
+    perspective: 1100px;
+}
+.pk-lightbox-card-inner {
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: transform 0.16s cubic-bezier(0.03, 0.98, 0.52, 0.99);
+}
+
+/* ==================== 5. INVENTORY UPGRADES (LOCKED SILVER FROST, VAULT ART, BULK SELL) ==================== */
+/* Thẻ chưa mở khóa ở Tab Tiến Độ: Ảnh mặt trước xám mờ + phủ lớp ánh bạc nhẹ, khóa click hoàn toàn */
+.pk-locked-card-frost {
+    position: relative;
+    cursor: default;
+    user-select: none;
+    overflow: hidden;
+    background: linear-gradient(145deg, rgba(226, 232, 240, 0.35) 0%, rgba(148, 163, 184, 0.22) 100%);
+}
+[data-theme="dark"] .pk-locked-card-frost {
+    background: linear-gradient(145deg, rgba(51, 65, 85, 0.45) 0%, rgba(15, 23, 42, 0.65) 100%);
+}
+.pk-locked-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    filter: grayscale(100%) contrast(0.9);
+    opacity: 0.45;
+    pointer-events: none;
+    user-select: none;
+    display: block;
+}
+.pk-locked-card-silver-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        135deg,
+        rgba(241, 245, 249, 0.38) 0%,
+        rgba(203, 213, 225, 0.35) 50%,
+        rgba(148, 163, 184, 0.32) 100%
+    );
+}
+[data-theme="dark"] .pk-locked-card-silver-overlay {
+    background: linear-gradient(
+        135deg,
+        rgba(203, 213, 225, 0.24) 0%,
+        rgba(148, 163, 184, 0.22) 50%,
+        rgba(100, 116, 139, 0.28) 100%
+    );
+}
+
+/* Minh họa 3D nhỏ gọn cho Booster Box & Booster Pack ở Tab Pack & Box */
+.pk-vault-box-art {
+    position: relative;
+    width: 64px;
+    height: 76px;
+    border-radius: 14px;
+    background:
+        radial-gradient(circle at 30% 25%, rgba(254, 240, 138, 0.36) 0%, transparent 55%),
+        linear-gradient(145deg, #f59e0b 0%, #e11d48 52%, #312e81 100%);
+    border: 1.5px solid rgba(253, 224, 71, 0.58);
+    box-shadow: 0 10px 22px -6px rgba(225, 29, 72, 0.38), inset 0 2px 0 rgba(255, 255, 255, 0.35), inset 0 -4px 0 rgba(15, 23, 42, 0.35);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.pk-vault-box-art::before {
+    content: "";
+    position: absolute;
+    top: 12px;
+    left: 0;
+    right: 0;
+    height: 1.5px;
+    background: rgba(255, 255, 255, 0.35);
+}
+.pk-vault-pack-art {
+    position: relative;
+    width: 56px;
+    height: 78px;
+    border-radius: 12px;
+    background:
+        radial-gradient(circle at 50% 34%, rgba(56, 189, 248, 0.32) 0%, transparent 58%),
+        linear-gradient(155deg, #0f172a 0%, #1e1b4b 48%, #4c1d95 85%, #0f172a 100%);
+    border: 1.5px solid rgba(125, 211, 252, 0.52);
+    box-shadow: 0 10px 22px -6px rgba(14, 165, 233, 0.34), inset 0 6px 0 -3px rgba(255, 255, 255, 0.22), inset 0 -6px 0 -3px rgba(255, 255, 255, 0.22);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* Highlight thẻ đang được chọn trong chế độ Dọn kho / Bán hàng loạt */
+.my-card-item.pk-bulk-selected {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.55), 0 14px 28px -8px rgba(245, 158, 11, 0.28) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .pk-tear-wrapper.is-shaking,
     .pk-screen-shake,
@@ -1063,6 +1214,150 @@ select.pk-input {
         animation: none !important;
         opacity: 1 !important;
     }
+}
+
+/* ==================== 6. GLOBAL DARK SCROLLBAR, NUMBER INPUT, CUSTOM CHECKBOX & RARITY BADGE ==================== */
+/* Ẩn spin-button tăng/giảm mặc định trên toàn bộ input[type="number"] */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* Custom Dark Scrollbar toàn web cho chính html/body (khung trang chính) và mọi container có cuộn */
+html[data-theme="dark"],
+html.dark {
+    color-scheme: dark;
+    scrollbar-width: thin;
+    scrollbar-color: #334155 #0b0f19;
+}
+html[data-theme="dark"] body,
+html[data-theme="dark"] .overflow-y-auto,
+html[data-theme="dark"] .overflow-x-auto,
+html[data-theme="dark"] .pk-thin-scroll,
+html[data-theme="dark"] * {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 #0b0f19;
+}
+html[data-theme="dark"]::-webkit-scrollbar,
+html[data-theme="dark"] body::-webkit-scrollbar,
+html[data-theme="dark"] ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+html[data-theme="dark"]::-webkit-scrollbar-track,
+html[data-theme="dark"] body::-webkit-scrollbar-track,
+html[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: #0b0f19;
+}
+html[data-theme="dark"]::-webkit-scrollbar-thumb,
+html[data-theme="dark"] body::-webkit-scrollbar-thumb,
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 999px;
+    border: 1.5px solid #0b0f19;
+}
+html[data-theme="dark"]::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] body::-webkit-scrollbar-thumb:hover,
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+/* Custom Checkbox chuẩn Dark Theme (nền tối viền xám, tích vàng cam) */
+input[type="checkbox"] {
+    accent-color: #f59e0b;
+    cursor: pointer;
+}
+[data-theme="dark"] input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.3rem;
+    border: 1.5px solid rgba(148, 163, 184, 0.5);
+    background-color: #0f172a;
+    display: inline-grid;
+    place-content: center;
+    vertical-align: middle;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+[data-theme="dark"] input[type="checkbox"]:hover {
+    border-color: #f59e0b;
+}
+[data-theme="dark"] input[type="checkbox"]:checked {
+    background-color: #f59e0b;
+    border-color: #f59e0b;
+}
+[data-theme="dark"] input[type="checkbox"]:checked::after {
+    content: "";
+    width: 0.35rem;
+    height: 0.6rem;
+    border: solid #0b0f19;
+    border-width: 0 2.2px 2.2px 0;
+    transform: rotate(45deg) translate(-0.5px, -0.5px);
+}
+
+/* Rarity Badge đồng nhất toàn web: nền tối + viền & chữ theo màu độ hiếm */
+.pk-rarity-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    border-width: 1px;
+    border-style: solid;
+    background-color: rgba(15, 23, 42, 0.06);
+    font-weight: 700;
+    line-height: 1.2;
+}
+[data-theme="dark"] .pk-rarity-badge {
+    background-color: rgba(15, 23, 42, 0.78);
+}
+
+/* Hiệu ứng phát sáng nhẹ theo độ hiếm khi hover trên thẻ hiếm (Rarity Glow) */
+.pk-rarity-glow-card {
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+.pk-rarity-glow-card:hover {
+    border-color: var(--rarity-glow, #f59e0b) !important;
+    box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.55), 0 0 20px -4px var(--rarity-glow, rgba(245, 158, 11, 0.45)) !important;
+    transform: translateY(-2px);
+}
+
+/* Hiệu ứng 3D Tilt & Rarity Glow cho ảnh thẻ lớn trang Chi Tiết Thẻ (/cards/[id]) */
+.pk-detail-card-glow {
+    border: 2px solid color-mix(in srgb, var(--rarity-glow, #94a3b8) 45%, transparent);
+    box-shadow:
+        0 24px 48px -14px rgba(0, 0, 0, 0.65),
+        0 0 24px -6px color-mix(in srgb, var(--rarity-glow, #94a3b8) 38%, transparent);
+}
+.pk-detail-card-glow:hover {
+    border-color: var(--rarity-glow, #94a3b8);
+    box-shadow:
+        0 30px 60px -12px rgba(0, 0, 0, 0.78),
+        0 0 38px -4px color-mix(in srgb, var(--rarity-glow, #94a3b8) 68%, transparent),
+        0 0 14px -2px color-mix(in srgb, var(--rarity-glow, #94a3b8) 55%, transparent);
+}
+
+/* Trạng thái disabled đồng bộ, dễ đọc trên cả Light & Dark Theme */
+.pk-btn-primary:disabled {
+    background: rgba(15, 23, 42, 0.08) !important;
+    border: 1px solid rgba(15, 23, 42, 0.14) !important;
+    color: #64748b !important;
+    opacity: 1 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+}
+[data-theme="dark"] .pk-btn-primary:disabled {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.10) !important;
+    color: #94a3b8 !important;
 }
 
 @keyframes slideInRight {

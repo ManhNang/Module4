@@ -36,6 +36,7 @@ public class StoreQueryService {
     private final MarketListingRepository marketListingRepository;
     private final AuctionRepository auctionRepository;
     private final AuctionBidRepository auctionBidRepository;
+    private final UserRepository userRepository;
 
     public StorePageData loadStorePage(Long boxId) {
         List<BoosterBox> allBoxes = boosterBoxRepository.findAllByOrderByIdAsc();
@@ -118,7 +119,30 @@ public class StoreQueryService {
 
         List<CardTemplateResponseDTO> setCards = catalogCacheService.getCardTemplatesBySetId(cardDto.setId());
 
-        return new CardDetailPageData(cardDto, isHoloRarity, ownedCopiesCount, firstUnlockedUserCardId, setCards);
+        CardTemplateResponseDTO prevCard = null;
+        CardTemplateResponseDTO nextCard = null;
+        for (int i = 0; i < setCards.size(); i++) {
+            if (setCards.get(i).id().equals(cardDto.id())) {
+                if (i > 0) prevCard = setCards.get(i - 1);
+                if (i < setCards.size() - 1) nextCard = setCards.get(i + 1);
+                break;
+            }
+        }
+
+        List<RarityResponseDTO> rarities = catalogCacheService.getAllRaritiesWithWeights();
+        int totalDropWeight = rarities.stream()
+                .mapToInt(r -> r.dropWeight() != null ? r.dropWeight() : 0)
+                .sum();
+        int cardDropWeight = rarities.stream()
+                .filter(r -> r.id() != null && r.id().equals(cardDto.rarityId()))
+                .mapToInt(r -> r.dropWeight() != null ? r.dropWeight() : 0)
+                .findFirst()
+                .orElse(0);
+        double dropRatePercent = (totalDropWeight > 0 && cardDropWeight > 0)
+                ? (cardDropWeight * 100.0) / totalDropWeight
+                : 0.0;
+
+        return new CardDetailPageData(cardDto, isHoloRarity, ownedCopiesCount, firstUnlockedUserCardId, setCards, prevCard, nextCard, dropRatePercent);
     }
 
     public MarketPageData loadMarketPage(Long userId, String setName, String speciesName) {
@@ -140,12 +164,36 @@ public class StoreQueryService {
                     .stream().map(MarketListingResponseDTO::fromEntity).toList();
             auctions = auctionRepository.findActiveByCardSet(AuctionStatus.ACTIVE, null, null, cleanSetName)
                     .stream().map(AuctionResponseDTO::fromEntity).toList();
-            activeCrossFilter = "Đặt: " + cleanSetName;
+            activeCrossFilter = "Bộ: " + cleanSetName;
         } else {
             listings = marketListingRepository.findActiveByCardSet(ListingStatus.ACTIVE, null, null, null)
                     .stream().map(MarketListingResponseDTO::fromEntity).toList();
-            auctions = auctionRepository.findActiveByCardSet(AuctionStatus.ACTIVE, null, null, null)
+            List<AuctionResponseDTO> activeList = auctionRepository.findActiveByCardSet(AuctionStatus.ACTIVE, null, null, null)
                     .stream().map(AuctionResponseDTO::fromEntity).toList();
+            List<AuctionResponseDTO> endedList = auctionRepository
+                    .findTop30ByStatusInOrderByEndTimeDesc(List.of(AuctionStatus.ENDED, AuctionStatus.SETTLED))
+                    .stream().map(AuctionResponseDTO::fromEntity).toList();
+            java.util.ArrayList<AuctionResponseDTO> merged = new java.util.ArrayList<>(activeList);
+            merged.addAll(endedList);
+            auctions = merged;
+        }
+
+        // Batch-load tên người bán & số lượt trả giá cho tất cả phiên đấu giá (tránh N+1)
+        java.util.Set<Long> sellerIds = auctions.stream()
+                .map(AuctionResponseDTO::sellerId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> sellerNameMap = sellerIds.isEmpty()
+                ? Map.of()
+                : userRepository.findAllById(sellerIds).stream()
+                        .collect(Collectors.toMap(User::getId, User::getUsername, (a, b) -> a));
+
+        List<Long> auctionIds = auctions.stream().map(AuctionResponseDTO::id).toList();
+        Map<Long, Long> bidCountMap = new java.util.HashMap<>();
+        if (!auctionIds.isEmpty()) {
+            for (Object[] row : auctionBidRepository.countBidsByAuctionIds(auctionIds)) {
+                bidCountMap.put((Long) row[0], (Long) row[1]);
+            }
         }
 
         List<UserCardResponseDTO> myCards = userCardRepository
@@ -159,7 +207,7 @@ public class StoreQueryService {
         List<RarityResponseDTO> rarities = catalogCacheService.getAllRaritiesWithWeights();
         List<CardSpeciesResponseDTO> speciesList = catalogCacheService.getAllCardSpecies();
 
-        return new MarketPageData(listings, auctions, myCards, cardSets, rarities, speciesList, activeCrossFilter, cleanSetName, cleanSpeciesName);
+        return new MarketPageData(listings, auctions, sellerNameMap, bidCountMap, myCards, cardSets, rarities, speciesList, activeCrossFilter, cleanSetName, cleanSpeciesName);
     }
 
     public AuctionDetailPageData loadAuctionDetailPage(Long auctionId) {
@@ -178,7 +226,13 @@ public class StoreQueryService {
                 ? auction.getStartingPrice()
                 : auction.getCurrentHighestBid().add(auction.getMinBidIncrement());
 
-        return new AuctionDetailPageData(auctionDto, bidHistory, currentLeaderMasked, nextMinBid);
+        String sellerDisplayName = auction.getSellerId() != null
+                ? userRepository.findById(auction.getSellerId())
+                        .map(User::getUsername)
+                        .orElse("Trainer #" + auction.getSellerId())
+                : "Trainer";
+
+        return new AuctionDetailPageData(auctionDto, bidHistory, currentLeaderMasked, nextMinBid, sellerDisplayName);
     }
 
     public AdminDashboardPageData loadAdminDashboardPage(Long setId) {
@@ -242,12 +296,17 @@ public class StoreQueryService {
             boolean isHoloRarity,
             long ownedCopiesCount,
             Long firstUnlockedUserCardId,
-            List<CardTemplateResponseDTO> setCards
+            List<CardTemplateResponseDTO> setCards,
+            CardTemplateResponseDTO prevCard,
+            CardTemplateResponseDTO nextCard,
+            double dropRatePercent
     ) {}
 
     public record MarketPageData(
             List<MarketListingResponseDTO> fixedPriceListings,
             List<AuctionResponseDTO> activeAuctions,
+            Map<Long, String> sellerNameMap,
+            Map<Long, Long> bidCountMap,
             List<UserCardResponseDTO> myCards,
             List<CardSetResponseDTO> cardSets,
             List<RarityResponseDTO> rarities,
@@ -261,7 +320,8 @@ public class StoreQueryService {
             AuctionResponseDTO auction,
             List<AuctionBidSummaryDTO> bidHistory,
             String currentLeaderMasked,
-            BigDecimal nextMinBid
+            BigDecimal nextMinBid,
+            String sellerDisplayName
     ) {}
 
     public record AdminDashboardPageData(

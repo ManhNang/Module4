@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/header :: head('Đăng Nhập Tài Khoản')}"></head>
+<head th:replace="~{fragments/header :: head('Đăng nhập')}"></head>
 <body class="min-h-screen flex flex-col justify-center items-center px-4 py-8">
 
-<!-- Split-Card Layout mang phong cách Bộ Sưu Tập Thẻ Bài Blindbox -->
 <div class="pk-surface w-full max-w-4xl rounded-3xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 shadow-2xl">
 
-    <!-- Cột trái (5/12): Banner Thương Hiệu (Ẩn trên Mobile < lg để form hiện ngay lập tức) -->
-    <div class="hidden lg:flex lg:col-span-5 relative overflow-hidden bg-gradient-to-br from-rose-600 via-rose-700 to-indigo-900 p-8 text-white flex-col justify-between">
-        <!-- Họa tiết Pokéball chìm cỡ lớn ở nền -->
+    <!-- Cột trái (5/12): Banner Thương Hiệu Tổng Quát (Dịu mắt trên Dark Theme) -->
+    <div class="hidden lg:flex lg:col-span-5 relative overflow-hidden bg-gradient-to-br from-rose-600 via-rose-700 to-indigo-900 dark:from-slate-900 dark:via-rose-950/90 dark:to-indigo-950 p-8 text-white flex-col justify-between">
         <svg class="pointer-events-none absolute -right-16 -bottom-16 h-64 w-64 text-white/10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
             <circle cx="12" cy="12" r="9"></circle>
             <circle cx="12" cy="12" r="2.5"></circle>
@@ -27,25 +25,25 @@
             </div>
             <div>
                 <div class="text-lg font-extrabold tracking-tight">Pokémon Blindbox</div>
-                <div class="text-xs text-rose-100/90">Delta Reign • Expansion Series</div>
+                <div class="text-xs text-rose-100/90">TCG Gacha &amp; Idle Sanctuary</div>
             </div>
         </div>
 
         <div class="relative z-10 my-8 space-y-3">
             <span class="inline-block rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wider backdrop-blur-sm">
-                103 Thẻ Chuẩn + Secret Rare
+                Đa Bộ Sưu Tập • Đảo Idle 2.5D
             </span>
             <h2 class="text-2xl sm:text-[26px] font-extrabold leading-snug [text-wrap:balance]">
-                Mở Hộp Blindbox &amp; Sưu Tầm Thẻ Bài 3D
+                Bóc Pack Ánh Kim &amp; Sưu Tầm Thẻ Bài 3D
             </h2>
             <p class="text-xs sm:text-sm text-rose-100/90 leading-relaxed [text-wrap:pretty]">
-                Khám phá khay Booster Box thời gian thực, sưu tầm trọn bộ 103 ô Delta Reign và giao dịch P2P trực tuyến cùng cộng đồng.
+                Mở Pack &amp; Box nguyên seal từ nhiều bộ sưu tập, nuôi dưỡng Pokémon sinh Xu trên Đảo 2.5D và đấu giá thời gian thực trên Chợ.
             </p>
         </div>
 
         <div class="relative z-10 grid grid-cols-2 gap-2.5">
             <div class="rounded-2xl bg-white/10 px-3 py-2.5 backdrop-blur-sm border border-white/15">
-                <div class="text-xs font-extrabold text-amber-300">Holographic 3D</div>
+                <div class="text-xs font-extrabold text-amber-300">Holo 3D Tilt</div>
                 <div class="text-[10.5px] text-rose-100/90 mt-0.5 leading-snug whitespace-nowrap">Ánh kim theo chuột</div>
             </div>
             <div class="rounded-2xl bg-white/10 px-3 py-2.5 backdrop-blur-sm border border-white/15">
@@ -55,9 +53,8 @@
         </div>
     </div>
 
-    <!-- Cột phải (7/12): Form Đăng Nhập + Tài khoản trải nghiệm nhanh -->
+    <!-- Cột phải (7/12): Form Đăng nhập tinh gọn -->
     <div class="lg:col-span-7 p-6 sm:p-9 flex flex-col justify-center space-y-5">
-        <!-- Header Logo gọn nhẹ chỉ hiện trên Mobile (< lg) -->
         <div class="flex lg:hidden items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
             <div class="flex items-center gap-2.5">
                 <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-white shadow-md">
@@ -68,23 +65,12 @@
                         <line x1="14.5" y1="12" x2="21" y2="12"></line>
                     </svg>
                 </div>
-                <div>
-                    <div class="text-sm font-extrabold pk-text-primary leading-tight">Pokémon Blindbox</div>
-                    <div class="text-[11px] pk-text-secondary">Delta Reign Series</div>
-                </div>
+                <div class="text-sm font-extrabold pk-text-primary">Pokémon Blindbox</div>
             </div>
-            <span class="rounded-full bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-extrabold text-rose-600 dark:text-amber-400">
-                103 Thẻ Chuẩn
-            </span>
         </div>
 
-        <div class="flex items-start justify-between gap-3">
-            <div>
-                <h1 class="text-2xl font-extrabold pk-text-primary">Đăng Nhập</h1>
-                <p class="mt-1 text-xs sm:text-sm pk-text-secondary">
-                    Chào mừng nhà sưu tầm quay trở lại!
-                </p>
-            </div>
+        <div class="flex items-center justify-between gap-3">
+            <h1 class="text-2xl font-extrabold pk-text-primary">Đăng nhập</h1>
 
             <button type="button" onclick="window.toggleBlindboxTheme()" title="Đổi giao diện Sáng / Tối"
                     class="flex h-9 w-9 items-center justify-center rounded-full pk-surface-muted cursor-pointer transition shrink-0">
@@ -103,12 +89,12 @@
 
         <div th:if="${param.error}"
              class="rounded-2xl border border-rose-500/50 bg-rose-500/10 p-3.5 text-xs sm:text-sm font-semibold text-rose-600 dark:text-rose-400">
-            Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng thử lại!
+            Tên đăng nhập hoặc mật khẩu không chính xác.
         </div>
 
         <div th:if="${param.logout}"
              class="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-3.5 text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-            Bạn đã đăng xuất khỏi hệ thống an toàn.
+            Bạn đã đăng xuất thành công.
         </div>
 
         <div th:if="${registeredMessage != null}"
@@ -119,8 +105,10 @@
         <form th:action="@{/login}" method="post" class="space-y-4">
             <div>
                 <label for="username" class="block text-xs font-bold pk-text-secondary mb-1.5">Tên đăng nhập</label>
-                <input type="text" id="username" name="username" required autofocus
-                       placeholder="Nhập tên đăng nhập (VD: satoshi)"
+                <input type="text" id="username" name="username" required
+                       th:value="${registeredUsername}"
+                       th:attr="data-registered-prefill=${registeredUsername != null ? 'true' : 'false'}"
+                       placeholder="Nhập tên đăng nhập"
                        class="pk-input w-full rounded-xl px-4 py-3 text-sm font-semibold"/>
             </div>
 
@@ -148,40 +136,36 @@
                 </div>
             </div>
 
+            <div class="flex items-center justify-between gap-2 text-xs">
+                <label class="inline-flex items-center gap-2 font-semibold pk-text-secondary cursor-pointer select-none">
+                    <input type="checkbox" id="remember-me" name="remember-me" class="rounded"/>
+                    <span>Ghi nhớ đăng nhập</span>
+                </label>
+                <button type="button" onclick="window.showForgotPasswordHint()"
+                        class="font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer">
+                    Quên mật khẩu?
+                </button>
+            </div>
+            <div id="forgot-password-hint"
+                 class="hidden rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                Vui lòng liên hệ Quản trị viên để được cấp lại mật khẩu tài khoản của bạn.
+            </div>
+
             <button type="submit"
                     class="pk-btn-primary w-full rounded-xl py-3.5 text-sm font-extrabold cursor-pointer">
-                Đăng Nhập Ngay
+                Đăng nhập
             </button>
         </form>
 
-        <!-- Tài khoản quản trị đăng nhập nhanh -->
-        <div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
-            <div class="flex items-center justify-between text-[11px]">
-                <span class="font-bold uppercase tracking-wider pk-text-secondary">TÀI KHOẢN QUẢN TRỊ:</span>
-                <span id="quickfill-feedback" class="hidden font-bold text-emerald-600 dark:text-emerald-400">Đã điền sẵn!</span>
-            </div>
-            <div class="grid grid-cols-1 gap-2.5">
-                <button type="button"
-                        onclick="window.quickFillCredentials('nangdzai2k', '123456', this)"
-                        class="quickfill-btn pk-surface-elevated hover:border-rose-500 rounded-2xl p-3 text-left border-2 border-transparent cursor-pointer transition flex items-center justify-between w-full">
-                    <div>
-                        <div class="text-xs font-extrabold text-rose-600 dark:text-amber-400">Quản trị viên (Admin)</div>
-                        <div class="pk-num text-[11px] pk-text-secondary">nangdzai2k / 123456</div>
-                    </div>
-                    <span class="rounded-full bg-rose-500/15 px-2.5 py-0.5 text-[10px] font-bold text-rose-600 dark:text-amber-400 shrink-0">Chọn</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="text-center text-xs pk-text-secondary">
+        <div class="text-center text-xs pk-text-secondary pt-2 border-t border-slate-200 dark:border-slate-800">
             Chưa có tài khoản?
-            <a th:href="@{/register}" class="font-extrabold text-rose-600 dark:text-amber-400 hover:underline ml-1">
-                Đăng ký tài khoản mới →
+            <a th:href="@{/register}" class="font-extrabold text-amber-600 dark:text-amber-400 hover:underline ml-1">
+                Đăng ký →
             </a>
         </div>
     </div>
 </div>
 
-<script defer th:src="@{/js/pages/auth.js}"></script>
+<script defer th:src="@{/js/pages/auth.js(v='20261121k')}"></script>
 </body>
 </html>

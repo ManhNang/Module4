@@ -44,9 +44,9 @@
                 <span class="pk-num font-bold pk-text-primary" th:text="${vnpTxnRef}">VNP1_20261118</span>
             </div>
             <div class="flex items-center justify-between py-1.5 border-b border-slate-200 dark:border-slate-800">
-                <span class="pk-text-secondary">Số tiền nạp:</span>
-                <span class="pk-num text-base font-extrabold text-emerald-600 dark:text-emerald-400"
-                      th:text="${#numbers.formatDecimal(displayAmount, 0, 'POINT', 0, 'COMMA')} + ' ₫'">200.000 ₫</span>
+                <span class="pk-text-secondary">Số Xu nhận được:</span>
+                <span class="pk-num text-base font-extrabold text-amber-600 dark:text-amber-400"
+                      th:text="'+' + ${#numbers.formatDecimal(displayAmount, 0, 'POINT', 0, 'COMMA')} + ' Xu'">+2.000 Xu</span>
             </div>
             <div class="flex items-center justify-between py-1.5">
                 <span class="pk-text-secondary">Ngân hàng / Mã giao dịch:</span>
@@ -57,9 +57,9 @@
         <!-- Số dư mới sau giao dịch -->
         <div class="pk-surface-muted rounded-2xl p-4 flex items-center justify-between">
             <span class="text-xs sm:text-sm font-semibold pk-text-secondary">Số dư Ví khả dụng hiện tại:</span>
-            <span class="pk-num text-xl font-extrabold text-emerald-600 dark:text-emerald-400"
-                  th:text="${#numbers.formatDecimal(wallet.balance(), 0, 'POINT', 0, 'COMMA')} + ' ₫'">
-                2.700.000 ₫
+            <span class="pk-num text-xl font-extrabold text-amber-600 dark:text-amber-400"
+                  th:text="${#numbers.formatDecimal(wallet.balance(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
+                2.700 Xu
             </span>
         </div>
 

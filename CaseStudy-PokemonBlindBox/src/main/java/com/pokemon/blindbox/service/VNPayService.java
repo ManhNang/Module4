@@ -67,6 +67,8 @@ public class VNPayService {
                 ));
 
         BigDecimal normalizedAmount = request.amount().setScale(2, RoundingMode.HALF_UP);
+        // Quy đổi VNĐ -> Xu theo tỷ lệ 1.000 ₫ = 10 Xu (100 ₫ = 1 Xu)
+        BigDecimal creditedXu = normalizedAmount.divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         String vnpTxnRef = generateUniqueTxnRef(request.userId());
 
         WalletTransaction transaction = WalletTransaction.builder()
@@ -74,8 +76,8 @@ public class VNPayService {
                 .vnpTxnRef(vnpTxnRef)
                 .type(TransactionType.DEPOSIT_VNPAY)
                 .status(TransactionStatus.PENDING)
-                .amount(normalizedAmount)
-                .description("Nap diem vi Pokemon Blindbox qua VNPay #" + vnpTxnRef)
+                .amount(creditedXu)
+                .description(String.format("Nạp %,.0f ₫ (+%,.0f Xu) qua VNPay #%s", normalizedAmount, creditedXu, vnpTxnRef))
                 .build();
         walletTransactionRepository.save(transaction);
 
@@ -160,10 +162,13 @@ public class VNPayService {
 
         WalletTransaction transaction = txOpt.get();
 
-        // 3. Đối chiếu số tiền (vnp_Amount = amount * 100)
+        // 3. Đối chiếu số tiền (hỗ trợ cả giao dịch lưu theo Xu: vnp_Amount = Xu * 10000, và legacy VNĐ: vnp_Amount = amount * 100)
         String vnpAmountStr = rawParams.get("vnp_Amount");
-        long expectedVnpAmount = transaction.getAmount()
+        long expectedVnpAmountLegacy = transaction.getAmount()
                 .multiply(BigDecimal.valueOf(100))
+                .longValueExact();
+        long expectedVnpAmountXu = transaction.getAmount()
+                .multiply(BigDecimal.valueOf(10000))
                 .longValueExact();
         long receivedVnpAmount;
         try {
@@ -171,9 +176,9 @@ public class VNPayService {
         } catch (NumberFormatException ex) {
             return VNPayIpnResponseDTO.of("04", "Invalid Amount");
         }
-        if (expectedVnpAmount != receivedVnpAmount) {
-            log.warn("[VNPAY-IPN] Amount mismatch for vnpTxnRef={}: expected={}, received={}",
-                    vnpTxnRef, expectedVnpAmount, receivedVnpAmount);
+        if (receivedVnpAmount != expectedVnpAmountXu && receivedVnpAmount != expectedVnpAmountLegacy) {
+            log.warn("[VNPAY-IPN] Amount mismatch for vnpTxnRef={}: expectedXu={}, expectedLegacy={}, received={}",
+                    vnpTxnRef, expectedVnpAmountXu, expectedVnpAmountLegacy, receivedVnpAmount);
             return VNPayIpnResponseDTO.of("04", "Invalid Amount");
         }
 
@@ -223,7 +228,8 @@ public class VNPayService {
         WalletTransaction tx = walletTransactionRepository.findByVnpTxnRef(vnpTxnRef)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy giao dịch với vnpTxnRef = " + vnpTxnRef));
 
-        long vnpAmount = tx.getAmount().multiply(BigDecimal.valueOf(100)).longValueExact();
+        boolean isXuTx = tx.getDescription() != null && tx.getDescription().contains("Xu");
+        long vnpAmount = tx.getAmount().multiply(BigDecimal.valueOf(isXuTx ? 10000 : 100)).longValueExact();
         Map<String, String> signedParams = new TreeMap<>();
         signedParams.put("vnp_Amount", String.valueOf(vnpAmount));
         signedParams.put("vnp_BankCode", "NCB");

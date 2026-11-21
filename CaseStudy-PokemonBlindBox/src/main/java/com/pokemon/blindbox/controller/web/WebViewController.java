@@ -5,6 +5,8 @@ import com.pokemon.blindbox.dto.response.WalletResponseDTO;
 import com.pokemon.blindbox.dto.response.WalletTransactionResponseDTO;
 import com.pokemon.blindbox.security.AuthenticatedUserProvider;
 import com.pokemon.blindbox.service.DigitalBinderService;
+import com.pokemon.blindbox.service.SanctuaryService;
+import com.pokemon.blindbox.service.SealedStoreVaultService;
 import com.pokemon.blindbox.service.StoreQueryService;
 import com.pokemon.blindbox.service.VNPayService;
 import com.pokemon.blindbox.service.WalletService;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * WebViewController gọn nhẹ sau khi tái cấu trúc (P1-07):
@@ -30,6 +33,8 @@ public class WebViewController {
 
     private final StoreQueryService storeQueryService;
     private final DigitalBinderService digitalBinderService;
+    private final SanctuaryService sanctuaryService;
+    private final SealedStoreVaultService sealedStoreVaultService;
     private final WalletService walletService;
     private final VNPayService vnPayService;
     private final AuthenticatedUserProvider authUserProvider;
@@ -40,7 +45,7 @@ public class WebViewController {
     }
 
     /**
-     * 1. Trang Cửa Hàng & Khay Booster Box (templates/shop/box-tray.html)
+     * 1. Trang Cửa Hàng Đa Bộ Sưu Tập (Pack 6 thẻ + Box nguyên seal 20 Pack -10% + Daily Global Stock)
      */
     @GetMapping({"/store", "/shop/boxes"})
     public String shopBoxTrayPage(
@@ -49,11 +54,10 @@ public class WebViewController {
     ) {
         Long userId = authUserProvider.getRequiredUserId();
         StoreQueryService.StorePageData data = storeQueryService.loadStorePage(boxId);
+        List<SealedStoreVaultService.StoreSetCatalogItem> storeSets = sealedStoreVaultService.getStoreCatalogWithDailyStock();
 
         populateCommonUserAndWallet(model, "store", userId);
-        model.addAttribute("boxes", data.boxes());
-        model.addAttribute("selectedBox", data.selectedBox());
-        model.addAttribute("packs", data.packs());
+        model.addAttribute("storeSets", storeSets);
         model.addAttribute("rarities", data.rarities());
         model.addAttribute("totalDropWeight", data.totalDropWeight());
 
@@ -94,12 +98,21 @@ public class WebViewController {
             progress = digitalBinderService.getMasterSetProgress(userId, resolvedSetId);
         }
 
+        Set<Long> expeditionCardIds = sanctuaryService.getActiveExpeditionCardIds(userId);
+        List<SealedStoreVaultService.SealedSetVaultGroup> sealedGroups = sealedStoreVaultService.getUserSealedVaultGroups(userId);
+        long totalSealedCount = sealedGroups.stream()
+                .mapToLong(g -> g.availablePacks() + g.lockedPacks() + g.availableBoxes() + g.lockedBoxes())
+                .sum();
+
         populateCommonUserAndWallet(model, "inventory", userId);
         model.addAttribute("initialTab", initialTab);
         model.addAttribute("cardSets", data.cardSets());
         model.addAttribute("rarities", data.rarities());
         model.addAttribute("speciesList", data.speciesList());
         model.addAttribute("myCards", data.myCards());
+        model.addAttribute("expeditionCardIds", expeditionCardIds);
+        model.addAttribute("sealedGroups", sealedGroups);
+        model.addAttribute("totalSealedCount", totalSealedCount);
         model.addAttribute("templateCopyCounts", data.templateCopyCounts());
         model.addAttribute("unlockedCardCount", data.unlockedCardCount());
         model.addAttribute("listedCardCount", data.listedCardCount());
@@ -139,6 +152,9 @@ public class WebViewController {
         model.addAttribute("ownedCopiesCount", data.ownedCopiesCount());
         model.addAttribute("firstUnlockedUserCardId", data.firstUnlockedUserCardId());
         model.addAttribute("setCards", data.setCards());
+        model.addAttribute("prevCard", data.prevCard());
+        model.addAttribute("nextCard", data.nextCard());
+        model.addAttribute("dropRatePercent", data.dropRatePercent());
         return "cards/detail";
     }
 
@@ -150,15 +166,21 @@ public class WebViewController {
             @RequestParam(value = "setName", required = false) String setName,
             @RequestParam(value = "speciesName", required = false) String speciesName,
             @RequestParam(value = "sellUserCardId", required = false) Long sellUserCardId,
+            @RequestParam(value = "sellSealedId", required = false) Long sellSealedId,
+            @RequestParam(value = "sellItemType", required = false) String sellItemType,
             Model model
     ) {
         Long userId = authUserProvider.getRequiredUserId();
         StoreQueryService.MarketPageData data = storeQueryService.loadMarketPage(userId, setName, speciesName);
+        List<SealedStoreVaultService.SealedMarketOption> sellableSealed = sealedStoreVaultService.getSellableSealedOptions(userId);
 
         populateCommonUserAndWallet(model, "market", userId);
         model.addAttribute("fixedPriceListings", data.fixedPriceListings());
         model.addAttribute("activeAuctions", data.activeAuctions());
+        model.addAttribute("sellerNameMap", data.sellerNameMap());
+        model.addAttribute("bidCountMap", data.bidCountMap());
         model.addAttribute("myCards", data.myCards());
+        model.addAttribute("sellableSealed", sellableSealed);
         model.addAttribute("cardSets", data.cardSets());
         model.addAttribute("rarities", data.rarities());
         model.addAttribute("speciesList", data.speciesList());
@@ -166,6 +188,8 @@ public class WebViewController {
         model.addAttribute("selectedSetName", data.selectedSetName());
         model.addAttribute("selectedSpeciesName", data.selectedSpeciesName());
         model.addAttribute("sellUserCardId", sellUserCardId);
+        model.addAttribute("sellSealedId", sellSealedId);
+        model.addAttribute("sellItemType", sellItemType);
 
         return "market/index";
     }
@@ -183,6 +207,7 @@ public class WebViewController {
         model.addAttribute("bidHistory", data.bidHistory());
         model.addAttribute("currentLeaderMasked", data.currentLeaderMasked());
         model.addAttribute("nextMinBid", data.nextMinBid());
+        model.addAttribute("sellerDisplayName", data.sellerDisplayName());
 
         return "market/auction-detail";
     }
@@ -206,6 +231,7 @@ public class WebViewController {
         populateCommonUserAndWallet(model, "admin", userId);
         model.addAttribute("cardSets", data.cardSets());
         model.addAttribute("activeSet", data.activeSet());
+        model.addAttribute("todaySalesMap", sealedStoreVaultService.getTodaySalesMap());
         model.addAttribute("rarities", data.rarities());
         model.addAttribute("totalDropWeight", data.totalDropWeight());
         model.addAttribute("speciesList", data.speciesList());
@@ -215,6 +241,16 @@ public class WebViewController {
         model.addAttribute("sealedAvailableBoxCount", data.sealedAvailableBoxCount());
 
         return "admin/dashboard";
+    }
+
+    /**
+     * 5B. Trang Đảo Nuôi Dưỡng & Thám Hiểm 2.5D (Poke-Sanctuary Idle)
+     */
+    @GetMapping("/sanctuary")
+    public String sanctuaryPage(Model model) {
+        Long userId = authUserProvider.getRequiredUserId();
+        populateCommonUserAndWallet(model, "sanctuary", userId);
+        return "sanctuary/index";
     }
 
     /**

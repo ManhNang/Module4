@@ -7,6 +7,8 @@ import com.pokemon.blindbox.dto.response.AuctionBidResponseDTO;
 import com.pokemon.blindbox.dto.response.AuctionResponseDTO;
 import com.pokemon.blindbox.entity.*;
 import com.pokemon.blindbox.entity.enums.AuctionStatus;
+import com.pokemon.blindbox.entity.enums.MarketItemType;
+import com.pokemon.blindbox.entity.enums.SealedItemType;
 import com.pokemon.blindbox.entity.enums.TransactionType;
 import com.pokemon.blindbox.exception.BusinessValidationException;
 import com.pokemon.blindbox.exception.ResourceNotFoundException;
@@ -45,15 +47,63 @@ public class AuctionService {
     private final AuctionRepository auctionRepository;
     private final AuctionBidRepository auctionBidRepository;
     private final UserCardRepository userCardRepository;
+    private final UserSealedItemRepository userSealedItemRepository;
     private final WalletRepository walletRepository;
     private final WalletService walletService;
     private final ApplicationEventPublisher eventPublisher;
 
     /**
-     * 1. Tạo phiên đấu giá mới từ thẻ bài UserCard của người chơi (PESSIMISTIC_WRITE + @Version, P0-02).
+     * 1. Tạo phiên đấu giá mới từ Thẻ bài / Pack lẻ / Box nguyên seal của người chơi.
      */
     @Transactional
     public AuctionResponseDTO createAuction(CreateAuctionRequest request) {
+        MarketItemType itemType = request.itemType() != null ? request.itemType() : MarketItemType.CARD;
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endTime = now.plusMinutes(request.durationMinutes());
+
+        if (itemType == MarketItemType.PACK || itemType == MarketItemType.BOX) {
+            if (request.sealedItemId() == null) {
+                throw new BusinessValidationException("Vui lòng chọn Pack hoặc Box hợp lệ từ Kho đồ!");
+            }
+            UserSealedItem sealed = userSealedItemRepository.findByIdForUpdate(request.sealedItemId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Pack/Box với id = " + request.sealedItemId()));
+
+            if (!sealed.getUserId().equals(request.sellerId())) {
+                throw new BusinessValidationException("Bạn không sở hữu Pack/Box này!");
+            }
+            if (Boolean.TRUE.equals(sealed.getIsConsumed()) || Boolean.TRUE.equals(sealed.getIsLocked())) {
+                throw new BusinessValidationException("Pack/Box này đã được mở hoặc đang treo trên Chợ!");
+            }
+            SealedItemType expected = itemType == MarketItemType.BOX ? SealedItemType.BOX : SealedItemType.PACK;
+            if (sealed.getItemType() != expected) {
+                throw new BusinessValidationException("Loại vật phẩm không khớp với Pack/Box đã chọn!");
+            }
+
+            sealed.setIsLocked(true);
+            userSealedItemRepository.saveAndFlush(sealed);
+
+            Auction auction = Auction.builder()
+                    .sellerId(request.sellerId())
+                    .itemType(itemType)
+                    .sealedItem(sealed)
+                    .startingPrice(request.startingPrice())
+                    .minBidIncrement(request.minBidIncrement())
+                    .currentHighestBid(request.startingPrice())
+                    .highestBidderId(null)
+                    .startTime(now)
+                    .endTime(endTime)
+                    .status(AuctionStatus.ACTIVE)
+                    .build();
+
+            Auction saved = auctionRepository.saveAndFlush(auction);
+            log.info("Created Auction id={} for {} sealedItemId={}, startingPrice={}",
+                    saved.getId(), itemType, sealed.getId(), request.startingPrice());
+            return AuctionResponseDTO.fromEntity(saved);
+        }
+
+        if (request.userCardId() == null) {
+            throw new BusinessValidationException("userCardId không được để trống!");
+        }
         UserCard userCard = userCardRepository.findByIdForUpdate(request.userCardId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thẻ bài sở hữu với userCardId = " + request.userCardId()));
 
@@ -67,11 +117,9 @@ public class AuctionService {
         userCard.setIsLocked(true);
         userCardRepository.saveAndFlush(userCard);
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime endTime = now.plusMinutes(request.durationMinutes());
-
         Auction auction = Auction.builder()
                 .sellerId(request.sellerId())
+                .itemType(MarketItemType.CARD)
                 .userCard(userCard)
                 .startingPrice(request.startingPrice())
                 .minBidIncrement(request.minBidIncrement())
@@ -116,8 +164,8 @@ public class AuctionService {
 
         if (request.bidAmount().compareTo(minimumAllowedBid) < 0) {
             throw new BusinessValidationException(String.format(
-                    "Bước giá không hợp lệ! Mức giá tối thiểu cần đặt là %s VND.",
-                    minimumAllowedBid.toPlainString()
+                    "Mức giá đặt chưa đủ! Mức giá tối thiểu cần đặt là %s Xu.",
+                    minimumAllowedBid.stripTrailingZeros().toPlainString()
             ));
         }
 

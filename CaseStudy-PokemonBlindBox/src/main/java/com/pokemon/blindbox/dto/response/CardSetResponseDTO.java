@@ -16,6 +16,8 @@ public record CardSetResponseDTO(
         Integer packsPerBox,
         BigDecimal packPrice,
         BigDecimal boxPrice,
+        Integer dailyPackLimit,
+        Integer dailyBoxLimit,
         Boolean isActive,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -30,6 +32,8 @@ public record CardSetResponseDTO(
                 .packsPerBox(entity.getPacksPerBox())
                 .packPrice(entity.getPackPrice())
                 .boxPrice(entity.getBoxPrice())
+                .dailyPackLimit(entity.getDailyPackLimit() != null ? entity.getDailyPackLimit() : 200)
+                .dailyBoxLimit(entity.getDailyBoxLimit() != null ? entity.getDailyBoxLimit() : 15)
                 .isActive(entity.getIsActive() == null || entity.getIsActive())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())

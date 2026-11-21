@@ -13,14 +13,18 @@
       class="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 lg:px-8 space-y-7">
 
     <!-- Thanh điều hướng quay lại & Badge Trực tuyến -->
-    <div class="flex flex-wrap items-center justify-between gap-4">
+    <div class="flex flex-wrap items-center justify-between gap-4"
+         th:with="isCard=${auction.itemType() == null or auction.itemType().name() == 'CARD'},
+                  isBox=${auction.itemType() != null and auction.itemType().name() == 'BOX'}">
         <div class="flex items-center gap-3">
             <a th:href="@{/market}"
                class="pk-surface rounded-full px-4 py-2 text-xs font-bold pk-text-primary hover:opacity-80 transition">
-                ← Quay lại Sàn P2P
+                ← Quay lại Chợ
             </a>
             <h1 class="text-xl sm:text-2xl font-extrabold pk-text-primary">
-                Phòng Đấu Giá #<span class="pk-num" th:text="${auction.id()}">1</span> • <span th:text="${auction.card().name()}">Hầm hào huyền thoại</span>
+                Phòng Đấu Giá #<span class="pk-num" th:text="${auction.id()}">1</span> •
+                <span th:if="${isCard and auction.card() != null}" th:text="${auction.card().name()}">Rayquaza ex</span>
+                <span th:if="${!isCard}" th:text="${isBox ? 'Box Nguyên Seal ' + auction.sealedSetName() : 'Pack Lẻ ' + auction.sealedSetName()}">Pack Lẻ</span>
             </h1>
         </div>
 
@@ -46,42 +50,78 @@
         </div>
     </div>
 
-    <!-- Grid chính: Thông tin thẻ 2D bên trái + Bảng nhảy giá & Đặt giá thời gian thực bên phải -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Grid chính: Thông tin vật phẩm bên trái + Bảng nhảy giá & Đặt giá thời gian thực bên phải -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6"
+         th:with="isCard=${auction.itemType() == null or auction.itemType().name() == 'CARD'},
+                  isBox=${auction.itemType() != null and auction.itemType().name() == 'BOX'},
+                  isOwner=${auction.sellerId() != null and currentUserId != null and auction.sellerId().equals(currentUserId)},
+                  isEnded=${auction.status() != null and auction.status().name() != 'ACTIVE'},
+                  rLower=${isCard and auction.card() != null ? #strings.toLowerCase(auction.card().rarityName() ?: '') : ''},
+                  rColor=${!isCard ? (isBox ? '#F59E0B' : '#38BDF8') :
+                           (#strings.contains(rLower, 'special illustration') ? '#EC4899' :
+                           ((#strings.contains(rLower, 'hyper') or #strings.contains(rLower, 'secret') or #strings.contains(rLower, 'gold')) ? '#F59E0B' :
+                           (#strings.contains(rLower, 'illustration') ? '#C084FC' :
+                           (#strings.contains(rLower, 'ultra') ? '#FB923C' :
+                           (#strings.contains(rLower, 'double') ? '#818CF8' :
+                           ((#strings.contains(rLower, 'uncommon') or #strings.contains(rLower, 'không phổ biến')) ? '#34D399' :
+                           ((#strings.contains(rLower, 'rare') or #strings.contains(rLower, 'hiếm')) ? '#38BDF8' : '#94A3B8')))))))}">
 
-        <!-- Cột trái (5/12): Thẻ bài đang đấu giá -->
+        <!-- Cột trái (5/12): Thẻ bài / Pack / Box đang đấu giá -->
         <section class="lg:col-span-5 pk-surface rounded-3xl p-6 space-y-5">
             <div class="flex items-center justify-between text-xs">
                 <span class="pk-num pk-surface-muted rounded-lg px-2.5 py-1 font-extrabold pk-text-primary"
-                      th:text="${auction.card().formattedCardNumber()}">098 / 103</span>
-                <span class="rounded-full px-3 py-1 font-bold border"
-                      th:style="'border-color:' + ${auction.card().rarityColorHex()} + '; color:' + ${auction.card().rarityColorHex()}"
-                      th:text="${auction.card().rarityName()}">Không phổ biến</span>
+                      th:text="${isCard and auction.card() != null ? auction.card().formattedCardNumber() : (isBox ? 'SEALED BOX' : 'BOOSTER PACK')}">098 / 103</span>
+                <span th:if="${isCard and auction.card() != null}"
+                      class="pk-rarity-badge px-3 py-1 text-xs"
+                      th:style="'border-color:' + ${rColor} + '; color:' + ${rColor}"
+                      th:text="${auction.card().rarityName()}">Rare</span>
+                <span th:if="${!isCard}"
+                      class="rounded-full bg-amber-500/15 border border-amber-500/35 px-3 py-1 font-bold text-amber-600 dark:text-amber-400"
+                      th:text="${isBox ? auction.sealedPacksPerBox() + ' Pack nguyên seal' : auction.sealedCardsPerPack() + ' thẻ ngẫu nhiên'}">6 thẻ</span>
             </div>
 
-            <div class="card-image-wrapper rounded-2xl pk-surface-muted p-3">
-                <img th:src="${auction.card().imageUrl()}"
-                     th:alt="${auction.card().name()}"
-                     onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"
-                     class="drop-shadow-xl"/>
-            </div>
-
-            <div class="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
-                <div class="flex items-center justify-between">
-                    <span class="pk-text-secondary">Bộ sưu tập:</span>
-                    <a th:href="@{/market(setName=${auction.card().setName()})}"
-                       class="font-bold pk-text-primary hover:underline"
-                       th:text="${auction.card().setName()} + ' (' + ${auction.card().setCode()} + ')'">Delta Reign (DLR)</a>
+            <!-- Ảnh thẻ lớn có 3D Tilt & Rarity Glow đồng bộ /cards/[id] -->
+            <div th:if="${isCard and auction.card() != null}" class="flex justify-center py-1">
+                <div th:classappend="${auction.card().rarityIsHolographic()} ? 'is-holo-active' : ''"
+                     th:style="'--rarity-glow:' + ${rColor}"
+                     class="pk-holo-card pk-card-fullbleed pk-detail-card-glow !max-w-[300px] cursor-grab active:cursor-grabbing select-none">
+                    <img th:src="${auction.card().imageUrl()}"
+                         th:alt="${auction.card().name()}"
+                         onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"/>
                 </div>
-                <div class="flex items-center justify-between">
+            </div>
+
+            <div th:if="${!isCard}"
+                 th:classappend="${isBox} ? 'from-amber-500 via-rose-600 to-indigo-900' : 'from-slate-800 via-indigo-900 to-slate-900'"
+                 class="aspect-[5/7] max-w-[260px] mx-auto rounded-2xl bg-gradient-to-br p-6 flex flex-col items-center justify-center text-white text-center shadow-2xl border-2 border-amber-300/50 space-y-2">
+                <span class="rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold tracking-widest" th:text="${auction.sealedSetCode()}">DLR</span>
+                <div class="text-2xl font-black" th:text="${isBox ? 'SEALED BOX' : 'BOOSTER PACK'}">PACK</div>
+                <div class="text-sm font-bold text-amber-200" th:text="${auction.sealedSetName()}">Delta Reign</div>
+                <div class="text-xs font-semibold opacity-90"
+                     th:text="${isBox ? auction.sealedPacksPerBox() + ' Pack nguyên seal' : auction.sealedCardsPerPack() + ' thẻ ngẫu nhiên'}">6 thẻ</div>
+            </div>
+
+            <div class="space-y-2.5 pt-3 border-t border-slate-200 dark:border-slate-800 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="pk-text-secondary">Bộ sưu tập:</span>
+                    <a th:href="@{/market(setName=${isCard and auction.card() != null ? auction.card().setName() : auction.sealedSetName()})}"
+                       class="no-underline font-bold pk-text-primary hover:text-amber-500 dark:hover:text-amber-400 hover:underline hover:underline-offset-4 transition"
+                       th:text="${isCard and auction.card() != null ? auction.card().setName() + ' (' + auction.card().setCode() + ')' : auction.sealedSetName() + ' (' + auction.sealedSetCode() + ')'}">Delta Reign (DLR)</a>
+                </div>
+                <div th:if="${isCard and auction.card() != null}" class="flex items-center justify-between gap-2">
                     <span class="pk-text-secondary">Loài:</span>
                     <a th:href="@{/market(speciesName=${auction.card().speciesName()})}"
-                       class="font-bold text-rose-600 dark:text-amber-400 hover:underline"
-                       th:text="${auction.card().speciesName()}">Hầm hào huyền thoại</a>
+                       class="no-underline font-bold pk-text-primary hover:text-amber-500 dark:hover:text-amber-400 hover:underline hover:underline-offset-4 transition"
+                       th:text="${auction.card().speciesName()}">Rayquaza</a>
                 </div>
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-2">
                     <span class="pk-text-secondary">Người mở phiên:</span>
-                    <span class="pk-num font-bold pk-text-primary" th:text="'Trainer #' + ${auction.sellerId()}">Trainer #1</span>
+                    <span class="font-bold pk-text-primary" th:text="${sellerDisplayName ?: ('Trainer #' + auction.sellerId())}">satoshi</span>
+                </div>
+                <div th:if="${isCard and auction.card() != null}" class="flex items-center justify-between gap-2">
+                    <span class="pk-text-secondary">Giá bán nhanh:</span>
+                    <span class="pk-num tabular-nums font-extrabold text-amber-600 dark:text-amber-400"
+                          th:text="${#numbers.formatDecimal(auction.card().rarityBuybackPrice(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">450 Xu</span>
                 </div>
             </div>
         </section>
@@ -94,9 +134,9 @@
                     <div id="highest-bid-box" class="pk-surface-elevated rounded-2xl p-5 transition duration-300">
                         <div class="text-xs font-bold pk-text-secondary">Giá dẫn đầu hiện tại</div>
                         <div id="live-highest-bid"
-                             class="mt-1.5 pk-num text-3xl font-extrabold text-emerald-600 dark:text-emerald-400"
-                             th:text="${#numbers.formatDecimal(auction.currentHighestBid(), 0, 'POINT', 0, 'COMMA')} + ' ₫'">
-                            120.000 ₫
+                             class="mt-1.5 pk-num tabular-nums text-3xl font-extrabold text-amber-600 dark:text-amber-400"
+                             th:text="${#numbers.formatDecimal(auction.currentHighestBid(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
+                            120 Xu
                         </div>
                         <div class="mt-2 text-xs pk-text-secondary">
                             Người dẫn đầu:
@@ -107,25 +147,49 @@
                     <div class="pk-surface-elevated rounded-2xl p-5 flex flex-col justify-between">
                         <div>
                             <div class="text-xs font-bold pk-text-secondary">Thời gian còn lại</div>
-                            <div id="live-countdown-timer" class="mt-1.5 pk-num text-3xl font-extrabold text-rose-600 dark:text-amber-400">
+                            <div id="live-countdown-timer" class="mt-1.5 pk-num tabular-nums text-3xl font-extrabold pk-text-primary">
                                 --:--:--
                             </div>
                         </div>
                         <div class="mt-2 text-[11px] pk-text-secondary">
-                            Kết thúc: <span id="live-end-time-label" class="pk-num font-semibold pk-text-primary"
+                            Kết thúc: <span id="live-end-time-label" class="pk-num tabular-nums font-semibold pk-text-primary"
                                             th:text="${#temporals.format(auction.endTime(), 'dd/MM/yyyy HH:mm:ss')}"></span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Form Đặt Bước Giá Mới -->
-                <form id="place-bid-form" class="pk-surface-muted rounded-2xl p-5 space-y-4">
+                <!-- Trạng thái phiên đã kết thúc -->
+                <div th:if="${isEnded}"
+                     class="pk-surface-muted rounded-2xl p-5 flex items-center gap-3 border border-slate-500/25">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-500/15 text-slate-400">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    </span>
+                    <div class="text-xs sm:text-sm font-semibold pk-text-secondary">
+                        Phiên đấu giá này đã kết thúc và không thể đặt thêm bước giá mới.
+                    </div>
+                </div>
+
+                <!-- Trạng thái chính chủ phiên -->
+                <div th:if="${!isEnded and isOwner}"
+                     class="pk-surface-muted rounded-2xl p-5 flex items-center gap-3 border border-amber-500/30">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </span>
+                    <div class="text-xs sm:text-sm font-semibold pk-text-primary">
+                        Bạn là người mở phiên đấu giá này — không thể tự đặt giá.
+                    </div>
+                </div>
+
+                <!-- Form Đặt Bước Giá Mới (chỉ hiện với người mua khi phiên đang diễn ra) -->
+                <form th:if="${!isEnded and !isOwner}" id="place-bid-form" class="pk-surface-muted rounded-2xl p-5 space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <span class="text-xs font-extrabold pk-text-primary">
                             Đặt Bước Giá Mới
                         </span>
-                        <span class="pk-num text-xs pk-text-secondary">
-                            Bước giá tối thiểu: <strong class="pk-text-primary" th:text="'+' + ${#numbers.formatDecimal(auction.minBidIncrement(), 0, 'POINT', 0, 'COMMA')} + ' ₫'">+10.000 ₫</strong>
+                        <span class="pk-num tabular-nums text-xs pk-text-secondary">
+                            Bước giá tối thiểu:
+                            <strong class="text-amber-600 dark:text-amber-400"
+                                    th:text="'+' + ${#numbers.formatDecimal(auction.minBidIncrement(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">+10 Xu</strong>
                         </span>
                     </div>
 
@@ -141,9 +205,9 @@
 
                         <div>
                             <label for="bid-amount-input" class="block text-xs font-semibold pk-text-secondary mb-1">
-                                Mức giá đặt của bạn (₫) *
+                                Mức giá đặt của bạn (Xu) *
                             </label>
-                            <input type="number" id="bid-amount-input" required step="1000"
+                            <input type="number" id="bid-amount-input" required min="1" step="1"
                                    th:value="${nextMinBid.longValue()}"
                                    class="pk-input pk-num w-full rounded-xl px-3.5 py-2.5 text-base font-extrabold"/>
                         </div>
@@ -152,17 +216,17 @@
                     <!-- Nút cộng nhanh bước giá -->
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div class="flex items-center gap-2">
-                            <button type="button" onclick="window.bumpBidAmount(10000)"
-                                    class="pk-surface pk-num rounded-xl px-3 py-1.5 text-xs font-bold pk-text-primary hover:opacity-80 cursor-pointer">
-                                +10.000 ₫
+                            <button type="button" onclick="window.bumpBidAmount(10)"
+                                     class="pk-surface pk-num rounded-xl px-3 py-1.5 text-xs font-bold pk-text-primary hover:border-amber-500/50 hover:text-amber-500 dark:hover:text-amber-400 cursor-pointer transition">
+                                +10 Xu
                             </button>
-                            <button type="button" onclick="window.bumpBidAmount(50000)"
-                                    class="pk-surface pk-num rounded-xl px-3 py-1.5 text-xs font-bold pk-text-primary hover:opacity-80 cursor-pointer">
-                                +50.000 ₫
+                            <button type="button" onclick="window.bumpBidAmount(50)"
+                                     class="pk-surface pk-num rounded-xl px-3 py-1.5 text-xs font-bold pk-text-primary hover:border-amber-500/50 hover:text-amber-500 dark:hover:text-amber-400 cursor-pointer transition">
+                                +50 Xu
                             </button>
-                            <button type="button" onclick="window.bumpBidAmount(100000)"
-                                    class="pk-surface pk-num rounded-xl px-3 py-1.5 text-xs font-bold pk-text-primary hover:opacity-80 cursor-pointer">
-                                +100.000 ₫
+                            <button type="button" onclick="window.bumpBidAmount(100)"
+                                     class="pk-surface pk-num rounded-xl px-3 py-1.5 text-xs font-bold pk-text-primary hover:border-amber-500/50 hover:text-amber-500 dark:hover:text-amber-400 cursor-pointer transition">
+                                +100 Xu
                             </button>
                         </div>
 
@@ -176,19 +240,39 @@
 
             <!-- Lịch sử đặt giá trực tiếp -->
             <div class="pk-surface rounded-3xl p-5 sm:p-6 space-y-3">
-                <h3 class="text-sm font-extrabold pk-text-primary">
-                    Lịch Sử Đặt Giá
-                </h3>
-                <div id="live-bid-history-list" class="space-y-2 max-h-60 overflow-y-auto">
-                    <div th:each="bid : ${bidHistory}"
-                         class="pk-surface-elevated rounded-xl px-4 py-2.5 flex items-center justify-between text-xs">
-                        <div>
-                            <span class="font-bold pk-text-primary" th:text="${bid.maskedBidderName()}">Sat***9</span>
-                            <span class="ml-2 pk-num pk-text-secondary"
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-extrabold pk-text-primary">
+                        Lịch Sử Đặt Giá (<span id="live-bid-count" class="pk-num tabular-nums" th:text="${#lists.size(bidHistory)}">0</span>)
+                    </h3>
+                </div>
+
+                <!-- Empty State khi chưa có lượt đặt giá -->
+                <div id="bid-history-empty"
+                     th:classappend="${!#lists.isEmpty(bidHistory)} ? 'hidden' : ''"
+                     class="pk-surface-muted rounded-2xl py-7 px-4 flex flex-col items-center justify-center text-center gap-2">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-500/15 pk-text-secondary">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m14.5 12.5-8 8a2.12 2.12 0 1 1-3-3l8-8"/><path d="m16 16 6-6"/><path d="m8 8 6-6"/><path d="m9 7 8 8"/><path d="m21 11-8-8"/></svg>
+                    </span>
+                    <p class="text-xs font-medium pk-text-secondary">
+                        Chưa có lượt đặt giá nào. Hãy là người đầu tiên đặt giá!
+                    </p>
+                </div>
+
+                <div id="live-bid-history-list" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    <div th:each="bid, iterStat : ${bidHistory}"
+                         th:classappend="${iterStat.first} ? 'bid-leading-row border-l-2 border-amber-400 bg-amber-500/5' : ''"
+                         class="pk-surface-elevated rounded-xl px-4 py-2.5 flex items-center justify-between gap-2 text-xs">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="font-bold pk-text-primary truncate" th:text="${bid.maskedBidderName()}">Sat***9</span>
+                            <span th:if="${iterStat.first}"
+                                  class="bid-leader-pill rounded-full bg-amber-500/20 border border-amber-500/35 px-2 py-0.5 text-[10px] font-extrabold text-amber-600 dark:text-amber-400 shrink-0">
+                                Dẫn đầu
+                            </span>
+                            <span class="pk-num tabular-nums pk-text-secondary shrink-0"
                                   th:text="${#temporals.format(bid.bidTimestamp(), 'HH:mm:ss')}">12:00:00</span>
                         </div>
-                        <span class="pk-num font-extrabold text-emerald-600 dark:text-emerald-400"
-                              th:text="${#numbers.formatDecimal(bid.bidAmount(), 0, 'POINT', 0, 'COMMA')} + ' ₫'">150.000 ₫</span>
+                        <span class="pk-num tabular-nums font-extrabold text-amber-600 dark:text-amber-400 shrink-0"
+                              th:text="${#numbers.formatDecimal(bid.bidAmount(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">150 Xu</span>
                     </div>
                 </div>
             </div>
@@ -198,6 +282,6 @@
 </main>
 
 <div th:replace="~{fragments/header :: commonScripts}"></div>
-<script defer th:src="@{/js/pages/auction-detail.js}"></script>
+<script defer th:src="@{/js/pages/auction-detail.js(v='20261121n')}"></script>
 </body>
 </html>

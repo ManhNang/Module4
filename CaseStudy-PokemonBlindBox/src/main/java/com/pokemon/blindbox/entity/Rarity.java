@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 @Entity
 @Table(
@@ -44,4 +45,8 @@ public class Rarity implements Serializable {
     @Column(name = "is_holographic", nullable = false)
     @Builder.Default
     private Boolean isHolographic = false;
+
+    @Column(name = "buyback_price", nullable = false, precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal buybackPrice = new BigDecimal("3000.00");
 }

@@ -156,6 +156,15 @@ public class AdminCardSetController {
         return ResponseEntity.ok(adminCardSetService.deleteCardSet(setId));
     }
 
+    @PatchMapping("/card-sets/{setId}/active")
+    public ResponseEntity<CardSetResponseDTO> toggleCardSetActive(
+            @PathVariable Long setId,
+            @RequestBody Map<String, Boolean> body
+    ) {
+        boolean active = Boolean.TRUE.equals(body.get("active"));
+        return ResponseEntity.ok(adminCardSetService.toggleCardSetActive(setId, active));
+    }
+
     // ==================== 9. THU HỒI / XÓA BOOSTER BOX NGUYÊN SEAL ====================
 
     @DeleteMapping("/booster-boxes/{boxId}")
@@ -198,6 +207,16 @@ public class AdminCardSetController {
             @PathVariable Long cardId
     ) {
         return ResponseEntity.ok(adminCardSetService.deleteCardTemplate(setId, cardId));
+    }
+
+    @PatchMapping("/card-sets/{setId}/cards/{cardId}/active")
+    public ResponseEntity<CardTemplateResponseDTO> toggleCardTemplateActive(
+            @PathVariable Long setId,
+            @PathVariable Long cardId,
+            @RequestBody Map<String, Boolean> body
+    ) {
+        boolean active = Boolean.TRUE.equals(body.get("active"));
+        return ResponseEntity.ok(adminCardSetService.toggleCardTemplateActive(setId, cardId, active));
     }
 
     // ==================== 11. CRUD ĐỘ HIẾM (RARITY) & LOÀI (CARD SPECIES) ====================

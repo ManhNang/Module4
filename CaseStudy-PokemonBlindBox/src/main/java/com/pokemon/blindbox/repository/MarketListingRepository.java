@@ -19,31 +19,36 @@ public interface MarketListingRepository extends JpaRepository<MarketListing, Lo
             "userCard.cardTemplate",
             "userCard.cardTemplate.cardSet",
             "userCard.cardTemplate.rarity",
-            "userCard.cardTemplate.cardSpecies"
+            "userCard.cardTemplate.cardSpecies",
+            "sealedItem",
+            "sealedItem.cardSet"
     })
     Optional<MarketListing> findWithDetailsById(Long id);
 
     /**
-     * Tra cứu chéo trên Sàn P2P theo Bộ sưu tập (setId, setCode hoặc setName như "Delta Reign").
-     * Sử dụng @EntityGraph để lấy trọn vẹn trong 1 câu lệnh SQL duy nhất (chống N+1 Query).
+     * Tra cứu chéo trên Chợ theo Bộ sưu tập (hỗ trợ cả Thẻ bài, Pack lẻ & Box nguyên seal).
      */
     @EntityGraph(attributePaths = {
             "userCard",
             "userCard.cardTemplate",
             "userCard.cardTemplate.cardSet",
             "userCard.cardTemplate.rarity",
-            "userCard.cardTemplate.cardSpecies"
+            "userCard.cardTemplate.cardSpecies",
+            "sealedItem",
+            "sealedItem.cardSet"
     })
     @Query("""
             SELECT ml FROM MarketListing ml
-            JOIN ml.userCard uc
-            JOIN uc.cardTemplate ct
-            JOIN ct.cardSet cs
+            LEFT JOIN ml.userCard uc
+            LEFT JOIN uc.cardTemplate ct
+            LEFT JOIN ct.cardSet cs
+            LEFT JOIN ml.sealedItem si
+            LEFT JOIN si.cardSet scs
             WHERE ml.status = :status
-              AND (:setId IS NULL OR cs.id = :setId)
-              AND (:setCode IS NULL OR cs.code = :setCode)
-              AND (:setName IS NULL OR cs.name = :setName)
-            ORDER BY ct.cardNumber ASC, ml.price ASC
+              AND (:setId IS NULL OR cs.id = :setId OR scs.id = :setId)
+              AND (:setCode IS NULL OR cs.code = :setCode OR scs.code = :setCode)
+              AND (:setName IS NULL OR cs.name = :setName OR scs.name = :setName)
+            ORDER BY ml.createdAt DESC, ml.price ASC
             """)
     List<MarketListing> findActiveByCardSet(
             @Param("status") ListingStatus status,

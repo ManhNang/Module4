@@ -51,6 +51,14 @@ public class CardSet implements Serializable {
     @Column(name = "box_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal boxPrice;
 
+    @Column(name = "daily_pack_limit", nullable = false)
+    @Builder.Default
+    private Integer dailyPackLimit = 200;
+
+    @Column(name = "daily_box_limit", nullable = false)
+    @Builder.Default
+    private Integer dailyBoxLimit = 15;
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;

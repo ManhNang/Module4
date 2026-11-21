@@ -7,9 +7,12 @@ import com.pokemon.blindbox.dto.response.MarketListingResponseDTO;
 import com.pokemon.blindbox.dto.response.MarketplaceCrossLookupResponseDTO;
 import com.pokemon.blindbox.entity.MarketListing;
 import com.pokemon.blindbox.entity.UserCard;
+import com.pokemon.blindbox.entity.UserSealedItem;
 import com.pokemon.blindbox.entity.Wallet;
 import com.pokemon.blindbox.entity.enums.AuctionStatus;
 import com.pokemon.blindbox.entity.enums.ListingStatus;
+import com.pokemon.blindbox.entity.enums.MarketItemType;
+import com.pokemon.blindbox.entity.enums.SealedItemType;
 import com.pokemon.blindbox.entity.enums.TransactionType;
 import com.pokemon.blindbox.exception.BusinessValidationException;
 import com.pokemon.blindbox.exception.ResourceNotFoundException;
@@ -36,15 +39,56 @@ public class MarketplaceService {
     private final MarketListingRepository marketListingRepository;
     private final AuctionRepository auctionRepository;
     private final UserCardRepository userCardRepository;
+    private final UserSealedItemRepository userSealedItemRepository;
     private final WalletRepository walletRepository;
     private final WalletService walletService;
 
     /**
-     * 1. Treo thẻ bài từ UserCard lên Sàn bán giá cố định (MarketListing).
-     * Dùng Pessimistic Write Lock + @Version trên UserCard để chống bán đúp thẻ (P0-02).
+     * 1. Treo Thẻ bài / Pack lẻ / Box nguyên seal lên Chợ bán giá cố định (MarketListing).
+     * Dùng Pessimistic Write Lock + @Version để chống bán đúp (P0-02).
      */
     @Transactional
     public MarketListingResponseDTO createFixedPriceListing(CreateMarketListingRequest request) {
+        MarketItemType itemType = request.itemType() != null ? request.itemType() : MarketItemType.CARD;
+
+        if (itemType == MarketItemType.PACK || itemType == MarketItemType.BOX) {
+            if (request.sealedItemId() == null) {
+                throw new BusinessValidationException("Vui lòng chọn Pack hoặc Box hợp lệ từ Kho đồ!");
+            }
+            UserSealedItem sealed = userSealedItemRepository.findByIdForUpdate(request.sealedItemId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Pack/Box với id = " + request.sealedItemId()));
+
+            if (!sealed.getUserId().equals(request.sellerId())) {
+                throw new BusinessValidationException("Bạn không sở hữu Pack/Box này!");
+            }
+            if (Boolean.TRUE.equals(sealed.getIsConsumed()) || Boolean.TRUE.equals(sealed.getIsLocked())) {
+                throw new BusinessValidationException("Pack/Box này đã được mở hoặc đang treo trên Chợ!");
+            }
+            SealedItemType expected = itemType == MarketItemType.BOX ? SealedItemType.BOX : SealedItemType.PACK;
+            if (sealed.getItemType() != expected) {
+                throw new BusinessValidationException("Loại vật phẩm không khớp với Pack/Box đã chọn!");
+            }
+
+            sealed.setIsLocked(true);
+            userSealedItemRepository.saveAndFlush(sealed);
+
+            MarketListing listing = MarketListing.builder()
+                    .sellerId(request.sellerId())
+                    .itemType(itemType)
+                    .sealedItem(sealed)
+                    .price(request.price())
+                    .status(ListingStatus.ACTIVE)
+                    .build();
+
+            MarketListing saved = marketListingRepository.saveAndFlush(listing);
+            log.info("Created P2P MarketListing id={} for {} sealedItemId={}, sellerId={}, price={}",
+                    saved.getId(), itemType, sealed.getId(), request.sellerId(), request.price());
+            return MarketListingResponseDTO.fromEntity(saved);
+        }
+
+        if (request.userCardId() == null) {
+            throw new BusinessValidationException("userCardId không được để trống!");
+        }
         UserCard userCard = userCardRepository.findByIdForUpdate(request.userCardId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thẻ bài sở hữu với userCardId = " + request.userCardId()));
 
@@ -60,6 +104,7 @@ public class MarketplaceService {
 
         MarketListing listing = MarketListing.builder()
                 .sellerId(request.sellerId())
+                .itemType(MarketItemType.CARD)
                 .userCard(userCard)
                 .price(request.price())
                 .status(ListingStatus.ACTIVE)
@@ -73,9 +118,7 @@ public class MarketplaceService {
     }
 
     /**
-     * 2. Mua đứt thẻ bài đang rao bán giá cố định trên Sàn P2P:
-     * - Khóa 2 ví theo thứ tự userId tăng dần chống InnoDB Deadlock (P1-03).
-     * - Ghi đúng TransactionType.MARKET_PURCHASE (người mua) và MARKET_SALE (người bán) (P1-09).
+     * 2. Mua đứt Thẻ bài / Pack / Box đang rao bán giá cố định trên Chợ.
      */
     @Transactional
     public MarketListingResponseDTO buyFixedPriceListing(Long listingId, BuyMarketListingRequest request) {
@@ -83,10 +126,10 @@ public class MarketplaceService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tin rao bán với listingId = " + listingId));
 
         if (listing.getStatus() != ListingStatus.ACTIVE) {
-            throw new BusinessValidationException("Thẻ bài này đã được người chơi khác mua hoặc đã gỡ khỏi sàn!");
+            throw new BusinessValidationException("Vật phẩm này đã được người chơi khác mua hoặc đã gỡ khỏi Chợ!");
         }
         if (listing.getSellerId().equals(request.buyerId())) {
-            throw new BusinessValidationException("Người bán không thể tự mua lại thẻ bài của chính mình!");
+            throw new BusinessValidationException("Người bán không thể tự mua lại vật phẩm của chính mình!");
         }
 
         Map<Long, Wallet> lockedWallets = walletService.lockTwoWalletsInDeterministicOrder(
@@ -101,13 +144,23 @@ public class MarketplaceService {
         walletRepository.saveAndFlush(buyerWallet);
         walletRepository.saveAndFlush(sellerWallet);
 
-        walletService.recordTransaction(buyerWallet, TransactionType.MARKET_PURCHASE, price, "Mua thẻ P2P #" + listingId);
-        walletService.recordTransaction(sellerWallet, TransactionType.MARKET_SALE, price, "Bán thẻ P2P #" + listingId);
+        MarketItemType itemType = listing.getItemType() != null ? listing.getItemType() : MarketItemType.CARD;
+        String itemLabel = itemType == MarketItemType.BOX ? "Box nguyên seal" : (itemType == MarketItemType.PACK ? "Pack lẻ" : "thẻ bài");
 
-        UserCard userCard = listing.getUserCard();
-        userCard.setUserId(request.buyerId());
-        userCard.setIsLocked(false);
-        userCardRepository.saveAndFlush(userCard);
+        walletService.recordTransaction(buyerWallet, TransactionType.MARKET_PURCHASE, price, "Mua " + itemLabel + " trên Chợ #" + listingId);
+        walletService.recordTransaction(sellerWallet, TransactionType.MARKET_SALE, price, "Bán " + itemLabel + " trên Chợ #" + listingId);
+
+        if (itemType == MarketItemType.PACK || itemType == MarketItemType.BOX) {
+            UserSealedItem sealed = listing.getSealedItem();
+            sealed.setUserId(request.buyerId());
+            sealed.setIsLocked(false);
+            userSealedItemRepository.saveAndFlush(sealed);
+        } else {
+            UserCard userCard = listing.getUserCard();
+            userCard.setUserId(request.buyerId());
+            userCard.setIsLocked(false);
+            userCardRepository.saveAndFlush(userCard);
+        }
 
         listing.setStatus(ListingStatus.SOLD);
         listing.setBuyerId(request.buyerId());

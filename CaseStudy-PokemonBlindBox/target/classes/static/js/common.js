@@ -44,8 +44,20 @@ window.escapeHtml = function (value) {
 })();
 
 window.formatVND = function (amount) {
-    const num = Number(amount || 0);
+    const num = Math.round(Number(amount || 0));
+    return new Intl.NumberFormat('vi-VN').format(num) + ' Xu';
+};
+window.formatXu = window.formatVND;
+window.formatVndCurrency = function (amount) {
+    const num = Math.round(Number(amount || 0));
     return new Intl.NumberFormat('vi-VN').format(num) + ' ₫';
+};
+
+window.updateNavbarWallet = function (newBalance) {
+    const balanceEl = document.getElementById('nav-wallet-balance');
+    if (balanceEl && newBalance !== undefined && newBalance !== null) {
+        balanceEl.textContent = window.formatVND(newBalance);
+    }
 };
 
 window.syncThemeIcons = function () {

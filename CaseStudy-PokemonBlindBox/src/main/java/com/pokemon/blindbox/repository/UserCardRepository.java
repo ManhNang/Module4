@@ -35,6 +35,24 @@ public interface UserCardRepository extends JpaRepository<UserCard, Long> {
             """)
     Optional<UserCard> findByIdForUpdate(@Param("id") Long id);
 
+    /**
+     * Khóa bi quan toàn bộ các thẻ chưa khóa thuộc danh sách cardTemplateId của người dùng để bán nhanh hàng loạt an toàn.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT uc FROM UserCard uc
+            JOIN FETCH uc.cardTemplate ct
+            JOIN FETCH ct.rarity
+            WHERE uc.userId = :userId
+              AND uc.isLocked = false
+              AND ct.id IN :templateIds
+            ORDER BY uc.id ASC
+            """)
+    List<UserCard> findUnlockedByUserIdAndTemplateIdsForUpdate(
+            @Param("userId") Long userId,
+            @Param("templateIds") Collection<Long> templateIds
+    );
+
     @EntityGraph(attributePaths = {"cardTemplate", "cardTemplate.cardSet", "cardTemplate.rarity", "cardTemplate.cardSpecies"})
     List<UserCard> findByBoosterPackIdOrderByIdAsc(Long boosterPackId);
 
@@ -48,6 +66,10 @@ public interface UserCardRepository extends JpaRepository<UserCard, Long> {
      * Truy vấn chuyên biệt cho trang chi tiết thẻ bài (không load toàn bộ kho thẻ của user) (P1-05).
      */
     List<UserCard> findByUserIdAndCardTemplateIdOrderByIdAsc(Long userId, Long cardTemplateId);
+
+    long countByUserId(Long userId);
+
+    List<UserCard> findByUserIdAndCardTemplateIdInOrderByIdAsc(Long userId, Collection<Long> cardTemplateIds);
 
     boolean existsByCardTemplateId(Long cardTemplateId);
 

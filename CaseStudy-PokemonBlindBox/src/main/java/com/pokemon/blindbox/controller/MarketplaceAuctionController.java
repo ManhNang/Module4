@@ -35,7 +35,9 @@ public class MarketplaceAuctionController {
         Long currentUserId = authUserProvider.resolveCurrentUserId(request.sellerId());
         CreateMarketListingRequest resolved = CreateMarketListingRequest.builder()
                 .sellerId(currentUserId)
+                .itemType(request.itemType())
                 .userCardId(request.userCardId())
+                .sealedItemId(request.sealedItemId())
                 .price(request.price())
                 .build();
         MarketListingResponseDTO created = marketplaceService.createFixedPriceListing(resolved);
@@ -62,7 +64,9 @@ public class MarketplaceAuctionController {
         Long currentUserId = authUserProvider.resolveCurrentUserId(request.sellerId());
         CreateAuctionRequest resolved = CreateAuctionRequest.builder()
                 .sellerId(currentUserId)
+                .itemType(request.itemType())
                 .userCardId(request.userCardId())
+                .sealedItemId(request.sealedItemId())
                 .startingPrice(request.startingPrice())
                 .minBidIncrement(request.minBidIncrement())
                 .durationMinutes(request.durationMinutes())

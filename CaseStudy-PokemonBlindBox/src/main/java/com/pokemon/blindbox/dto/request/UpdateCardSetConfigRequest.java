@@ -21,6 +21,12 @@ public record UpdateCardSetConfigRequest(
         BigDecimal packPrice,
 
         @DecimalMin(value = "0.0", inclusive = false, message = "Giá nguyên hộp phải lớn hơn 0")
-        BigDecimal boxPrice
+        BigDecimal boxPrice,
+
+        @Min(value = 0, message = "Hạn mức Pack/ngày phải >= 0")
+        Integer dailyPackLimit,
+
+        @Min(value = 0, message = "Hạn mức Box/ngày phải >= 0")
+        Integer dailyBoxLimit
 ) {
 }

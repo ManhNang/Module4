@@ -1,301 +1,342 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/header :: head('Cửa Hàng Hộp Bài Delta Reign')}"></head>
+<head th:replace="~{fragments/header :: head('Cửa Hàng')}"></head>
 <body class="min-h-screen flex flex-col">
 
 <!-- Single-row Sticky Glass Navbar -->
 <div th:replace="~{fragments/header :: navbar('store')}"></div>
 
-<main class="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:py-5 sm:px-6 lg:px-8 space-y-5">
+<main class="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 lg:px-8 space-y-5">
 
-    <!-- Banner Cảnh báo xung đột khi 2 người chơi cùng bấm mua 1 gói -->
-    <div id="box-conflict-banner" class="hidden rounded-2xl border-2 border-rose-500 bg-rose-500/10 p-3.5 shadow-lg">
-        <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <svg class="h-5 w-5 text-rose-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                    <path d="M12 9v4"/>
-                    <path d="M12 17h.01"/>
-                </svg>
-                <div>
-                    <div class="text-xs font-extrabold uppercase tracking-wider text-rose-600">Thông báo cập nhật</div>
-                    <p id="box-conflict-text" class="text-sm font-semibold pk-text-primary">
-                        Vật phẩm hoặc mức giá vừa được người chơi khác cập nhật. Vui lòng thao tác lại!
-                    </p>
+    <!-- ==================== ĐẦU TRANG (1 HÀNG DUY NHẤT: TIÊU ĐỀ + ⓘ + KHO PACK & BOX) ==================== -->
+    <section class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight pk-text-primary">Cửa Hàng</h1>
+            <button type="button"
+                    id="btn-toggle-drop-rates"
+                    onclick="window.toggleDropRatePopover(event)"
+                    title="Quy định & Tỷ lệ rơi thẻ"
+                    aria-label="Quy định & Tỷ lệ rơi thẻ"
+                    class="flex h-7 w-7 items-center justify-center rounded-full pk-surface hover:border-amber-500/60 text-xs font-extrabold pk-text-secondary hover:pk-text-primary cursor-pointer transition">
+                ⓘ
+            </button>
+        </div>
+
+        <a th:href="@{/inventory(tab='sealed')}"
+           class="pk-btn-primary rounded-xl px-3.5 py-2 text-xs sm:text-sm font-extrabold inline-flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+            <span>Kho Pack &amp; Box →</span>
+        </a>
+    </section>
+
+    <!-- Popup ⓘ: Gộp Hạn mức 00:00 & Tỷ lệ rơi thẻ -->
+    <div id="drop-rate-popover"
+         onclick="if (event.target === this) window.closeDropRatePopover()"
+         class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+        <div class="pk-surface w-full max-w-md rounded-3xl p-5 sm:p-6 shadow-2xl border border-amber-500/30 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                <h3 class="text-sm sm:text-base font-extrabold pk-text-primary">Thông Tin Cửa Hàng &amp; Tỷ Lệ Rơi</h3>
+                <button type="button" onclick="window.closeDropRatePopover()" class="text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer">✕</button>
+            </div>
+            <ul class="rounded-2xl pk-surface-muted p-3.5 text-xs pk-text-secondary space-y-2.5 leading-relaxed">
+                <li class="flex items-start gap-2.5">
+                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-500">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    </span>
+                    <span>Hạn mức toàn cầu tự động làm mới mỗi ngày lúc <strong class="pk-num text-amber-600 dark:text-amber-400">00:00</strong>.</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-500">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                    </span>
+                    <span>Mua Box nguyên seal (20 Pack) được ưu đãi giảm ngay <strong class="pk-num text-amber-600 dark:text-amber-400">10%</strong>.</span>
+                </li>
+                <li class="flex items-start gap-2.5">
+                    <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-500">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                    </span>
+                    <span>Pack &amp; Box mua xong được lưu vào <strong class="text-amber-600 dark:text-amber-400">Kho Đồ</strong> để bóc hoặc đấu giá trên Chợ.</span>
+                </li>
+            </ul>
+            <div class="space-y-2.5">
+                <div class="text-xs font-extrabold pk-text-primary">Tỷ lệ rơi mỗi thẻ bài</div>
+                <div th:each="r : ${rarities}"
+                     th:with="rLower=${#strings.toLowerCase(r.name() ?: '')},
+                              isHyper=${#strings.contains(rLower, 'hyper') or #strings.contains(rLower, 'secret') or #strings.contains(rLower, 'gold')},
+                              rColor=${#strings.contains(rLower, 'special illustration') ? '#EC4899' :
+                                       (isHyper ? '#F59E0B' :
+                                       (#strings.contains(rLower, 'illustration') ? '#C084FC' :
+                                       (#strings.contains(rLower, 'ultra') ? '#FB923C' :
+                                       (#strings.contains(rLower, 'double') ? '#818CF8' :
+                                       (#strings.contains(rLower, 'uncommon') ? '#34D399' :
+                                       (#strings.contains(rLower, 'rare') ? '#38BDF8' : '#94A3B8'))))))},
+                              rBarBg=${isHyper ? 'linear-gradient(90deg, #F59E0B, #FDE047)' : rColor},
+                              pctVal=${totalDropWeight > 0 ? ((r.dropWeight() * 100.0) / totalDropWeight) : 0}"
+                     class="space-y-1">
+                    <div class="flex items-center justify-between gap-2 text-xs">
+                        <span class="flex items-center gap-2 font-bold pk-text-primary min-w-0">
+                            <span class="h-2.5 w-2.5 rounded-full shrink-0"
+                                  th:style="'background:' + ${rBarBg}"></span>
+                            <span class="truncate" th:text="${r.name()}">Rare</span>
+                        </span>
+                        <span class="pk-num tabular-nums font-extrabold pk-text-primary w-16 text-right shrink-0"
+                              th:text="${totalDropWeight > 0 ? #numbers.formatDecimal(pctVal, 1, 2) + '%' : '0,00%'}">
+                            15,00%
+                        </span>
+                    </div>
+                    <div class="h-1.5 w-full rounded-full pk-surface-muted overflow-hidden">
+                        <div class="h-full rounded-full"
+                             th:style="'width:' + ${pctVal} + '%;' + (${r.dropWeight() > 0} ? 'min-width:6px;' : '') + 'background:' + ${rBarBg}"></div>
+                    </div>
                 </div>
             </div>
-            <button onclick="document.getElementById('box-conflict-banner').classList.add('hidden')"
-                    class="pk-text-secondary hover:pk-text-primary font-bold cursor-pointer">✕</button>
+            <div class="flex justify-end pt-1">
+                <button type="button" onclick="window.closeDropRatePopover()"
+                        class="pk-btn-primary rounded-xl px-4 py-2 text-xs font-extrabold cursor-pointer">
+                    Đã hiểu
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- ==================== HERO BENTO CARD GỌN GÀNG CHO MÀN HÌNH LAPTOP (1366x768 / 1440x900) ==================== -->
-    <section th:if="${selectedBox != null}"
-             id="active-box-panel"
-             th:attr="data-box-id=${selectedBox.id()}, data-total-packs=${selectedBox.totalPacks()}"
-             class="pk-surface relative rounded-3xl p-4 sm:p-5">
+    <!-- Banner thông báo mua thành công -->
+    <div id="store-purchase-success-banner"
+         class="hidden pk-surface rounded-2xl p-3.5 border-2 border-emerald-500/45 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+            <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">✓</span>
+            <div>
+                <div class="text-xs sm:text-sm font-extrabold pk-text-primary" id="store-purchase-success-title">Mua thành công!</div>
+                <div class="text-xs pk-text-secondary" id="store-purchase-success-desc">Đã lưu vào Kho đồ.</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <a th:href="@{/inventory(tab='sealed')}"
+               class="rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 text-xs font-extrabold transition whitespace-nowrap">
+                Mở ngay →
+            </a>
+            <button type="button" onclick="document.getElementById('store-purchase-success-banner').classList.add('hidden')"
+                    class="pk-surface-muted rounded-xl px-2 py-1.5 text-xs font-bold pk-text-secondary cursor-pointer">✕</button>
+        </div>
+    </div>
 
-        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+    <!-- Empty State -->
+    <div th:if="${#lists.isEmpty(storeSets)}"
+         class="pk-surface rounded-3xl p-8 text-center">
+        <p class="text-sm font-bold pk-text-secondary">Hiện chưa có Bộ sưu tập nào đang mở bán.</p>
+    </div>
 
-            <!-- 1. Bên trái: Tiêu đề "Delta Reign" + Badge Trực tuyến + Nút Popover "Xem tỷ lệ rơi thẻ" + Chọn khay -->
-            <div class="space-y-2.5 w-full xl:w-[270px] min-w-0 shrink-0">
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        <span id="ws-box-indicator" class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span id="ws-box-status-text">Trực tuyến</span>
-                    </span>
+    <!-- ==================== DANH SÁCH TỪNG BỘ SƯU TẬP ==================== -->
+    <section th:each="setItem : ${storeSets}"
+             th:id="'store-set-card-' + ${setItem.setId()}"
+             class="pk-surface rounded-3xl p-5 space-y-4">
 
-                    <!-- Nút Popover "Xem tỷ lệ rơi thẻ" ngay trên Hero Banner -->
-                    <div class="relative">
+        <!-- Set Header gọn 1 dòng -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200/80 dark:border-slate-800/80">
+            <div class="flex items-center gap-2.5">
+                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-indigo-700 text-white font-extrabold text-xs tracking-wider shadow-sm shrink-0"
+                     th:text="${setItem.setCode()}">DLR</div>
+                <h2 class="text-base sm:text-lg font-extrabold pk-text-primary" th:text="${setItem.setName()}">Delta Reign</h2>
+                <span class="rounded-full pk-surface-muted px-2.5 py-0.5 text-[11px] font-bold pk-text-secondary pk-num"
+                      th:text="${setItem.baseSetTotal()} + ' thẻ'">103 thẻ</span>
+            </div>
+            <a th:href="@{/market(setName=${setItem.setName()})}"
+               class="text-xs font-bold text-rose-600 dark:text-amber-400 hover:underline whitespace-nowrap">
+                Chợ →
+            </a>
+        </div>
+
+        <!-- 2 Sản phẩm: Pack & Box -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+            <!-- SẢN PHẨM 1: PACK (6 THẺ) -->
+            <div class="pk-surface-elevated rounded-2xl p-4 flex flex-col justify-between gap-3.5 border border-sky-500/25">
+                <div class="flex items-center gap-3.5">
+                    <div class="pk-vault-pack-art shrink-0">
+                        <svg class="h-6 w-6 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
+                            <line x1="3" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="21" y2="12"/>
+                        </svg>
+                        <span class="mt-0.5 text-[9px] font-black tracking-widest text-sky-200" th:text="${setItem.setCode()}">DLR</span>
+                    </div>
+                    <div class="space-y-0.5">
+                        <h3 class="text-base font-extrabold pk-text-primary"
+                            th:text="'Pack (' + ${setItem.cardsPerPack()} + ' thẻ)'">
+                            Pack (6 thẻ)
+                        </h3>
+                        <div class="pk-num text-xl font-extrabold text-amber-600 dark:text-amber-400"
+                             th:text="${#numbers.formatDecimal(setItem.packPrice(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
+                            450 Xu
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thanh hạn mức gọn (Màu theo tỷ lệ tồn kho thực tế) -->
+                <div class="space-y-1"
+                     th:with="packPct=${setItem.dailyPackLimit() > 0 ? (setItem.packsRemainingToday() * 100.0 / setItem.dailyPackLimit()) : 0}">
+                    <div class="flex items-center justify-between text-xs font-bold">
+                        <span class="pk-text-secondary">Còn lại</span>
+                        <span th:id="'pack-stock-text-' + ${setItem.setId()}"
+                              class="pk-num"
+                              th:classappend="${packPct >= 20} ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
+                              th:text="${setItem.packsRemainingToday()} + ' / ' + ${setItem.dailyPackLimit()}">
+                            200 / 200
+                        </span>
+                    </div>
+                    <div class="h-1.5 w-full overflow-hidden rounded-full pk-surface-muted">
+                        <div th:id="'pack-stock-bar-' + ${setItem.setId()}"
+                             class="h-full rounded-full bg-gradient-to-r transition-all duration-500"
+                             th:classappend="${packPct >= 50} ? 'from-emerald-500 to-teal-400' : (${packPct >= 20} ? 'from-amber-400 to-amber-500' : 'from-orange-500 to-rose-600')"
+                             th:style="'width:' + ${packPct} + '%'"></div>
+                    </div>
+                </div>
+
+                <!-- Chọn số lượng & Nút Mua Pack (Secondary dịu mắt) -->
+                <div th:id="'pack-buy-controls-' + ${setItem.setId()}"
+                     th:classappend="${setItem.packsRemainingToday() <= 0} ? 'hidden' : ''"
+                     class="flex items-center gap-2">
+                    <div class="inline-flex items-center rounded-xl pk-surface-muted p-1 shrink-0">
                         <button type="button"
-                                id="btn-toggle-drop-rates"
-                                onclick="window.toggleDropRatePopover(event)"
-                                class="pk-surface-elevated hover:opacity-85 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-rose-600 dark:text-amber-400 cursor-pointer transition">
-                            <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M12 16v-4"/>
-                                <path d="M12 8h.01"/>
-                            </svg>
-                            <span>Xem tỷ lệ rơi thẻ</span>
-                        </button>
-
-                        <!-- Popover Bảng Tỷ lệ rơi thẻ theo 5 độ hiếm -->
-                        <div id="drop-rate-popover"
-                             class="hidden absolute left-0 top-8 z-50 w-72 max-w-[calc(100vw-2.5rem)] pk-surface rounded-2xl p-4 shadow-2xl border border-amber-500/30 space-y-3">
-                            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
-                                <span class="text-xs font-extrabold pk-text-primary">Tỷ lệ rơi thẻ mỗi lá</span>
-                                <button type="button" onclick="window.closeDropRatePopover()" class="text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer">✕</button>
-                            </div>
-                            <div class="space-y-2">
-                                <div th:each="r : ${rarities}" class="space-y-1">
-                                    <div class="flex items-center justify-between text-xs">
-                                        <span class="flex items-center gap-1.5 font-bold pk-text-primary">
-                                            <span class="h-2.5 w-2.5 rounded-full shrink-0" th:style="'background-color:' + ${r.colorHex()}"></span>
-                                            <span th:text="${r.name()}">Không phổ biến</span>
-                                        </span>
-                                        <span class="pk-num font-extrabold pk-text-primary"
-                                              th:text="${totalDropWeight > 0 ? #numbers.formatDecimal((r.dropWeight() * 100.0) / totalDropWeight, 1, 2) + '%' : '0%'}">
-                                            28.00%
-                                        </span>
-                                    </div>
-                                    <div class="h-1.5 w-full rounded-full pk-surface-muted overflow-hidden">
-                                        <div class="h-full rounded-full"
-                                             th:style="'width:' + (${totalDropWeight > 0 ? ((r.dropWeight() * 100.0) / totalDropWeight) : 0}) + '%; background-color:' + ${r.colorHex()}"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                                th:id="'pack-minus-' + ${setItem.setId()}"
+                                disabled
+                                th:attr="data-set-id=${setItem.setId()}, data-unit-price=${setItem.packPrice()}, data-max=${setItem.packsRemainingToday()}"
+                                onclick="window.stepStoreQty('pack', this, -1)"
+                                class="h-8 w-8 rounded-lg font-extrabold pk-text-primary hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer transition">−</button>
+                        <input type="number"
+                               th:id="'pack-qty-' + ${setItem.setId()}"
+                               th:attr="data-unit-price=${setItem.packPrice()}, data-max=${setItem.packsRemainingToday()}"
+                               min="1" max="20" step="1" value="1"
+                               oninput="window.syncStoreTotal('pack', this)"
+                               class="pk-num w-11 bg-transparent text-center text-sm font-extrabold pk-text-primary focus:outline-none"/>
+                        <button type="button"
+                                th:id="'pack-plus-' + ${setItem.setId()}"
+                                th:disabled="${setItem.packsRemainingToday() <= 1}"
+                                th:attr="data-set-id=${setItem.setId()}, data-unit-price=${setItem.packPrice()}, data-max=${setItem.packsRemainingToday()}"
+                                onclick="window.stepStoreQty('pack', this, 1)"
+                                class="h-8 w-8 rounded-lg font-extrabold pk-text-primary hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer transition">+</button>
                     </div>
+
+                    <button type="button"
+                            th:id="'btn-buy-pack-' + ${setItem.setId()}"
+                            th:attr="data-set-id=${setItem.setId()}, data-limit=${setItem.dailyPackLimit()}"
+                            onclick="window.buyStoreItem('pack', this)"
+                            class="flex-1 rounded-xl bg-sky-500/12 hover:bg-sky-500/25 border border-sky-500/45 text-sky-600 dark:text-sky-300 py-2.5 px-4 text-xs sm:text-sm font-extrabold cursor-pointer transition pk-num whitespace-nowrap">
+                        <span th:id="'pack-btn-total-' + ${setItem.setId()}"
+                              th:text="'Mua Pack • ' + ${#numbers.formatDecimal(setItem.packPrice(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
+                            Mua Pack • 450 Xu
+                        </span>
+                    </button>
                 </div>
 
-                <div class="flex items-center justify-between gap-2">
-                    <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight pk-text-primary">Delta Reign</h1>
-                </div>
-
-                <select id="box-selector"
-                        aria-label="Chọn khay hộp"
-                        onchange="window.location.href='/store?boxId=' + this.value"
-                        class="pk-input w-full rounded-xl px-3 py-1.5 text-xs font-bold cursor-pointer">
-                    <option th:each="b : ${boxes}"
-                            th:value="${b.id()}"
-                            th:selected="${selectedBox != null and selectedBox.id() == b.id()}"
-                            th:text="${b.boxCode()} + ' • Còn ' + ${b.remainingPacks()} + '/' + ${b.totalPacks()} + ' gói'">
-                        DLR-BOX-0001 • Còn 30/30 gói
-                    </option>
-                </select>
-            </div>
-
-            <!-- 2. Ở giữa: 4 Ô thông số gọn gàng trên 1 hàng -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-w-0 w-full">
-                <div class="pk-surface-elevated rounded-2xl px-3.5 py-3 min-w-0 w-full flex flex-col justify-between">
-                    <span class="text-[11px] font-semibold pk-text-secondary">Mã hộp</span>
-                    <div class="mt-1 pk-num text-sm sm:text-base font-extrabold pk-text-primary truncate" th:text="${selectedBox.boxCode()}">
-                        DLR-BOX-0001
-                    </div>
-                </div>
-
-                <div class="pk-surface-elevated rounded-2xl px-3.5 py-3 min-w-0 w-full flex flex-col justify-between">
-                    <span class="text-[11px] font-semibold pk-text-secondary">Số gói còn lại</span>
-                    <div class="mt-1">
-                        <div class="pk-num text-sm sm:text-base font-extrabold pk-text-primary">
-                            <span id="box-remaining-packs" th:text="${selectedBox.remainingPacks()}">30</span>
-                            <span class="pk-text-secondary font-semibold">/</span>
-                            <span th:text="${selectedBox.totalPacks()}">30</span>
-                            <span class="text-xs font-semibold pk-text-secondary">gói</span>
-                        </div>
-                        <div class="pk-progress-track mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                            <div id="box-remaining-progress"
-                                 class="h-full rounded-full bg-emerald-500 transition-all duration-300"
-                                 th:style="'width:' + (${selectedBox.totalPacks() > 0 ? (selectedBox.remainingPacks() * 100.0 / selectedBox.totalPacks()) : 0}) + '%'"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="pk-surface-elevated rounded-2xl px-3.5 py-3 min-w-0 w-full flex flex-col justify-between">
-                    <span class="text-[11px] font-semibold pk-text-secondary">Quy cách</span>
-                    <div class="mt-1 pk-num text-sm sm:text-base font-extrabold pk-text-primary"
-                         th:text="${selectedBox.snapshotCardsPerPack()} + ' thẻ / gói'">
-                        5 thẻ / gói
-                    </div>
-                </div>
-
-                <div class="pk-surface-elevated rounded-2xl px-3.5 py-3 min-w-0 w-full flex flex-col justify-between">
-                    <span class="text-[11px] font-semibold pk-text-secondary">Giá nguyên hộp</span>
-                    <div class="mt-1 pk-num text-sm sm:text-base font-extrabold text-rose-600 dark:text-amber-400"
-                         th:text="${#numbers.formatDecimal(selectedBox.snapshotBoxPrice(), 0, 'POINT', 0, 'COMMA')} + ' ₫'">
-                        1.250.000 ₫
-                    </div>
+                <!-- Khi hết suất Pack -->
+                <div th:id="'pack-soldout-' + ${setItem.setId()}"
+                     th:classappend="${setItem.packsRemainingToday() > 0} ? 'hidden' : ''"
+                     class="flex items-center justify-between gap-2 rounded-xl pk-surface-muted px-3.5 py-2">
+                    <span class="text-xs font-bold text-rose-600 dark:text-rose-400">Hết suất hôm nay</span>
+                    <a th:href="@{/market(setName=${setItem.setName()})}"
+                       class="text-xs font-extrabold text-amber-600 dark:text-amber-400 hover:underline">
+                        Tìm trên Chợ →
+                    </a>
                 </div>
             </div>
 
-            <!-- 3. Bên phải: Nút hành động "Mua Nguyên Hộp" -->
-            <div class="flex flex-col items-stretch xl:items-end justify-center gap-1.5 shrink-0 w-full xl:w-auto xl:min-w-[225px]">
-                <button id="btn-buy-whole-box"
-                        type="button"
-                        th:disabled="${!selectedBox.canBuyWholeBox() or selectedBox.remainingPacks() < selectedBox.totalPacks()}"
-                        onclick="window.buyWholeBoosterBox()"
-                        th:classappend="${selectedBox.canBuyWholeBox() and selectedBox.remainingPacks() == selectedBox.totalPacks()}
-                            ? 'pk-btn-primary cursor-pointer'
-                            : 'pk-surface-muted pk-text-secondary cursor-not-allowed opacity-75'"
-                        class="rounded-2xl px-5 py-3 text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-2">
-
-                    <span id="btn-buy-whole-icon"
-                          th:if="${selectedBox.canBuyWholeBox() and selectedBox.remainingPacks() == selectedBox.totalPacks()}">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 12v10H4V12"/>
-                            <path d="M2 7h20v5H2z"/>
-                            <path d="M12 22V7"/>
-                            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-                            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+            <!-- SẢN PHẨM 2: BOX (20 PACK) + BADGE -10% -->
+            <div class="pk-surface-elevated rounded-2xl p-4 flex flex-col justify-between gap-3.5 border-2 border-amber-500/35">
+                <div class="flex items-center gap-3.5">
+                    <div class="pk-vault-box-art shrink-0">
+                        <svg class="h-7 w-7 text-amber-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
+                            <line x1="3" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="21" y2="12"/>
                         </svg>
-                    </span>
-
-                    <span id="btn-buy-whole-lock-icon"
-                          th:unless="${selectedBox.canBuyWholeBox() and selectedBox.remainingPacks() == selectedBox.totalPacks()}">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                            <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                        </svg>
-                    </span>
-
-                    <span id="btn-buy-whole-label"
-                          class="pk-num"
-                          th:text="${selectedBox.canBuyWholeBox() and selectedBox.remainingPacks() == selectedBox.totalPacks()}
-                              ? 'Mua Nguyên Hộp • ' + ${#numbers.formatDecimal(selectedBox.snapshotBoxPrice(), 0, 'POINT', 0, 'COMMA')} + '₫'
-                              : 'Đã Khóa Mua Nguyên Hộp'">
-                        Mua Nguyên Hộp • 1.250.000₫
-                    </span>
-                </button>
-
-                <p id="whole-box-hint"
-                   class="text-[11px] pk-text-secondary text-center xl:text-right"
-                   th:text="${selectedBox.canBuyWholeBox() and selectedBox.remainingPacks() == selectedBox.totalPacks()}
-                       ? 'Tiết kiệm khi lấy trọn 30 gói nguyên hộp'
-                       : 'Hộp đã mở bán lẻ, không thể mua nguyên hộp'">
-                    Tiết kiệm khi lấy trọn 30 gói nguyên hộp
-                </p>
-            </div>
-        </div>
-    </section>
-
-    <!-- ==================== KHAY 30 GÓI BÀI FOIL 2D (LƯỚI 5 CỘT TRÊN MÀN HÌNH LỚN) ==================== -->
-    <section th:if="${selectedBox != null}" class="space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-lg font-extrabold pk-text-primary">
-                Khay Chọn Gói Bài (<span th:text="${#lists.size(packs)}">30</span> Gói)
-            </h2>
-
-            <div class="flex items-center gap-4 text-xs font-semibold pk-text-secondary">
-                <span class="inline-flex items-center gap-1.5">
-                    <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
-                    <span>Còn nguyên niêm phong</span>
-                </span>
-                <span class="inline-flex items-center gap-1.5">
-                    <span class="h-2.5 w-2.5 rounded-full bg-slate-400"></span>
-                    <span>Đã rút khỏi khay</span>
-                </span>
-            </div>
-        </div>
-
-        <!-- Khay chứa 30 Gói Bài Metallic Foil (5 cột trên Desktop, gap: 20px) -->
-        <div id="pack-tray-grid" class="pk-pack-grid">
-            <div th:each="pack : ${packs}"
-                 th:id="'pack-slot-' + ${pack.positionInBox()}"
-                 th:attr="data-pack-id=${pack.id()}, data-pos=${pack.positionInBox()}, data-status=${pack.status().name()}"
-                 th:classappend="${pack.status().name() == 'AVAILABLE'} ? 'is-available cursor-pointer' : (${pack.status().name() == 'SOLD' and pack.buyerId() == currentUserId} ? 'is-available' : 'is-withdrawn')"
-                 class="pack-slot-card pk-pack-foil rounded-2xl flex flex-col justify-between">
-
-                <!-- TRẠNG THÁI 1: Gói còn nguyên niêm phong hoặc đã mua bởi user hiện tại (Metallic Foil Pack) -->
-                <th:block th:if="${pack.status().name() == 'AVAILABLE' or (pack.status().name() == 'SOLD' and pack.buyerId() == currentUserId)}">
-                    <!-- Mép dập nhiệt ánh bạc cạnh trên (Metallic Crimp Top) -->
-                    <div class="pk-foil-crimp-top"></div>
-
-                    <!-- Thân Gói Bài Ánh Kim Delta Reign -->
-                    <div class="relative z-10 flex-1 p-3.5 flex flex-col justify-between">
-                        <!-- Badges gọn gàng góc trên: #01 và 5 THẺ -->
-                        <div class="flex items-center justify-between gap-1">
-                            <span class="pk-num rounded-lg bg-white/10 border border-white/15 px-2.5 py-0.5 text-xs font-extrabold text-white backdrop-blur-sm"
-                                  th:text="'#' + ${#numbers.formatInteger(pack.positionInBox(), 2)}">
-                                #01
-                            </span>
-                            <span class="pk-num rounded-full bg-amber-400/15 border border-amber-400/30 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-300"
-                                  th:text="${pack.snapshotCardsPerPack()} + ' THẺ'">
-                                5 THẺ
+                        <span class="mt-0.5 text-[9px] font-black tracking-widest text-amber-100" th:text="${setItem.setCode()}">DLR</span>
+                    </div>
+                    <div class="space-y-0.5">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-base font-extrabold pk-text-primary"
+                                th:text="'Box (' + ${setItem.packsPerBox()} + ' Pack)'">
+                                Box (20 Pack)
+                            </h3>
+                            <span class="inline-flex items-center rounded-full bg-rose-600 px-2 py-0.5 text-[10.5px] font-extrabold text-white shadow-sm">
+                                -10%
                             </span>
                         </div>
-
-                        <!-- Biểu tượng trung tâm trong khung huy hiệu phát sáng nhẹ -->
-                        <div class="my-auto py-2 text-center space-y-2.5">
-                            <div class="pk-pack-emblem mx-auto flex h-16 w-16 items-center justify-center rounded-2xl p-3 text-white relative">
-                                <svg class="h-10 w-10 drop-shadow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                                    <polygon points="12 2 21 19 3 19 12 2"/>
-                                    <circle cx="12" cy="13" r="3"/>
-                                    <path d="M12 6v4"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="text-sm font-extrabold text-white tracking-tight drop-shadow-sm">Delta Reign</div>
-                                <div class="text-[9.5px] font-bold uppercase tracking-widest text-rose-200/75">Expansion Pack</div>
-                            </div>
-                        </div>
-
-                        <!-- Đáy Gói Bài: Nút Mở / Xé gói -->
-                        <div th:id="'pack-actions-' + ${pack.positionInBox()}">
-                            <button th:if="${pack.status().name() == 'AVAILABLE'}"
-                                    type="button"
-                                    th:attr="data-pos=${pack.positionInBox()}"
-                                    onclick="window.buySinglePackAtPosition(parseInt(this.getAttribute('data-pos'), 10))"
-                                    class="pk-btn-primary pk-pack-open-btn rounded-xl font-extrabold cursor-pointer">
-                                <span th:text="'Mở • ' + ${#numbers.formatDecimal(pack.snapshotPackPrice(), 0, 'POINT', 0, 'COMMA')} + '₫'">Mở • 45.000₫</span>
-                            </button>
-
-                            <button th:if="${pack.status().name() == 'SOLD' and pack.buyerId() == currentUserId}"
-                                    type="button"
-                                    th:attr="data-pack-id=${pack.id()}"
-                                    onclick="window.openPurchasedPack(parseInt(this.getAttribute('data-pack-id'), 10))"
-                                    class="pk-pack-open-btn rounded-xl bg-amber-400 hover:bg-amber-300 font-extrabold text-slate-950 shadow-md cursor-pointer transition">
-                                <span>Xé gói ngay</span>
-                            </button>
+                        <div class="flex items-baseline gap-2 flex-wrap">
+                            <span class="pk-num text-xl font-extrabold text-rose-600 dark:text-amber-400"
+                                  th:text="${#numbers.formatDecimal(setItem.boxDiscountedPrice(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
+                                8.100 Xu
+                            </span>
+                            <span class="pk-num text-xs font-semibold line-through pk-text-secondary"
+                                  th:text="${#numbers.formatDecimal(setItem.boxOriginalPrice(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
+                                9.000 Xu
+                            </span>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Mép dập nhiệt ánh bạc cạnh dưới (Metallic Crimp Bottom) -->
-                    <div class="pk-foil-crimp-bottom"></div>
-                </th:block>
-
-                <!-- TRẠNG THÁI 2: Ô khay rỗng tối giản (Empty Slot) cho gói đã rút -->
-                <div th:if="${(pack.status().name() == 'SOLD' and pack.buyerId() != currentUserId) or pack.status().name() == 'OPENED'}"
-                     th:id="'pack-actions-' + ${pack.positionInBox()}"
-                     class="flex-1 flex flex-col items-center justify-center p-4 text-center gap-2.5 select-none">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-full pk-surface text-slate-400">
-                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 6 9 17l-5-5"/>
-                        </svg>
+                <!-- Thanh hạn mức gọn (Màu theo tỷ lệ tồn kho thực tế: xanh >=50%, vàng 20-49%, cam/đỏ <20%) -->
+                <div class="space-y-1"
+                     th:with="boxPct=${setItem.dailyBoxLimit() > 0 ? (setItem.boxesRemainingToday() * 100.0 / setItem.dailyBoxLimit()) : 0}">
+                    <div class="flex items-center justify-between text-xs font-bold">
+                        <span class="pk-text-secondary">Còn lại</span>
+                        <span th:id="'box-stock-text-' + ${setItem.setId()}"
+                              class="pk-num"
+                              th:classappend="${boxPct >= 20} ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
+                              th:text="${setItem.boxesRemainingToday()} + ' / ' + ${setItem.dailyBoxLimit()}">
+                            15 / 15
+                        </span>
                     </div>
-                    <span class="pk-num rounded-full pk-surface px-3 py-1 text-[11px] font-bold pk-text-secondary"
-                          th:text="'✓ Đã rút • #' + ${#numbers.formatInteger(pack.positionInBox(), 2)}">
-                        ✓ Đã rút • #01
-                    </span>
+                    <div class="h-1.5 w-full overflow-hidden rounded-full pk-surface-muted">
+                        <div th:id="'box-stock-bar-' + ${setItem.setId()}"
+                             class="h-full rounded-full bg-gradient-to-r transition-all duration-500"
+                             th:classappend="${boxPct >= 50} ? 'from-emerald-500 to-teal-400' : (${boxPct >= 20} ? 'from-amber-400 to-amber-500' : 'from-orange-500 to-rose-600')"
+                             th:style="'width:' + ${boxPct} + '%'"></div>
+                    </div>
+                </div>
+
+                <!-- Chọn số lượng & Nút Mua Box (Primary nhấn chính) -->
+                <div th:id="'box-buy-controls-' + ${setItem.setId()}"
+                     th:classappend="${setItem.boxesRemainingToday() <= 0} ? 'hidden' : ''"
+                     class="flex items-center gap-2">
+                    <div class="inline-flex items-center rounded-xl pk-surface-muted p-1 shrink-0">
+                        <button type="button"
+                                th:id="'box-minus-' + ${setItem.setId()}"
+                                disabled
+                                th:attr="data-set-id=${setItem.setId()}, data-unit-price=${setItem.boxDiscountedPrice()}, data-max=${setItem.boxesRemainingToday()}"
+                                onclick="window.stepStoreQty('box', this, -1)"
+                                class="h-8 w-8 rounded-lg font-extrabold pk-text-primary hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer transition">−</button>
+                        <input type="number"
+                               th:id="'box-qty-' + ${setItem.setId()}"
+                               th:attr="data-unit-price=${setItem.boxDiscountedPrice()}, data-max=${setItem.boxesRemainingToday()}"
+                               min="1" max="5" step="1" value="1"
+                               oninput="window.syncStoreTotal('box', this)"
+                               class="pk-num w-11 bg-transparent text-center text-sm font-extrabold pk-text-primary focus:outline-none"/>
+                        <button type="button"
+                                th:id="'box-plus-' + ${setItem.setId()}"
+                                th:disabled="${setItem.boxesRemainingToday() <= 1}"
+                                th:attr="data-set-id=${setItem.setId()}, data-unit-price=${setItem.boxDiscountedPrice()}, data-max=${setItem.boxesRemainingToday()}"
+                                onclick="window.stepStoreQty('box', this, 1)"
+                                class="h-8 w-8 rounded-lg font-extrabold pk-text-primary hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-35 disabled:cursor-not-allowed cursor-pointer transition">+</button>
+                    </div>
+
+                    <button type="button"
+                            th:id="'btn-buy-box-' + ${setItem.setId()}"
+                            th:attr="data-set-id=${setItem.setId()}, data-limit=${setItem.dailyBoxLimit()}"
+                            onclick="window.buyStoreItem('box', this)"
+                            class="pk-btn-primary flex-1 rounded-xl py-2.5 px-4 text-xs sm:text-sm font-extrabold cursor-pointer shadow-sm transition pk-num whitespace-nowrap">
+                        <span th:id="'box-btn-total-' + ${setItem.setId()}"
+                              th:text="'Mua Box • ' + ${#numbers.formatDecimal(setItem.boxDiscountedPrice(), 0, 'POINT', 0, 'COMMA')} + ' Xu'">
+                            Mua Box • 8.100 Xu
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Khi hết suất Box -->
+                <div th:id="'box-soldout-' + ${setItem.setId()}"
+                     th:classappend="${setItem.boxesRemainingToday() > 0} ? 'hidden' : ''"
+                     class="flex items-center justify-between gap-2 rounded-xl pk-surface-muted px-3.5 py-2">
+                    <span class="text-xs font-bold text-rose-600 dark:text-rose-400">Hết suất hôm nay</span>
+                    <a th:href="@{/market(setName=${setItem.setName()})}"
+                       class="text-xs font-extrabold text-amber-600 dark:text-amber-400 hover:underline">
+                        Tìm trên Chợ →
+                    </a>
                 </div>
             </div>
         </div>
@@ -303,165 +344,7 @@
 
 </main>
 
-<!-- ==================== IMMERSIVE OVERLAY: MỞ GÓI & LẬT THẺ (GACHA VFX) ==================== -->
-<div id="gacha-result-modal" class="pk-gacha-overlay fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-5 overflow-hidden">
-    <!-- HTML5 Canvas Pháo Hạt / Confetti Burst gọn nhẹ -->
-    <canvas id="gacha-vfx-canvas" class="pointer-events-none fixed inset-0 z-[65] h-full w-full"></canvas>
-
-    <!-- Lớp chớp sáng ngắn khi xé gói / mở thẻ EX & Hyper Rare -->
-    <div id="gacha-flash-overlay"
-         class="pointer-events-none fixed inset-0 z-[64] opacity-0 transition-opacity duration-200"></div>
-
-    <div id="gacha-stage-shell"
-         class="pk-gacha-stage relative z-[60] rounded-3xl px-5 py-5 sm:px-8 sm:py-6 flex flex-col justify-between gap-4 sm:gap-5 overflow-hidden">
-
-        <!-- Header Tối Giản -->
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3.5 shrink-0">
-            <div class="min-w-0">
-                <div class="text-[11px] font-extrabold uppercase tracking-widest text-amber-400">
-                    Delta Reign • Pack Opening
-                </div>
-                <h3 id="gacha-modal-title" class="text-lg sm:text-2xl font-extrabold text-white mt-0.5 truncate">
-                    Gói bài #01 • Bấm để xé vỏ gói bài!
-                </h3>
-            </div>
-
-            <div class="flex items-center gap-2.5 shrink-0">
-                <button type="button"
-                        id="btn-flip-all-cards"
-                        onclick="window.flipAllDrawnCards()"
-                        class="hidden rounded-full bg-white/10 hover:bg-white/20 border border-white/15 px-4 py-2 text-xs font-extrabold text-white cursor-pointer transition">
-                    Lật Tất Cả Thẻ Bài
-                </button>
-                <button type="button"
-                        onclick="window.closeGachaModal()"
-                        aria-label="Đóng cửa sổ mở gói"
-                        class="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-sm font-bold text-slate-200 cursor-pointer transition">
-                    ✕
-                </button>
-            </div>
-        </div>
-
-        <!-- GIAI ĐOẠN 1: Sân khấu Xé Vỏ Gói Bài (Hero Metallic Foil Pack + Swipe-to-Tear + Ambient Glow) -->
-        <div id="gacha-tear-stage" class="relative py-6 sm:py-8 flex flex-col items-center justify-center space-y-6">
-            <!-- Hào quang sân khấu chuyển động nhẹ phía sau gói bài -->
-            <div class="pk-stage-ambient-glow"></div>
-
-            <div class="pk-hero-pack-float relative z-10">
-                <div id="tear-pack-visual" class="pk-tear-wrapper cursor-pointer group">
-                    <!-- Lớp phản chiếu ánh kim động theo tọa độ chuột -->
-                    <div class="pk-hero-glare"></div>
-
-                    <!-- Đường lóe sáng vết xé (tùy biến theo độ hiếm cao nhất trong gói) -->
-                    <div class="pk-tear-seam-flash"></div>
-
-                    <!-- Nắp trên gói bài: Glowing Tear Line hỗ trợ kéo sang phải hoặc bấm trực tiếp -->
-                    <div id="tear-zone-strip"
-                         class="pk-tear-top-flap rounded-t-2xl overflow-hidden">
-                        <div class="pk-foil-crimp-top"></div>
-                        <div class="pk-tear-cutline bg-gradient-to-r from-amber-500 via-rose-600 to-indigo-600 py-2.5 px-3 text-center">
-                            <div id="tear-progress-bar" class="pk-tear-progress-bar"></div>
-                            <span class="relative z-10 inline-flex items-center justify-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-white whitespace-nowrap">
-                                <span>✂ Kéo sang phải hoặc bấm để xé</span>
-                                <span class="pk-tear-arrow">→</span>
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Thân Hero Booster Pack ánh kim đồng bộ Delta Reign -->
-                    <div id="tear-pack-body-click"
-                         onclick="window.triggerTearPackAnimation()"
-                         class="pk-tear-body pk-pack-foil rounded-b-2xl p-5 flex flex-col items-center justify-between">
-                        <div class="relative z-10 w-full flex items-center justify-between text-xs">
-                            <span id="tear-pack-pos-label" class="pk-num rounded-lg bg-white/10 border border-white/15 px-2.5 py-0.5 font-extrabold text-white">#01</span>
-                            <span id="tear-pack-count-label" class="pk-num rounded-full bg-amber-400/15 border border-amber-400/30 px-2.5 py-0.5 text-[10px] font-extrabold text-amber-300">5 THẺ</span>
-                        </div>
-
-                        <div class="relative z-10 my-auto text-center space-y-3">
-                            <div class="pk-pack-emblem mx-auto flex h-24 w-24 items-center justify-center rounded-3xl p-4 text-white group-hover:scale-105 transition">
-                                <svg class="h-14 w-14 drop-shadow-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                                    <polygon points="12 2 21 19 3 19 12 2"/>
-                                    <circle cx="12" cy="13" r="3"/>
-                                    <path d="M12 6v4"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="text-lg font-extrabold text-white tracking-tight drop-shadow">Delta Reign</div>
-                                <div class="text-[10px] font-bold uppercase tracking-[0.2em] text-rose-200/80">Metallic Booster Pack</div>
-                            </div>
-                        </div>
-
-                        <div class="pk-foil-crimp-bottom w-full"></div>
-                    </div>
-                </div>
-            </div>
-
-            <button type="button"
-                    onclick="window.triggerTearPackAnimation()"
-                    class="relative z-10 pk-btn-primary rounded-full px-7 py-3 text-xs sm:text-sm font-extrabold cursor-pointer shadow-lg">
-                Xé Vỏ Gói Bài Ngay
-            </button>
-        </div>
-
-        <!-- GIAI ĐOẠN 2: 5 Lá Bài Cỡ Lớn (Tối đa hóa không gian artwork, bấm thẻ đã lật để xem Spotlight) -->
-        <div id="gacha-cards-stage" class="hidden flex-1 flex flex-col justify-center space-y-3">
-            <div id="gacha-cards-container"
-                 class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-5 items-stretch"></div>
-            <p id="gacha-cards-hint" class="text-center text-xs text-slate-400">
-                Bấm từng lá bài để lật mở • Thẻ <strong class="text-amber-300">Rare / EX / Hyper Rare</strong> có hiệu ứng đặc biệt • Bấm thẻ đã lật để phóng to
-            </p>
-        </div>
-
-        <!-- Footer Modal Gọn Gàng (Ẩn hoàn toàn ở Giai đoạn 1 chưa xé gói, chỉ hiện ở Giai đoạn 2 lật thẻ) -->
-        <div id="gacha-modal-footer" class="hidden flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/10 shrink-0">
-            <a th:href="@{/inventory}"
-               class="rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 px-4 py-2.5 text-xs font-bold text-slate-200 transition">
-                Xem Kho Đồ
-            </a>
-            <button type="button"
-                    id="btn-gacha-save-continue"
-                    onclick="window.closeGachaModal()"
-                    class="pk-btn-primary rounded-xl px-6 py-2.5 text-xs sm:text-sm font-extrabold cursor-pointer">
-                Lưu Vào Kho &amp; Tiếp Tục
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- ==================== CARD SPOTLIGHT OVERLAY (PHÓNG TO XEM CẬN CẢNH THẺ ĐÃ LẬT) ==================== -->
-<div id="card-spotlight-modal"
-     onclick="if (event.target === this) window.closeCardSpotlight()"
-     class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/85 backdrop-blur-md p-4">
-    <div class="pk-spotlight-enter relative flex flex-col items-center gap-4 max-w-md w-full">
-        <button type="button"
-                onclick="window.closeCardSpotlight()"
-                aria-label="Đóng xem cận cảnh"
-                class="self-end flex h-9 w-9 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white text-sm font-bold cursor-pointer transition">
-            ✕
-        </button>
-
-        <div id="spotlight-card-frame"
-             class="pk-holo-card w-full max-w-[360px] aspect-[5/7] rounded-3xl border-2 bg-slate-900/95 p-3.5 shadow-2xl flex items-center justify-center">
-            <img id="spotlight-card-img" src="" alt="" class="w-full h-full object-contain rounded-2xl drop-shadow-2xl"/>
-        </div>
-
-        <div class="text-center space-y-1.5">
-            <h4 id="spotlight-card-name" class="text-xl font-extrabold text-white">---</h4>
-            <div class="flex items-center justify-center gap-2 text-xs">
-                <span id="spotlight-card-rarity" class="rounded-full border px-3 py-0.5 font-bold">Common</span>
-                <span id="spotlight-card-num" class="pk-num font-bold text-slate-300">001 / 103</span>
-            </div>
-            <div class="pt-1">
-                <a id="spotlight-card-detail-link" href="#"
-                   class="text-xs font-bold text-amber-400 hover:underline">
-                    Xem trang chi tiết thẻ →
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div th:replace="~{fragments/header :: commonScripts}"></div>
-<script defer th:src="@{/js/pages/box-tray.js(v='20261120e')}"></script>
+<script defer th:src="@{/js/pages/store-catalog.js(v='20261121m')}"></script>
 </body>
 </html>

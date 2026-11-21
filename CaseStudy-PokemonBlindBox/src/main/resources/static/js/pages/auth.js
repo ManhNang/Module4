@@ -46,4 +46,20 @@ window.toggleBlindboxTheme = function () {
     window.syncThemeIcons();
 };
 
-document.addEventListener('DOMContentLoaded', window.syncThemeIcons);
+window.showForgotPasswordHint = function () {
+    document.getElementById('forgot-password-hint')?.classList.toggle('hidden');
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.syncThemeIcons();
+    const usernameEl = document.getElementById('username');
+    const passwordEl = document.getElementById('password');
+    if (usernameEl) {
+        const isPrefilled = usernameEl.getAttribute('data-registered-prefill') === 'true' && usernameEl.value.trim().length > 0;
+        if (isPrefilled && passwordEl) {
+            passwordEl.focus();
+        } else {
+            usernameEl.focus();
+        }
+    }
+});

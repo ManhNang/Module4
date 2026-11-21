@@ -1,6 +1,7 @@
 package com.pokemon.blindbox.entity;
 
 import com.pokemon.blindbox.entity.enums.ListingStatus;
+import com.pokemon.blindbox.entity.enums.MarketItemType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,9 +30,18 @@ public class MarketListing {
     @Column(name = "seller_id", nullable = false)
     private Long sellerId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_card_id", nullable = false, foreignKey = @ForeignKey(name = "fk_market_listing_user_card"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "item_type", nullable = false, length = 10)
+    @Builder.Default
+    private MarketItemType itemType = MarketItemType.CARD;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "user_card_id", nullable = true, foreignKey = @ForeignKey(name = "fk_market_listing_user_card"))
     private UserCard userCard;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "sealed_item_id", nullable = true)
+    private UserSealedItem sealedItem;
 
     @Column(name = "price", nullable = false, precision = 15, scale = 2)
     private BigDecimal price;

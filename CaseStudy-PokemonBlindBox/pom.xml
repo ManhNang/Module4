@@ -109,6 +109,14 @@
             <version>1.39.0</version>
         </dependency>
 
+        <!-- Spring Boot DevTools (Hot-restart nhanh khi phát triển, tự tắt khi đóng gói prod) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

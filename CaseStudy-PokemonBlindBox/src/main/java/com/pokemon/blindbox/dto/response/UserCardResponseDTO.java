@@ -18,7 +18,7 @@ public record UserCardResponseDTO(
         return UserCardResponseDTO.builder()
                 .userCardId(userCard.getId())
                 .userId(userCard.getUserId())
-                .boosterPackId(userCard.getBoosterPack().getId())
+                .boosterPackId(userCard.getBoosterPack() != null ? userCard.getBoosterPack().getId() : null)
                 .isLocked(userCard.getIsLocked())
                 .acquiredAt(userCard.getAcquiredAt())
                 .card(cardDto)

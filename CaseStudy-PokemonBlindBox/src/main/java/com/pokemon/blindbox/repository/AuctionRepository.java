@@ -14,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,13 +26,15 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
             "userCard.cardTemplate",
             "userCard.cardTemplate.cardSet",
             "userCard.cardTemplate.rarity",
-            "userCard.cardTemplate.cardSpecies"
+            "userCard.cardTemplate.cardSpecies",
+            "sealedItem",
+            "sealedItem.cardSet"
     })
     Optional<Auction> findWithDetailsById(Long id);
 
     /**
      * Khóa dòng Auction (PESSIMISTIC_WRITE) ngay đầu placeBid để đồng nhất thứ tự khóa:
-     * Auction -> UserCard -> Wallet(minId) -> Wallet(maxId), triệt tiêu Deadlock với Settlement (GAP-02).
+     * Auction -> UserCard/SealedItem -> Wallet(minId) -> Wallet(maxId), triệt tiêu Deadlock với Settlement (GAP-02).
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Auction a WHERE a.id = :id")
@@ -44,7 +47,8 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
     @QueryHints(@QueryHint(name = "jakarta.persistence.lock.timeout", value = "-2"))
     @Query("""
             SELECT a FROM Auction a
-            JOIN FETCH a.userCard uc
+            LEFT JOIN FETCH a.userCard uc
+            LEFT JOIN FETCH a.sealedItem si
             WHERE a.id = :id AND a.status = com.pokemon.blindbox.entity.enums.AuctionStatus.ACTIVE
             """)
     Optional<Auction> findActiveByIdForUpdateSkipLocked(@Param("id") Long id);
@@ -64,25 +68,29 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
     );
 
     /**
-     * Tra cứu chéo các phiên Đấu Giá đang diễn ra theo Bộ sưu tập (tận dụng B-Tree Index utf8mb4_unicode_ci, bỏ LOWER(), P2-06).
+     * Tra cứu chéo các phiên Đấu Giá đang diễn ra theo Bộ sưu tập (hỗ trợ cả Thẻ bài, Pack & Box).
      */
     @EntityGraph(attributePaths = {
             "userCard",
             "userCard.cardTemplate",
             "userCard.cardTemplate.cardSet",
             "userCard.cardTemplate.rarity",
-            "userCard.cardTemplate.cardSpecies"
+            "userCard.cardTemplate.cardSpecies",
+            "sealedItem",
+            "sealedItem.cardSet"
     })
     @Query("""
             SELECT a FROM Auction a
-            JOIN a.userCard uc
-            JOIN uc.cardTemplate ct
-            JOIN ct.cardSet cs
+            LEFT JOIN a.userCard uc
+            LEFT JOIN uc.cardTemplate ct
+            LEFT JOIN ct.cardSet cs
+            LEFT JOIN a.sealedItem si
+            LEFT JOIN si.cardSet scs
             WHERE a.status = :status
-              AND (:setId IS NULL OR cs.id = :setId)
-              AND (:setCode IS NULL OR cs.code = :setCode)
-              AND (:setName IS NULL OR cs.name = :setName)
-            ORDER BY a.endTime ASC, ct.cardNumber ASC
+              AND (:setId IS NULL OR cs.id = :setId OR scs.id = :setId)
+              AND (:setCode IS NULL OR cs.code = :setCode OR scs.code = :setCode)
+              AND (:setName IS NULL OR cs.name = :setName OR scs.name = :setName)
+            ORDER BY a.endTime ASC
             """)
     List<Auction> findActiveByCardSet(
             @Param("status") AuctionStatus status,
@@ -116,4 +124,15 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
             @Param("speciesId") Long speciesId,
             @Param("speciesName") String speciesName
     );
+
+    @EntityGraph(attributePaths = {
+            "userCard",
+            "userCard.cardTemplate",
+            "userCard.cardTemplate.cardSet",
+            "userCard.cardTemplate.rarity",
+            "userCard.cardTemplate.cardSpecies",
+            "sealedItem",
+            "sealedItem.cardSet"
+    })
+    List<Auction> findTop30ByStatusInOrderByEndTimeDesc(Collection<AuctionStatus> statuses);
 }

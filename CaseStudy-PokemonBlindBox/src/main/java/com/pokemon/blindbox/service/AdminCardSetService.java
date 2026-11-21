@@ -124,6 +124,31 @@ public class AdminCardSetService {
         );
     }
 
+    @Transactional
+    @CacheEvict(value = {RedisCacheConfig.CACHE_CARD_SETS, RedisCacheConfig.CACHE_CARD_TEMPLATES}, allEntries = true)
+    public CardSetResponseDTO toggleCardSetActive(Long setId, boolean active) {
+        CardSet cardSet = cardSetRepository.findById(setId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy Bộ thẻ với id = " + setId));
+        cardSet.setIsActive(active);
+        CardSet saved = cardSetRepository.save(cardSet);
+        log.info("Toggled CardSet id={}, code={}, isActive={}", saved.getId(), saved.getCode(), saved.getIsActive());
+        return CardSetResponseDTO.fromEntity(saved);
+    }
+
+    @Transactional
+    @CacheEvict(value = {RedisCacheConfig.CACHE_CARD_TEMPLATES, RedisCacheConfig.CACHE_CARD_SETS}, allEntries = true)
+    public CardTemplateResponseDTO toggleCardTemplateActive(Long setId, Long cardId, boolean active) {
+        CardTemplate card = cardTemplateRepository.findWithDetailsById(cardId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thẻ bài với id = " + cardId));
+        if (!card.getCardSet().getId().equals(setId)) {
+            throw new BusinessValidationException("Thẻ bài không thuộc bộ sưu tập đang chọn.");
+        }
+        card.setIsActive(active);
+        CardTemplate saved = cardTemplateRepository.save(card);
+        log.info("Toggled CardTemplate id={}, setId={}, isActive={}", saved.getId(), setId, saved.getIsActive());
+        return CardTemplateResponseDTO.fromEntity(saved);
+    }
+
     /**
      * Thêm mới CardTemplate vào một CardSet.
      * Upload ảnh lên Cloudinary thực thi NGOÀI @Transactional để không chiếm giữ HikariCP connection (P2-02).
@@ -198,9 +223,15 @@ public class AdminCardSetService {
 
         if (request.packPrice() != null) {
             cardSet.setPackPrice(request.packPrice());
-        }
-        if (request.boxPrice() != null) {
+            cardSet.setBoxPrice(SealedStoreVaultService.computeDiscountedBoxPrice(request.packPrice(), request.packsPerBox()));
+        } else if (request.boxPrice() != null) {
             cardSet.setBoxPrice(request.boxPrice());
+        }
+        if (request.dailyPackLimit() != null && request.dailyPackLimit() >= 0) {
+            cardSet.setDailyPackLimit(request.dailyPackLimit());
+        }
+        if (request.dailyBoxLimit() != null && request.dailyBoxLimit() >= 0) {
+            cardSet.setDailyBoxLimit(request.dailyBoxLimit());
         }
 
         CardSet saved = cardSetRepository.save(cardSet);

@@ -29,7 +29,7 @@ public class AuthService {
     private final WalletService walletService;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.auth.welcome-bonus:500000.00}")
+    @Value("${app.auth.welcome-bonus:1000.00}")
     private BigDecimal welcomeBonus;
 
     @Transactional

@@ -31,8 +31,8 @@ public class UserCard {
     @JoinColumn(name = "card_template_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_card_template"))
     private CardTemplate cardTemplate;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "booster_pack_id", nullable = false, foreignKey = @ForeignKey(name = "fk_user_card_pack"))
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "booster_pack_id", nullable = true, foreignKey = @ForeignKey(name = "fk_user_card_pack"))
     private BoosterPack boosterPack;
 
     @Column(name = "is_locked", nullable = false)

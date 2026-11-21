@@ -16,10 +16,10 @@ public record PlaceAuctionBidRequest(
         @Size(max = 60, message = "Tên hiển thị người đặt giá tối đa 60 ký tự")
         String bidderDisplayName,
 
-        @NotNull(message = "Số tiền đặt giá (bidAmount) không được để trống")
-        @DecimalMin(value = "1000.00", message = "Số tiền đặt giá phải >= 1,000 VND")
-        @DecimalMax(value = "1000000000.00", message = "Số tiền đặt giá tối đa là 1,000,000,000 VND")
-        @Digits(integer = 13, fraction = 2, message = "Số tiền đặt giá không hợp lệ")
+        @NotNull(message = "Mức giá đặt (Xu) không được để trống")
+        @DecimalMin(value = "1.00", message = "Mức giá đặt tối thiểu là 1 Xu")
+        @DecimalMax(value = "1000000000.00", message = "Mức giá đặt tối đa là 1.000.000.000 Xu")
+        @Digits(integer = 13, fraction = 2, message = "Mức giá đặt không hợp lệ")
         BigDecimal bidAmount
 ) {
 }

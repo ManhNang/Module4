@@ -31,14 +31,14 @@ public record CreateCardSetRequest(
         Integer packsPerBox,
 
         @NotNull(message = "Giá 1 gói không được để trống")
-        @DecimalMin(value = "1000.00", message = "Giá 1 gói tối thiểu 1,000 VND")
-        @DecimalMax(value = "1000000000.00", message = "Giá 1 gói tối đa 1,000,000,000 VND")
+        @DecimalMin(value = "1.00", message = "Giá 1 gói tối thiểu 1 Xu")
+        @DecimalMax(value = "1000000000.00", message = "Giá 1 gói tối đa 1,000,000,000 Xu")
         @Digits(integer = 13, fraction = 2, message = "Giá 1 gói không hợp lệ")
         BigDecimal packPrice,
 
         @NotNull(message = "Giá nguyên hộp không được để trống")
-        @DecimalMin(value = "1000.00", message = "Giá nguyên hộp tối thiểu 1,000 VND")
-        @DecimalMax(value = "1000000000.00", message = "Giá nguyên hộp tối đa 1,000,000,000 VND")
+        @DecimalMin(value = "1.00", message = "Giá nguyên hộp tối thiểu 1 Xu")
+        @DecimalMax(value = "1000000000.00", message = "Giá nguyên hộp tối đa 1,000,000,000 Xu")
         @Digits(integer = 13, fraction = 2, message = "Giá nguyên hộp không hợp lệ")
         BigDecimal boxPrice
 ) {

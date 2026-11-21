@@ -43,6 +43,7 @@ public class GachaEngineService {
     private final CardTemplateRepository cardTemplateRepository;
     private final UserCardRepository userCardRepository;
     private final CatalogCacheService catalogCacheService;
+    private final org.springframework.beans.factory.ObjectProvider<SanctuaryService> sanctuaryServiceProvider;
 
     /**
      * Mở gói bài theo packId (sử dụng buyerId đã ghi trên BoosterPack).
@@ -124,6 +125,10 @@ public class GachaEngineService {
         boosterPackRepository.saveAndFlush(pack);
 
         List<UserCard> savedUserCards = userCardRepository.saveAll(userCardsToSave);
+
+        if (sanctuaryServiceProvider != null) {
+            sanctuaryServiceProvider.ifAvailable(s -> s.incrementDailyQuestProgress(ownerUserId, SanctuaryService.QUEST_OPEN_PACK));
+        }
 
         List<UserCardResponseDTO> drawnCardResponses = new ArrayList<>(savedUserCards.size());
         for (int i = 0; i < savedUserCards.size(); i++) {

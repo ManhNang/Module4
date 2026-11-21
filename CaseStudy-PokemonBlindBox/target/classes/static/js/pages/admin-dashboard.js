@@ -2,10 +2,10 @@
 (function () {
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v ?? ''));
     const safeHex = (hex, fallback = '#10B981') => (/^#[0-9a-fA-F]{3,8}$/.test(hex || '') ? hex : fallback);
-    const fmtPrice = (val) => new Intl.NumberFormat('vi-VN').format(Math.round(Number(val || 0))) + '₫';
+    const fmtPrice = (val) => new Intl.NumberFormat('vi-VN').format(Math.round(Number(val || 0))) + ' Xu';
 
-    // Trạng thái phân trang Tab 3 (Danh Mục Thẻ Bài — tối đa 13 thẻ/trang)
-    const CARDS_PER_PAGE = 13;
+    // Trạng thái phân trang Tab 3 (Danh Mục Thẻ Bài — tối đa 15 thẻ/trang)
+    const CARDS_PER_PAGE = 15;
     let cardTemplatesPage = 1;
 
     // Trạng thái phân trang Tab 5 (Quản Lý Người Dùng)
@@ -30,12 +30,136 @@
 
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
-        ['modal-card-preview', 'modal-user-wallet', 'modal-edit-card', 'modal-species', 'modal-rarity', 'modal-create-set']
+        ['modal-card-preview', 'modal-user-wallet', 'modal-edit-card', 'modal-create-card', 'modal-species', 'modal-rarity', 'modal-create-set']
             .forEach(id => window.closeModal(id));
     });
 
+    let rarityInitialSnapshot = null;
+
+    window.updateNewSetBoxHint = function () {
+        const packs = parseInt(document.getElementById('new-set-packs-per-box')?.value || '0', 10) || 0;
+        const packPrice = parseFloat(document.getElementById('new-set-pack-price')?.value || '0') || 0;
+        const boxPrice = parseFloat(document.getElementById('new-set-box-price')?.value || '0') || 0;
+        const hintEl = document.getElementById('new-set-box-hint');
+        if (!hintEl) return;
+        const fullPrice = packs * packPrice;
+        if (fullPrice <= 0) {
+            hintEl.textContent = '';
+            return;
+        }
+        const diffPct = Math.round(((fullPrice - boxPrice) / fullPrice) * 100);
+        const fullStr = Math.round(fullPrice).toLocaleString('vi-VN') + ' Xu';
+        if (diffPct > 0) {
+            hintEl.textContent = `Giá lẻ ${packs} gói: ${fullStr} — Đang giảm ${diffPct}%`;
+        } else if (diffPct < 0) {
+            hintEl.textContent = `Giá lẻ ${packs} gói: ${fullStr} — Cao hơn ${Math.abs(diffPct)}%`;
+        } else {
+            hintEl.textContent = `Giá lẻ ${packs} gói: ${fullStr} — Bằng giá lẻ`;
+        }
+    };
+
+    window.validateCreateSetForm = function () {
+        const btn = document.getElementById('btn-create-set-submit');
+        if (!btn) return;
+        const name = (document.getElementById('new-set-name')?.value || '').trim();
+        const code = (document.getElementById('new-set-code')?.value || '').trim();
+        const total = parseInt(document.getElementById('new-set-total')?.value || '0', 10);
+        const cpp = parseInt(document.getElementById('new-set-cards-per-pack')?.value || '0', 10);
+        const ppb = parseInt(document.getElementById('new-set-packs-per-box')?.value || '0', 10);
+        const pp = parseFloat(document.getElementById('new-set-pack-price')?.value || '0');
+        const bp = parseFloat(document.getElementById('new-set-box-price')?.value || '0');
+        btn.disabled = !(name && code && total >= 1 && cpp >= 1 && ppb >= 1 && pp >= 1 && bp >= 1);
+    };
+
+    window.updateRarityModalPreview = function () {
+        const name = (document.getElementById('rarity-modal-name')?.value || '').trim() || 'Tên độ hiếm';
+        const color = safeHex(document.getElementById('rarity-modal-color')?.value?.trim(), '#EC4899');
+        const isHolo = Boolean(document.getElementById('rarity-modal-holo')?.checked);
+        const badge = document.getElementById('rarity-modal-preview-badge');
+        const holoEl = document.getElementById('rarity-modal-preview-holo');
+        if (badge) {
+            badge.textContent = name;
+            badge.style.borderColor = color;
+            badge.style.color = color;
+        }
+        if (holoEl) holoEl.classList.toggle('hidden', !isHolo);
+        window.validateRarityForm();
+    };
+
+    window.validateRarityForm = function () {
+        const btn = document.getElementById('btn-upsert-rarity-submit');
+        if (!btn) return;
+        const name = (document.getElementById('rarity-modal-name')?.value || '').trim();
+        const weightRaw = document.getElementById('rarity-modal-weight')?.value;
+        const weight = parseInt(weightRaw || '-1', 10);
+        const color = (document.getElementById('rarity-modal-color')?.value || '').trim().toUpperCase();
+        const isHolo = Boolean(document.getElementById('rarity-modal-holo')?.checked);
+        const valid = Boolean(name && weightRaw !== '' && !Number.isNaN(weight) && weight >= 0 && /^#[0-9A-F]{6}$/.test(color));
+        if (!valid) {
+            btn.disabled = true;
+            return;
+        }
+        if (rarityInitialSnapshot) {
+            const changed = name !== rarityInitialSnapshot.name
+                || weight !== rarityInitialSnapshot.dropWeight
+                || color !== rarityInitialSnapshot.colorHex
+                || isHolo !== rarityInitialSnapshot.isHolographic;
+            btn.disabled = !changed;
+        } else {
+            btn.disabled = false;
+        }
+    };
+
+    window.validateCreateCardForm = function () {
+        const btn = document.getElementById('btn-create-card-submit');
+        if (!btn) return;
+        const name = (document.getElementById('card-name')?.value || '').trim();
+        const num = parseInt(document.getElementById('card-number')?.value || '0', 10);
+        const rarityId = document.getElementById('card-rarity-id')?.value || '';
+        const speciesId = document.getElementById('card-species-id')?.value || '';
+        btn.disabled = !(name && num >= 1 && rarityId && speciesId);
+    };
+
+    window.validateAdjustWalletForm = function () {
+        const btn = document.getElementById('btn-adjust-wallet-submit');
+        if (!btn) return;
+        const amount = parseFloat(document.getElementById('adjust-wallet-amount')?.value || '0');
+        const reason = (document.getElementById('adjust-wallet-reason')?.value || '').trim();
+        btn.disabled = !(Number.isFinite(amount) && amount >= 1 && reason.length > 0);
+    };
+
+    window.syncCreateCardImagePreview = function () {
+        const url = (document.getElementById('card-image-url')?.value || '').trim();
+        const imgEl = document.getElementById('create-card-img-preview');
+        const phEl = document.getElementById('create-card-img-placeholder');
+        if (!imgEl || !phEl) return;
+        if (url) {
+            imgEl.src = url;
+            imgEl.classList.remove('hidden');
+            phEl.classList.add('hidden');
+        } else {
+            imgEl.src = '';
+            imgEl.classList.add('hidden');
+            phEl.classList.remove('hidden');
+        }
+    };
+
+    window.handleAutoUploadCardImage = async function (fileInput) {
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) return;
+        const labelEl = document.getElementById('card-upload-btn-label');
+        if (labelEl) labelEl.textContent = 'Đang tải lên...';
+        try {
+            await window.uploadSelectedImageToCloudinary('card-image-file', 'card-image-url', 'card-number');
+            window.syncCreateCardImagePreview();
+        } finally {
+            if (labelEl) labelEl.textContent = 'Chọn ảnh & Tải lên';
+        }
+    };
+
     window.openCreateSetModal = function () {
         document.getElementById('form-create-set')?.reset();
+        window.updateNewSetBoxHint();
+        window.validateCreateSetForm();
         window.openModal('modal-create-set');
     };
 
@@ -45,10 +169,18 @@
         document.getElementById('modal-rarity-title').textContent = rarity ? 'Chỉnh Sửa Độ Hiếm' : 'Thêm Độ Hiếm Mới';
         document.getElementById('rarity-modal-name').value = rarity ? rarity.name : '';
         document.getElementById('rarity-modal-weight').value = rarity ? rarity.dropWeight : 30;
-        const hex = safeHex(rarity ? rarity.colorHex : '#EC4899', '#EC4899');
+        const hex = safeHex(rarity ? rarity.colorHex : '#EC4899', '#EC4899').toUpperCase();
         document.getElementById('rarity-modal-color').value = hex;
-        document.getElementById('rarity-modal-color-picker').value = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : '#EC4899';
+        document.getElementById('rarity-modal-color-picker').value = /^#[0-9A-F]{6}$/.test(hex) ? hex : '#EC4899';
         document.getElementById('rarity-modal-holo').checked = rarity ? Boolean(rarity.isHolographic) : false;
+
+        const submitBtn = document.getElementById('btn-upsert-rarity-submit');
+        if (submitBtn) submitBtn.textContent = rarity ? 'Lưu thay đổi' : 'Lưu Độ Hiếm';
+        rarityInitialSnapshot = rarity
+            ? { name: rarity.name, dropWeight: Number(rarity.dropWeight), colorHex: hex, isHolographic: Boolean(rarity.isHolographic) }
+            : null;
+
+        window.updateRarityModalPreview();
         window.openModal('modal-rarity');
     };
 
@@ -163,9 +295,9 @@
         setTimeout(() => el.classList.remove('bg-emerald-500/10'), 1400);
     }
 
-    // ==================== 4. CHUYỂN TAB (5 TAB) ====================
+    // ==================== 4. CHUYỂN TAB (4 TAB) ====================
     window.switchAdminTab = function (tab) {
-        const tabs = ['sets', 'rarities', 'cards', 'boxes', 'users'];
+        const tabs = ['sets', 'rarities', 'cards', 'users'];
         if (!tabs.includes(tab)) tab = 'sets';
         tabs.forEach(t => {
             const panel = document.getElementById(`admin-panel-${t}`);
@@ -178,6 +310,10 @@
                     : 'rounded-xl px-3.5 py-2.5 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition text-center';
             }
         });
+        const setToolbar = document.getElementById('admin-set-toolbar');
+        if (setToolbar) {
+            setToolbar.classList.toggle('hidden', tab === 'users');
+        }
         try {
             sessionStorage.setItem('pk_admin_active_tab', tab);
         } catch (e) {}
@@ -191,33 +327,37 @@
     function buildCardSetRow(set, isCurrentActive) {
         const tr = document.createElement('tr');
         tr.id = `set-row-${set.id}`;
-        if (isCurrentActive) tr.className = 'bg-rose-500/5';
+        if (isCurrentActive) tr.className = 'border-l-4 border-l-amber-500 bg-amber-500/[0.06]';
         const isActive = set.isActive !== false;
         const statusHtml = isActive
-            ? '<span class="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600">Đang mở</span>'
+            ? '<span class="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Đang mở</span>'
             : '<span class="inline-flex items-center rounded-full bg-slate-500/20 px-2.5 py-0.5 text-[11px] font-bold pk-text-secondary">Đã ẩn</span>';
 
         tr.innerHTML = `
-            <td class="px-4 py-3 font-extrabold text-rose-600">${esc(set.code)}</td>
+            <td class="px-4 py-3">
+                <span class="inline-flex items-center rounded-lg bg-slate-900/90 dark:bg-slate-800 border border-amber-500/35 px-2 py-0.5 text-xs font-extrabold text-amber-400 tracking-wider">${esc(set.code)}</span>
+            </td>
             <td class="px-4 py-3 font-bold pk-text-primary">
                 <a href="/admin/dashboard?setId=${Number(set.id)}" class="hover:underline">${esc(set.name)}</a>
             </td>
-            <td class="px-4 py-3 text-center pk-num font-bold pk-text-primary">${Number(set.baseSetTotal)}</td>
-            <td class="px-4 py-3 text-center pk-num font-bold text-emerald-600">${Number(set.cardsPerPack)}</td>
-            <td class="px-4 py-3 text-center pk-num font-bold pk-text-primary">${Number(set.packsPerBox)}</td>
-            <td class="px-4 py-3 text-right pk-num text-xs">
-                <div class="font-bold pk-text-primary">${fmtPrice(set.packPrice)}</div>
-                <div class="pk-text-secondary">${fmtPrice(set.boxPrice)}</div>
+            <td class="px-4 py-3 text-center pk-num tabular-nums font-bold pk-text-primary">${Number(set.baseSetTotal)}</td>
+            <td class="px-4 py-3 text-center pk-num tabular-nums font-bold pk-text-primary">${Number(set.cardsPerPack)} thẻ / ${Number(set.packsPerBox)} gói</td>
+            <td class="px-4 py-3 text-right pk-num tabular-nums text-xs whitespace-nowrap">
+                <div class="font-extrabold text-amber-600 dark:text-amber-400">${fmtPrice(set.packPrice)}</div>
+                <div class="font-semibold text-amber-600/80 dark:text-amber-400/80">${fmtPrice(set.boxPrice)}</div>
             </td>
             <td class="px-4 py-3 text-center whitespace-nowrap set-status-cell">${statusHtml}</td>
-            <td class="px-4 py-3 text-right whitespace-nowrap">
-                <button type="button"
-                        data-set-id="${Number(set.id)}"
-                        data-set-name="${esc(set.name)}"
-                        onclick="window.deleteCardSet(parseInt(this.getAttribute('data-set-id'), 10), this.getAttribute('data-set-name'))"
-                        class="text-xs font-bold text-rose-600 hover:underline cursor-pointer">
-                    Xóa / Ẩn
-                </button>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+                <div class="inline-flex items-center justify-center gap-2">
+                    <button type="button"
+                            data-set-id="${Number(set.id)}"
+                            data-set-name="${esc(set.name)}"
+                            data-active="${isActive}"
+                            onclick="window.toggleCardSetVisibility(parseInt(this.getAttribute('data-set-id'), 10), this.getAttribute('data-set-name'), this.getAttribute('data-active') !== 'true')"
+                            class="set-toggle-btn text-xs font-bold ${isActive ? 'text-rose-500' : 'text-emerald-500'} hover:underline cursor-pointer">
+                        ${isActive ? 'Ẩn bộ' : 'Hiện lại'}
+                    </button>
+                </div>
             </td>
         `;
         return tr;
@@ -232,44 +372,50 @@
         if (rows.length === 0 && !document.getElementById('card-sets-empty-row')) {
             const emptyTr = document.createElement('tr');
             emptyTr.id = 'card-sets-empty-row';
-            emptyTr.innerHTML = '<td colspan="8" class="px-4 py-8 text-center text-xs pk-text-secondary">Chưa có bộ sưu tập nào. Hãy bấm "+ Tạo Bộ Sưu Tập Mới" để bắt đầu!</td>';
+            emptyTr.innerHTML = '<td colspan="7" class="px-4 py-8 text-center text-xs pk-text-secondary">Chưa có bộ sưu tập nào. Hãy bấm "+ Tạo Bộ Sưu Tập Mới" để bắt đầu!</td>';
             tbody.appendChild(emptyTr);
         }
     }
 
     function buildRarityCardElement(r) {
-        const div = document.createElement('div');
-        div.id = `rarity-card-${r.id}`;
-        div.setAttribute('data-rarity-id', String(r.id));
-        div.setAttribute('data-drop-weight', String(Number(r.dropWeight || 0)));
-        div.className = 'rarity-card-item pk-surface-elevated rounded-2xl p-4 space-y-2';
+        const tr = document.createElement('tr');
+        tr.id = `rarity-card-${r.id}`;
+        tr.setAttribute('data-rarity-id', String(r.id));
+        tr.setAttribute('data-drop-weight', String(Number(r.dropWeight || 0)));
+        tr.className = 'rarity-card-item';
         const color = safeHex(r.colorHex, '#EC4899');
         const holoBadge = r.isHolographic
             ? '<span class="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-extrabold text-amber-600 dark:text-amber-300 border border-amber-500/30">HOLO 3D</span>'
             : '';
 
-        div.innerHTML = `
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-2.5">
-                    <span class="h-3.5 w-3.5 rounded-full shrink-0" style="background-color:${color}"></span>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-extrabold pk-text-primary">${esc(r.name)}</span>
-                            ${holoBadge}
-                        </div>
-                        <div class="text-xs pk-text-secondary">
-                            Tỷ lệ rơi thực tế:
-                            <strong class="rarity-percent pk-num text-rose-600" data-rarity-id="${Number(r.id)}">0.00%</strong>
-                        </div>
-                    </div>
+        tr.innerHTML = `
+            <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                    <span class="h-3 w-3 rounded-full shrink-0" style="background-color:${color}"></span>
+                    <span class="font-extrabold pk-text-primary">${esc(r.name)}</span>
+                    ${holoBadge}
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
-                    <label class="text-xs font-semibold pk-text-secondary">Trọng số:</label>
-                    <input type="number" min="0" required
-                           class="rarity-weight-input pk-input pk-num h-9 w-24 rounded-xl px-3 text-right text-sm font-extrabold"
-                           data-rarity-id="${Number(r.id)}"
-                           value="${Number(r.dropWeight)}"
-                           oninput="window.recalculateRarityPercentages()"/>
+            </td>
+            <td class="px-4 py-3 text-left">
+                <div class="flex items-center justify-start gap-3">
+                    <div class="hidden sm:block w-32 h-1.5 rounded-full bg-slate-200/80 dark:bg-slate-800 overflow-hidden shrink-0">
+                        <div class="rarity-bar h-full rounded-full transition-all duration-300"
+                             data-rarity-id="${Number(r.id)}"
+                             style="width: 0%; background-color:${color}"></div>
+                    </div>
+                    <span class="rarity-percent pk-num tabular-nums font-bold pk-text-primary w-14 text-right" data-rarity-id="${Number(r.id)}">0.00%</span>
+                </div>
+            </td>
+            <td class="px-4 py-3 text-center">
+                <input type="number" min="0" step="1" required
+                       class="rarity-weight-input pk-input pk-num tabular-nums h-9 w-24 mx-auto rounded-xl px-3 text-center text-sm font-extrabold"
+                       data-rarity-id="${Number(r.id)}"
+                       data-initial-weight="${Number(r.dropWeight)}"
+                       value="${Number(r.dropWeight)}"
+                       oninput="window.recalculateRarityPercentages()"/>
+            </td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+                <div class="inline-flex items-center justify-center gap-3">
                     <button type="button"
                             data-id="${Number(r.id)}"
                             data-name="${esc(r.name)}"
@@ -277,25 +423,20 @@
                             data-color="${color}"
                             data-holo="${Boolean(r.isHolographic)}"
                             onclick="window.openRarityModal({id: parseInt(this.dataset.id,10), name: this.dataset.name, dropWeight: parseInt(this.dataset.weight,10), colorHex: this.dataset.color, isHolographic: this.dataset.holo === 'true'})"
-                            class="rarity-edit-btn pk-surface-muted rounded-xl px-3 py-1.5 text-xs font-bold pk-text-primary hover:opacity-80 cursor-pointer">
+                            class="rarity-edit-btn font-bold pk-text-primary hover:underline cursor-pointer">
                         Sửa
                     </button>
                     <button type="button"
                             data-id="${Number(r.id)}"
                             data-name="${esc(r.name)}"
                             onclick="window.deleteRarity(parseInt(this.dataset.id, 10), this.dataset.name)"
-                            class="pk-surface-muted rounded-xl px-3 py-1.5 text-xs font-bold text-rose-600 hover:opacity-80 cursor-pointer">
+                            class="font-bold text-rose-500 hover:underline cursor-pointer">
                         Xóa
                     </button>
                 </div>
-            </div>
-            <div class="h-2 w-full rounded-full pk-surface-muted overflow-hidden">
-                <div class="rarity-bar h-full rounded-full transition-all duration-300"
-                     data-rarity-id="${Number(r.id)}"
-                     style="width: 0%; background-color:${color}"></div>
-            </div>
+            </td>
         `;
-        return div;
+        return tr;
     }
 
     // Sắp xếp danh sách Độ hiếm (Tab 2) theo Trọng số từ cao xuống thấp
@@ -348,12 +489,12 @@
         const color = safeHex(c.rarityColorHex, '#10B981');
         const isActive = c.isActive !== false;
         const statusHtml = isActive
-            ? '<span class="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600">Đang mở</span>'
-            : '<span class="rounded-full bg-slate-500/20 px-2.5 py-0.5 text-[11px] font-bold pk-text-secondary">Đã ẩn</span>';
+            ? '<span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400"><span class="h-2 w-2 rounded-full bg-emerald-500"></span><span>Đang hiện</span></span>'
+            : '<span class="inline-flex items-center gap-1.5 text-[11px] font-bold pk-text-secondary"><span class="h-2 w-2 rounded-full bg-slate-400"></span><span>Đã ẩn</span></span>';
 
         tr.innerHTML = `
-            <td class="px-4 py-3 pk-num font-extrabold text-emerald-600 whitespace-nowrap">${esc(c.formattedCardNumber)}</td>
-            <td class="px-4 py-3">
+            <td class="px-4 py-2.5 pk-num font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap">${esc(c.formattedCardNumber)}</td>
+            <td class="px-4 py-2.5">
                 <button type="button"
                         onclick="window.openCardPreviewModal(this)"
                         data-name="${esc(c.name)}"
@@ -363,33 +504,39 @@
                         data-color="${color}"
                         data-species="${esc(c.speciesName)}"
                         data-holo="${Boolean(c.rarityIsHolographic)}"
-                        class="card-preview-trigger text-left font-bold pk-text-primary hover:underline hover:text-rose-600 cursor-pointer transition">${esc(c.name)}</button>
+                        class="card-preview-trigger group inline-flex items-center gap-2.5 text-left font-bold pk-text-primary hover:text-amber-500 cursor-pointer transition">
+                    <img src="${esc(c.imageUrl)}" alt="" class="w-6 h-[34px] rounded object-cover shrink-0 bg-slate-800/30 transition-transform duration-200 group-hover:scale-150 group-hover:z-20 group-hover:shadow-lg"/>
+                    <span>${esc(c.name)}</span>
+                </button>
             </td>
-            <td class="px-4 py-3 whitespace-nowrap">
-                <span class="card-rarity-badge rounded-full px-2.5 py-0.5 text-xs font-bold border"
+            <td class="px-4 py-2.5 whitespace-nowrap">
+                <span class="card-rarity-badge pk-rarity-badge px-2.5 py-0.5 text-xs"
                       style="border-color:${color}; color:${color}">${esc(c.rarityName)}</span>
             </td>
-            <td class="px-4 py-3 font-semibold pk-text-secondary">${esc(c.speciesName)}</td>
-            <td class="px-4 py-3 text-center whitespace-nowrap card-status-cell">${statusHtml}</td>
-            <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
-                <button type="button"
-                        data-id="${Number(c.id)}"
-                        data-name="${esc(c.name)}"
-                        data-num="${Number(c.cardNumber)}"
-                        data-img="${esc(c.imageUrl)}"
-                        data-rarity="${Number(c.rarityId)}"
-                        data-species="${Number(c.speciesId)}"
-                        onclick="window.openEditCardModal(this)"
-                        class="font-bold pk-text-primary hover:underline cursor-pointer">
-                    Sửa
-                </button>
-                <button type="button"
-                        data-id="${Number(c.id)}"
-                        data-name="${esc(c.name)}"
-                        onclick="window.deleteCardTemplate(parseInt(this.dataset.id, 10), this.dataset.name)"
-                        class="font-bold text-rose-600 hover:underline cursor-pointer">
-                    Xóa / Ẩn
-                </button>
+            <td class="px-4 py-2.5 font-semibold pk-text-secondary">${esc(c.speciesName)}</td>
+            <td class="px-4 py-2.5 text-center whitespace-nowrap card-status-cell">${statusHtml}</td>
+            <td class="px-4 py-2.5 text-center whitespace-nowrap">
+                <div class="inline-flex items-center justify-center gap-3">
+                    <button type="button"
+                            data-id="${Number(c.id)}"
+                            data-name="${esc(c.name)}"
+                            data-num="${Number(c.cardNumber)}"
+                            data-img="${esc(c.imageUrl)}"
+                            data-rarity="${Number(c.rarityId)}"
+                            data-species="${Number(c.speciesId)}"
+                            onclick="window.openEditCardModal(this)"
+                            class="font-bold pk-text-primary hover:underline cursor-pointer">
+                        Sửa
+                    </button>
+                    <button type="button"
+                            data-id="${Number(c.id)}"
+                            data-name="${esc(c.name)}"
+                            data-active="${isActive}"
+                            onclick="window.toggleCardTemplateVisibility(parseInt(this.dataset.id, 10), this.dataset.name, this.dataset.active !== 'true')"
+                            class="card-toggle-btn font-bold ${isActive ? 'text-rose-500' : 'text-emerald-500'} hover:underline cursor-pointer">
+                        ${isActive ? 'Ẩn thẻ' : 'Hiện lại'}
+                    </button>
+                </div>
             </td>
         `;
         return tr;
@@ -402,9 +549,25 @@
         const controlsEl = document.getElementById('cards-pagination-controls');
         if (!tbody) return;
 
-        const rows = Array.from(tbody.querySelectorAll('tr[id^="card-row-"]'));
-        const total = rows.length;
-        if (total === 0) {
+        const searchQ = (document.getElementById('admin-cards-search')?.value || '').trim().toLowerCase().replace(/^#/, '');
+        const rarityFilter = (document.getElementById('admin-cards-filter-rarity')?.value || '').trim();
+
+        const allRows = Array.from(tbody.querySelectorAll('tr[id^="card-row-"]'));
+        const matchedRows = allRows.filter(row => {
+            const cNum = (row.getAttribute('data-card-number') || '').padStart(3, '0');
+            const cRarityId = row.getAttribute('data-rarity-id') || '';
+            const trigger = row.querySelector('.card-preview-trigger');
+            const cName = (trigger?.dataset?.name || trigger?.textContent || '').toLowerCase();
+            const cFormattedNum = (trigger?.dataset?.num || '').toLowerCase();
+
+            const matchSearch = !searchQ || cName.includes(searchQ) || cNum.includes(searchQ) || cFormattedNum.includes(searchQ);
+            const matchRarity = !rarityFilter || cRarityId === rarityFilter;
+            return matchSearch && matchRarity;
+        });
+
+        const total = matchedRows.length;
+        if (allRows.length === 0 || total === 0) {
+            allRows.forEach(r => { r.style.display = 'none'; });
             bar?.classList.add('hidden');
             return;
         }
@@ -418,13 +581,14 @@
         const startIdx = (cardTemplatesPage - 1) * CARDS_PER_PAGE;
         const endIdx = Math.min(startIdx + CARDS_PER_PAGE, total);
 
-        rows.forEach((row, idx) => {
-            row.style.display = (idx >= startIdx && idx < endIdx) ? '' : 'none';
+        const visibleSet = new Set(matchedRows.slice(startIdx, endIdx));
+        allRows.forEach(row => {
+            row.style.display = visibleSet.has(row) ? '' : 'none';
         });
 
         bar?.classList.remove('hidden');
         if (infoEl) {
-            infoEl.textContent = `Hiển thị ${startIdx + 1}–${endIdx} / ${total} thẻ (Trang ${cardTemplatesPage} / ${totalPages})`;
+            infoEl.textContent = `${startIdx + 1}–${endIdx} / ${total}`;
         }
 
         if (controlsEl) {
@@ -464,6 +628,10 @@
         }
     }
 
+    window.filterAdminCardsTable = function () {
+        renderCardTemplatesPagination(1);
+    };
+
     window.goToCardTemplatesPage = function (page) {
         renderCardTemplatesPagination(page);
     };
@@ -495,11 +663,11 @@
         const countEl = document.getElementById('card-templates-count');
         if (!tbody) return;
         const rows = tbody.querySelectorAll('tr[id^="card-row-"]');
-        if (countEl) countEl.textContent = `${rows.length} thẻ bài`;
+        if (countEl) countEl.textContent = `${rows.length} thẻ`;
         if (rows.length === 0 && !document.getElementById('card-templates-empty-row')) {
             const emptyTr = document.createElement('tr');
             emptyTr.id = 'card-templates-empty-row';
-            emptyTr.innerHTML = '<td colspan="6" class="px-4 py-8 text-center text-xs pk-text-secondary">Bộ sưu tập này chưa có thẻ bài nào. Hãy thêm thẻ đầu tiên ở biểu mẫu phía trên!</td>';
+            emptyTr.innerHTML = '<td colspan="6" class="px-4 py-8 text-center text-xs pk-text-secondary">Bộ sưu tập này chưa có thẻ bài nào. Hãy bấm "+ Thêm thẻ bài" để thêm thẻ đầu tiên!</td>';
             tbody.appendChild(emptyTr);
         }
         renderCardTemplatesPagination(targetPage);
@@ -552,6 +720,12 @@
         const sealedEl = document.getElementById('sealed-box-count');
         if (totalEl) totalEl.textContent = `${items.length} hộp`;
         if (sealedEl) sealedEl.textContent = `${sealedItems.length} hộp`;
+
+        const reduceInput = document.getElementById('reduce-box-quantity');
+        const reduceBtn = document.getElementById('btn-reduce-box-submit');
+        const noSealed = sealedItems.length === 0;
+        if (reduceInput) reduceInput.disabled = noSealed;
+        if (reduceBtn) reduceBtn.disabled = noSealed;
         if (items.length === 0 && !document.getElementById('booster-boxes-empty-row')) {
             const emptyDiv = document.createElement('div');
             emptyDiv.id = 'booster-boxes-empty-row';
@@ -570,15 +744,21 @@
         if (totalEl) totalEl.textContent = total;
         if (totalPctEl) totalPctEl.textContent = total > 0 ? '100.00%' : '0.00%';
 
+        let hasChanged = false;
         inputs.forEach(input => {
             const rarityId = input.getAttribute('data-rarity-id');
             const weight = parseInt(input.value || '0', 10) || 0;
+            const initialWeight = parseInt(input.getAttribute('data-initial-weight') ?? String(weight), 10);
+            if (weight !== initialWeight) hasChanged = true;
             const pctNum = total > 0 ? (weight * 100) / total : 0;
             const label = document.querySelector(`.rarity-percent[data-rarity-id="${rarityId}"]`);
             const bar = document.querySelector(`.rarity-bar[data-rarity-id="${rarityId}"]`);
             if (label) label.textContent = pctNum.toFixed(2) + '%';
             if (bar) bar.style.width = pctNum.toFixed(2) + '%';
         });
+
+        const saveBtn = document.getElementById('btn-save-rarity-weights');
+        if (saveBtn) saveBtn.disabled = !hasChanged;
     };
 
     window.updateFormattedNumberPreview = function () {
@@ -591,7 +771,9 @@
             return;
         }
         const formatted = String(cardNum).padStart(3, '0') + ' / ' + String(baseTotal).padStart(3, '0');
-        previewEl.textContent = cardNum > baseTotal ? `${formatted} ★` : formatted;
+        previewEl.innerHTML = cardNum > baseTotal
+            ? `<span>${formatted}</span><span class="text-amber-400 ml-1">★</span>`
+            : formatted;
     };
 
     window.uploadSelectedImageToCloudinary = async function (fileInputId, urlInputId, cardNumberInputId) {
@@ -617,42 +799,57 @@
         window.showToast('success', 'Tải ảnh thành công', 'Đã cập nhật đường dẫn hình ảnh thẻ bài.');
     };
 
-    // ==================== 7. AJAX DELETE HANDLERS (TAB 1, 2, 3, 4 — KHÔNG RELOAD) ====================
-    window.deleteCardSet = async function (setId, setName) {
-        if (!confirm(`Xác nhận xóa hoặc ẩn bộ sưu tập "${setName}"?`)) return;
-        const res = await fetch(`/api/v1/admin/card-sets/${setId}`, { method: 'DELETE' });
+    // ==================== 7. AJAX ẨN / HIỆN & XÓA HANDLERS (TAB 1, 2, 3, 4 — KHÔNG RELOAD) ====================
+    window.toggleCardSetVisibility = async function (setId, setName, nextActive) {
+        const confirmMsg = nextActive
+            ? `Xác nhận mở bán hiện lại bộ sưu tập "${setName}" trên Cửa hàng?`
+            : `Xác nhận ẩn bộ sưu tập "${setName}" khỏi Cửa hàng?`;
+        if (!confirm(confirmMsg)) return;
+
+        const res = await fetch(`/api/v1/admin/card-sets/${setId}/active`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ active: nextActive })
+        });
         const data = await res.json();
         if (!res.ok) {
-            window.showToast('error', 'Không thể xóa bộ sưu tập', data.message || 'Vui lòng thử lại.');
+            window.showToast('error', 'Không thể cập nhật bộ sưu tập', data.message || 'Vui lòng thử lại.');
             return;
         }
-        window.showToast('success', 'Cập nhật thành công', data.message);
+        window.showToast('success', nextActive ? 'Đã hiện lại bộ sưu tập' : 'Đã ẩn bộ sưu tập',
+            nextActive ? `Bộ "${setName}" đã mở bán trở lại.` : `Bộ "${setName}" đã được ẩn khỏi Cửa hàng.`);
 
         const row = document.getElementById(`set-row-${setId}`);
         const switcher = document.getElementById('admin-set-switcher');
-        if (data.softDeleted) {
-            const statusCell = row?.querySelector('.set-status-cell');
-            if (statusCell) {
-                statusCell.innerHTML = '<span class="inline-flex items-center rounded-full bg-slate-500/20 px-2.5 py-0.5 text-[11px] font-bold pk-text-secondary">Đã ẩn</span>';
-            }
-            if (switcher) {
-                const opt = Array.from(switcher.options).find(o => o.value === String(setId));
-                if (opt && !opt.textContent.includes('[Đã ẩn]')) {
-                    opt.textContent = opt.textContent.trim() + ' [Đã ẩn]';
-                    syncCustomSelectUI(switcher);
-                }
-            }
-            const activeConfigId = document.getElementById('config-set-id')?.value;
-            if (activeConfigId === String(setId)) {
-                const cb = document.getElementById('config-set-active');
-                if (cb) cb.checked = false;
-            }
-        } else {
-            row?.remove();
-            updateCardSetsCountUI();
-            removeOptionFromSelects(['admin-set-switcher'], setId);
+        const statusCell = row?.querySelector('.set-status-cell');
+        if (statusCell) {
+            statusCell.innerHTML = nextActive
+                ? '<span class="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Đang mở</span>'
+                : '<span class="inline-flex items-center rounded-full bg-slate-500/20 px-2.5 py-0.5 text-[11px] font-bold pk-text-secondary">Đã ẩn</span>';
         }
+        const toggleBtn = row?.querySelector('.set-toggle-btn');
+        if (toggleBtn) {
+            toggleBtn.setAttribute('data-active', String(nextActive));
+            toggleBtn.textContent = nextActive ? 'Ẩn bộ' : 'Hiện lại';
+            toggleBtn.className = `set-toggle-btn text-xs font-bold ${nextActive ? 'text-rose-500' : 'text-emerald-500'} hover:underline cursor-pointer`;
+        }
+        if (switcher) {
+            const opt = Array.from(switcher.options).find(o => o.value === String(setId));
+            if (opt) {
+                const cleanText = opt.textContent.replace(/\s*\[Đã ẩn\]\s*$/, '').trim();
+                opt.textContent = nextActive ? cleanText : `${cleanText} [Đã ẩn]`;
+                syncCustomSelectUI(switcher);
+            }
+        }
+        const activeConfigId = document.getElementById('config-set-id')?.value;
+        if (activeConfigId === String(setId)) {
+            const cb = document.getElementById('config-set-active');
+            if (cb) cb.checked = nextActive;
+        }
+        highlightElementBriefly(row);
     };
+
+    window.deleteCardSet = window.toggleCardSetVisibility;
 
     window.deleteRarity = async function (rarityId, rarityName) {
         if (!confirm(`Xác nhận xóa độ hiếm "${rarityName}"?`)) return;
@@ -669,36 +866,63 @@
 
         const listEl = document.getElementById('rarities-list');
         if (listEl && listEl.querySelectorAll('[id^="rarity-card-"]').length === 0 && !document.getElementById('rarities-empty-row')) {
-            const emptyDiv = document.createElement('div');
-            emptyDiv.id = 'rarities-empty-row';
-            emptyDiv.className = 'pk-surface-elevated rounded-2xl p-6 text-center text-xs pk-text-secondary';
-            emptyDiv.textContent = 'Chưa có độ hiếm nào. Hãy bấm "+ Thêm Độ Hiếm Mới" để khởi tạo!';
-            listEl.appendChild(emptyDiv);
+            const emptyTr = document.createElement('tr');
+            emptyTr.id = 'rarities-empty-row';
+            emptyTr.innerHTML = '<td colspan="4" class="px-4 py-6 text-center text-xs pk-text-secondary">Chưa có độ hiếm nào. Hãy bấm "+ Thêm Độ Hiếm" để khởi tạo!</td>';
+            listEl.appendChild(emptyTr);
         }
     };
 
-    window.deleteCardTemplate = async function (cardId, cardName) {
-        if (!confirm(`Xác nhận xóa/ẩn thẻ bài "${cardName}"? (Nếu người chơi đã sở hữu, thẻ sẽ tự động ẩn khỏi Gacha và vẫn giữ trong Kho đồ)`)) return;
+    window.toggleCardTemplateVisibility = async function (cardId, cardName, nextActive) {
+        const confirmMsg = nextActive
+            ? `Xác nhận hiện lại thẻ bài "${cardName}" trong danh sách Gacha?`
+            : `Xác nhận ẩn thẻ bài "${cardName}" khỏi Gacha? (Các bản sao người chơi đã sở hữu vẫn được giữ nguyên trong Kho đồ)`;
+        if (!confirm(confirmMsg)) return;
         const setId = document.getElementById('card-set-id').value;
-        const res = await fetch(`/api/v1/admin/card-sets/${setId}/cards/${cardId}`, { method: 'DELETE' });
+        const res = await fetch(`/api/v1/admin/card-sets/${setId}/cards/${cardId}/active`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ active: nextActive })
+        });
         const data = await res.json();
         if (!res.ok) {
-            window.showToast('error', 'Không thể xóa thẻ bài', data.message || 'Vui lòng thử lại.');
+            window.showToast('error', 'Không thể cập nhật trạng thái thẻ', data.message || 'Vui lòng thử lại.');
             return;
         }
-        window.showToast('success', 'Hoàn tất', data.message);
+        window.showToast('success', nextActive ? 'Đã hiện lại thẻ bài' : 'Đã ẩn thẻ bài',
+            nextActive ? `Thẻ "${cardName}" đã xuất hiện trở lại trong Gacha.` : `Thẻ "${cardName}" đã được ẩn khỏi Gacha.`);
 
         const row = document.getElementById(`card-row-${cardId}`);
-        if (data.softDeleted) {
-            const statusCell = row?.querySelector('.card-status-cell');
-            if (statusCell) {
-                statusCell.innerHTML = '<span class="rounded-full bg-slate-500/20 px-2.5 py-0.5 text-[11px] font-bold pk-text-secondary">Đã ẩn</span>';
-            }
-            highlightElementBriefly(row);
-        } else {
-            row?.remove();
-            updateCardTemplatesCountUI();
+        const statusCell = row?.querySelector('.card-status-cell');
+        if (statusCell) {
+            statusCell.innerHTML = nextActive
+                ? '<span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400"><span class="h-2 w-2 rounded-full bg-emerald-500"></span><span>Đang hiện</span></span>'
+                : '<span class="inline-flex items-center gap-1.5 text-[11px] font-bold pk-text-secondary"><span class="h-2 w-2 rounded-full bg-slate-400"></span><span>Đã ẩn</span></span>';
         }
+        const toggleBtn = row?.querySelector('.card-toggle-btn');
+        if (toggleBtn) {
+            toggleBtn.dataset.active = String(nextActive);
+            toggleBtn.textContent = nextActive ? 'Ẩn thẻ' : 'Hiện lại';
+            toggleBtn.className = `card-toggle-btn font-bold ${nextActive ? 'text-rose-500' : 'text-emerald-500'} hover:underline cursor-pointer`;
+        }
+        highlightElementBriefly(row);
+    };
+
+    window.deleteCardTemplate = window.toggleCardTemplateVisibility;
+
+    window.resetSetDailySales = async function (setId) {
+        if (!confirm('Xác nhận reset toàn bộ lượt bán Pack & Box hôm nay của bộ này về 0? Thao tác này sẽ khôi phục đầy đủ hạn mức bán trong ngày.')) return;
+        const res = await fetch(`/api/v1/admin/card-sets/${setId}/reset-daily-sales`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+            window.showToast('error', 'Không thể reset hạn mức', data.message || 'Vui lòng thử lại.');
+            return;
+        }
+        const pEl = document.getElementById('admin-packs-sold-today');
+        const bEl = document.getElementById('admin-boxes-sold-today');
+        if (pEl) pEl.textContent = '0';
+        if (bEl) bEl.textContent = '0';
+        window.showToast('success', 'Đã reset hạn mức hôm nay!', data.message);
     };
 
     window.deleteSingleSealedBox = async function (boxId, boxCode) {
@@ -735,7 +959,7 @@
             : '';
 
         const lockBtn = isSelf
-            ? '<button type="button" disabled title="Không thể tự khóa tài khoản của chính mình" class="pk-surface rounded-lg px-2.5 py-1 text-[11px] font-bold pk-text-muted opacity-50 cursor-not-allowed">Khóa</button>'
+            ? '<span title="Bạn không thể tự khóa tài khoản của chính mình" class="inline-block cursor-not-allowed"><button type="button" disabled class="pointer-events-none pk-surface rounded-lg px-2.5 py-1 text-[11px] font-bold pk-text-muted opacity-45">Khóa</button></span>'
             : `<button type="button"
                        onclick="window.toggleUserLock(${Number(u.id)}, ${!isLocked})"
                        class="pk-surface rounded-lg px-2.5 py-1 text-[11px] font-bold ${isLocked ? 'text-emerald-600' : 'text-rose-600'} hover:opacity-80 cursor-pointer whitespace-nowrap">
@@ -744,12 +968,17 @@
 
         const nextRole = isAdmin ? 'ROLE_USER' : 'ROLE_ADMIN';
         const roleBtn = isSelf
-            ? '<button type="button" disabled title="Không thể tự đổi quyền của chính mình" class="pk-surface rounded-lg px-2.5 py-1 text-[11px] font-bold pk-text-muted opacity-50 cursor-not-allowed">Đổi quyền</button>'
+            ? '<span title="Bạn không thể tự hạ quyền tài khoản của chính mình" class="inline-block cursor-not-allowed"><button type="button" disabled class="pointer-events-none pk-surface rounded-lg px-2.5 py-1 text-[11px] font-bold pk-text-muted opacity-45">Đổi quyền</button></span>'
             : `<button type="button"
                        onclick="window.toggleUserRole(${Number(u.id)}, '${nextRole}')"
                        class="pk-surface rounded-lg px-2.5 py-1 text-[11px] font-bold pk-text-primary hover:opacity-80 cursor-pointer whitespace-nowrap">
                    ${isAdmin ? 'Hạ USER' : 'Lên ADMIN'}
                </button>`;
+
+        const lockedAmount = Number(u.lockedBalance || 0);
+        const lockedHtml = lockedAmount > 0
+            ? `<div class="text-[11px] pk-text-secondary">Cọc: ${window.formatVND(lockedAmount)}</div>`
+            : '';
 
         tr.innerHTML = `
             <td class="px-4 py-3">
@@ -758,23 +987,24 @@
             </td>
             <td class="px-4 py-3 text-center whitespace-nowrap">${roleBadge}</td>
             <td class="px-4 py-3 text-right pk-num text-xs whitespace-nowrap">
-                <div class="font-extrabold text-emerald-600">${window.formatVND(u.balance)}</div>
-                <div class="text-[11px] pk-text-secondary">Cọc: ${window.formatVND(u.lockedBalance)}</div>
+                <div class="font-extrabold text-amber-600 dark:text-amber-400">${window.formatVND(u.balance)}</div>
+                ${lockedHtml}
             </td>
             <td class="px-4 py-3 text-center pk-num font-bold pk-text-primary">${Number(u.totalCardsOwned || 0)}</td>
             <td class="px-4 py-3 text-center whitespace-nowrap">${statusBadge}</td>
-            <td class="px-4 py-3 text-right whitespace-nowrap">
-                <div class="inline-flex items-center justify-end gap-1.5">
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+                <div class="inline-flex items-center justify-center gap-1.5">
                     ${lockBtn}
                     ${roleBtn}
                     <button type="button"
                             data-id="${Number(u.id)}"
                             data-username="${esc(u.username)}"
                             data-balance="${Number(u.balance || 0)}"
-                            data-locked-balance="${Number(u.lockedBalance || 0)}"
+                            data-locked-balance="${lockedAmount}"
                             onclick="window.openUserWalletModal(parseInt(this.dataset.id,10), this.dataset.username, parseFloat(this.dataset.balance), parseFloat(this.dataset.lockedBalance))"
-                            class="pk-surface rounded-lg px-2.5 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:opacity-80 cursor-pointer whitespace-nowrap">
-                        Ví &amp; Lịch sử
+                            class="pk-surface inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:opacity-80 cursor-pointer whitespace-nowrap">
+                        <svg class="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+                        <span>± Ví</span>
                     </button>
                 </div>
             </td>
@@ -814,6 +1044,11 @@
 
             const totalEl = document.getElementById('admin-users-total');
             if (totalEl) totalEl.textContent = `${totalElements} người dùng`;
+
+            const paginationBar = document.getElementById('users-pagination-bar');
+            if (paginationBar) {
+                paginationBar.classList.toggle('hidden', adminUsersTotalPages <= 1);
+            }
 
             const pageInfoEl = document.getElementById('users-pagination-info');
             if (pageInfoEl) pageInfoEl.textContent = `Trang ${adminUsersPage + 1} / ${adminUsersTotalPages}`;
@@ -891,22 +1126,31 @@
         const div = document.createElement('div');
         div.className = 'p-3 flex flex-wrap items-start justify-between gap-2';
         const timeStr = tx.createdAt ? String(tx.createdAt).replace('T', ' ').substring(0, 19) : '---';
+        const isSettlement = tx.type === 'AUCTION_SETTLEMENT';
         const isDebit = ['PURCHASE_PACK', 'PURCHASE_BOX', 'AUCTION_BID_HOLD', 'MARKET_PURCHASE'].includes(tx.type)
             || (tx.type === 'ADMIN_ADJUSTMENT' && (tx.description || '').includes('Trừ bù'));
-        const sign = isDebit ? '-' : '+';
-        const amountClass = isDebit ? 'text-rose-600' : 'text-emerald-600';
+
+        let amountClass = 'text-emerald-600 dark:text-emerald-400';
+        let amountText = `+${window.formatVND(tx.amount)}`;
+        if (isSettlement) {
+            amountClass = 'text-slate-500 dark:text-slate-300';
+            amountText = `${window.formatVND(tx.amount)} (từ cọc)`;
+        } else if (isDebit) {
+            amountClass = 'text-rose-600 dark:text-rose-400';
+            amountText = `-${window.formatVND(tx.amount)}`;
+        }
 
         div.innerHTML = `
             <div class="min-w-0 flex-1 space-y-0.5">
                 <div class="flex flex-wrap items-center gap-1.5">
                     <span class="rounded-md pk-surface px-1.5 py-0.5 text-[10px] font-bold pk-text-primary">${esc(tx.type)}</span>
                     <span class="pk-num text-[10px] pk-text-secondary">${esc(timeStr)}</span>
-                    <span class="text-[10px] font-bold ${tx.status === 'SUCCESS' ? 'text-emerald-600' : 'text-amber-600'}">${esc(tx.status)}</span>
+                    <span class="text-[10px] font-bold ${tx.status === 'SUCCESS' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}">${esc(tx.status)}</span>
                 </div>
                 <div class="text-xs pk-text-primary leading-snug break-words">${esc(tx.description || tx.vnpTxnRef)}</div>
             </div>
-            <div class="text-right pk-num shrink-0">
-                <div class="text-xs font-extrabold ${amountClass}">${sign}${window.formatVND(tx.amount)}</div>
+            <div class="text-right pk-num tabular-nums shrink-0">
+                <div class="text-xs font-extrabold ${amountClass}">${amountText}</div>
                 <div class="text-[10px] pk-text-secondary">Sau GD: ${window.formatVND(tx.balanceAfter)}</div>
             </div>
         `;
@@ -920,6 +1164,7 @@
         document.getElementById('wallet-modal-locked').textContent = window.formatVND(lockedBalance);
         document.getElementById('adjust-wallet-amount').value = '';
         document.getElementById('adjust-wallet-reason').value = '';
+        window.validateAdjustWalletForm();
 
         const listEl = document.getElementById('user-transactions-list');
         const countEl = document.getElementById('wallet-modal-tx-count');
@@ -954,6 +1199,20 @@
         window.recalculateRarityPercentages();
         window.updateFormattedNumberPreview();
         renderCardTemplatesPagination(1);
+
+        // Bind realtime validation cho các Modal forms
+        document.getElementById('form-create-set')?.addEventListener('input', () => {
+            window.updateNewSetBoxHint();
+            window.validateCreateSetForm();
+        });
+        document.getElementById('form-upsert-rarity')?.addEventListener('input', window.updateRarityModalPreview);
+        document.getElementById('form-upsert-rarity')?.addEventListener('change', window.updateRarityModalPreview);
+        document.getElementById('create-card-template-form')?.addEventListener('input', window.validateCreateCardForm);
+        document.getElementById('create-card-template-form')?.addEventListener('change', window.validateCreateCardForm);
+        document.getElementById('form-adjust-user-wallet')?.addEventListener('input', window.validateAdjustWalletForm);
+        window.validateCreateSetForm();
+        window.validateCreateCardForm();
+        window.validateAdjustWalletForm();
         try {
             const savedTab = sessionStorage.getItem('pk_admin_active_tab');
             if (savedTab && savedTab !== 'sets') {
@@ -1031,6 +1290,15 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+            const dailyPackLimit = parseInt(document.getElementById('config-daily-pack-limit')?.value || '200', 10);
+            const dailyBoxLimit = parseInt(document.getElementById('config-daily-box-limit')?.value || '15', 10);
+            if (res.ok) {
+                await fetch(`/api/v1/admin/card-sets/${setId}/daily-limits`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dailyPackLimit, dailyBoxLimit })
+                });
+            }
             const data = await res.json();
             if (!res.ok) {
                 window.showToast(res.status === 409 ? 'conflict' : 'error', 'Cập nhật thất bại', data.message);
@@ -1073,6 +1341,9 @@
                 window.showToast('error', 'Lỗi cập nhật tỷ lệ', data.message);
                 return;
             }
+            document.querySelectorAll('.rarity-weight-input').forEach(input => {
+                input.setAttribute('data-initial-weight', String(parseInt(input.value || '0', 10) || 0));
+            });
             sortRaritiesListByWeightDesc();
             window.recalculateRarityPercentages();
             window.showToast('success', 'Đã lưu tỷ lệ độ hiếm', 'Tỷ lệ rơi thẻ mới đã được áp dụng và sắp xếp theo trọng số giảm dần.');
@@ -1191,6 +1462,7 @@
 
             const newRow = buildCardRowElement(data);
             insertCardRowSorted(newRow, data.cardNumber);
+            window.closeModal('modal-create-card');
 
             const nameInput = document.getElementById('card-name');
             const fileInput = document.getElementById('card-image-file');

@@ -3,6 +3,8 @@ package com.pokemon.blindbox.dto.response;
 import com.pokemon.blindbox.entity.CardTemplate;
 import lombok.Builder;
 
+import java.math.BigDecimal;
+
 /**
  * DTO trả về thông tin khuôn mẫu thẻ bài.
  * Sử dụng Java 21 Record kết hợp hàm format số thứ tự thẻ chuẩn "098 / 103" hoặc "141 / 103".
@@ -23,6 +25,7 @@ public record CardTemplateResponseDTO(
         String rarityName,
         String rarityColorHex,
         Boolean rarityIsHolographic,
+        BigDecimal rarityBuybackPrice,
         Long speciesId,
         String speciesName,
         Boolean isBetaSpecies,
@@ -62,6 +65,9 @@ public record CardTemplateResponseDTO(
                 .rarityName(entity.getRarity().getName())
                 .rarityColorHex(entity.getRarity().getColorHex())
                 .rarityIsHolographic(Boolean.TRUE.equals(entity.getRarity().getIsHolographic()))
+                .rarityBuybackPrice(entity.getRarity().getBuybackPrice() != null
+                        ? entity.getRarity().getBuybackPrice()
+                        : new BigDecimal("5.00"))
                 .speciesId(entity.getCardSpecies().getId())
                 .speciesName(entity.getCardSpecies().getName())
                 .isBetaSpecies(entity.getCardSpecies().getIsBeta())

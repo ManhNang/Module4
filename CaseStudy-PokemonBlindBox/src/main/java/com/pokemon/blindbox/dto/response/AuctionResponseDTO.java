@@ -1,7 +1,9 @@
 package com.pokemon.blindbox.dto.response;
 
 import com.pokemon.blindbox.entity.Auction;
+import com.pokemon.blindbox.entity.UserSealedItem;
 import com.pokemon.blindbox.entity.enums.AuctionStatus;
+import com.pokemon.blindbox.entity.enums.MarketItemType;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -11,7 +13,14 @@ import java.time.LocalDateTime;
 public record AuctionResponseDTO(
         Long id,
         Long sellerId,
+        MarketItemType itemType,
         Long userCardId,
+        Long sealedItemId,
+        Long sealedSetId,
+        String sealedSetName,
+        String sealedSetCode,
+        Integer sealedCardsPerPack,
+        Integer sealedPacksPerBox,
         BigDecimal startingPrice,
         BigDecimal minBidIncrement,
         BigDecimal currentHighestBid,
@@ -22,10 +31,23 @@ public record AuctionResponseDTO(
         CardTemplateResponseDTO card
 ) {
     public static AuctionResponseDTO fromEntity(Auction auction) {
+        MarketItemType type = auction.getItemType() != null ? auction.getItemType() : MarketItemType.CARD;
+        UserSealedItem sealed = auction.getSealedItem();
+        CardTemplateResponseDTO cardDto = (auction.getUserCard() != null && auction.getUserCard().getCardTemplate() != null)
+                ? CardTemplateResponseDTO.fromEntity(auction.getUserCard().getCardTemplate())
+                : null;
+
         return AuctionResponseDTO.builder()
                 .id(auction.getId())
                 .sellerId(auction.getSellerId())
-                .userCardId(auction.getUserCard().getId())
+                .itemType(type)
+                .userCardId(auction.getUserCard() != null ? auction.getUserCard().getId() : null)
+                .sealedItemId(sealed != null ? sealed.getId() : null)
+                .sealedSetId(sealed != null && sealed.getCardSet() != null ? sealed.getCardSet().getId() : null)
+                .sealedSetName(sealed != null && sealed.getCardSet() != null ? sealed.getCardSet().getName() : null)
+                .sealedSetCode(sealed != null && sealed.getCardSet() != null ? sealed.getCardSet().getCode() : null)
+                .sealedCardsPerPack(sealed != null ? sealed.getCardsPerPack() : null)
+                .sealedPacksPerBox(sealed != null ? sealed.getPacksPerBox() : null)
                 .startingPrice(auction.getStartingPrice())
                 .minBidIncrement(auction.getMinBidIncrement())
                 .currentHighestBid(auction.getCurrentHighestBid())
@@ -33,7 +55,7 @@ public record AuctionResponseDTO(
                 .startTime(auction.getStartTime())
                 .endTime(auction.getEndTime())
                 .status(auction.getStatus())
-                .card(CardTemplateResponseDTO.fromEntity(auction.getUserCard().getCardTemplate()))
+                .card(cardDto)
                 .build();
     }
 }

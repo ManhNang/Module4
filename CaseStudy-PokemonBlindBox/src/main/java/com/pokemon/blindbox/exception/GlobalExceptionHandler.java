@@ -114,10 +114,14 @@ public class GlobalExceptionHandler {
             fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
 
+        String detailedMessage = fieldErrors.isEmpty()
+                ? "Dữ liệu đầu vào không hợp lệ."
+                : String.join(" • ", fieldErrors.values());
+
         ApiErrorResponse body = ApiErrorResponse.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
                 .errorCode("VALIDATION_FAILED")
-                .message("Dữ liệu đầu vào không hợp lệ.")
+                .message(detailedMessage)
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .fieldErrors(fieldErrors)
