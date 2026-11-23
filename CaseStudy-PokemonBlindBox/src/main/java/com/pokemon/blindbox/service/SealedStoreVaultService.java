@@ -1,6 +1,7 @@
 package com.pokemon.blindbox.service;
 
 import com.pokemon.blindbox.config.RedisCacheConfig;
+import com.pokemon.blindbox.dto.response.CardSetResponseDTO;
 import com.pokemon.blindbox.dto.response.CardTemplateResponseDTO;
 import com.pokemon.blindbox.dto.response.RarityResponseDTO;
 import com.pokemon.blindbox.dto.response.UserCardResponseDTO;
@@ -19,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -41,7 +41,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class SealedStoreVaultService {
 
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final BigDecimal BOX_DISCOUNT_MULTIPLIER = new BigDecimal("0.9");
 
     private final CardSetRepository cardSetRepository;
@@ -58,6 +57,8 @@ public class SealedStoreVaultService {
             Long setId,
             String setName,
             String setCode,
+            String packImageUrl,
+            String boxImageUrl,
             Integer baseSetTotal,
             Integer cardsPerPack,
             Integer packsPerBox,
@@ -76,6 +77,8 @@ public class SealedStoreVaultService {
             Long setId,
             String setName,
             String setCode,
+            String packImageUrl,
+            String boxImageUrl,
             Integer cardsPerPack,
             Integer packsPerBox,
             BigDecimal packPrice,
@@ -93,6 +96,8 @@ public class SealedStoreVaultService {
             Long setId,
             String setName,
             String setCode,
+            String packImageUrl,
+            String boxImageUrl,
             SealedItemType itemType,
             Integer cardsPerPack,
             Integer packsPerBox,
@@ -114,28 +119,31 @@ public class SealedStoreVaultService {
         Map<Long, SetDailySale> todaySales = setDailySaleRepository.findBySaleDate(today).stream()
                 .collect(Collectors.toMap(s -> s.getCardSet().getId(), s -> s));
 
-        return cardSetRepository.findAll().stream()
-                .filter(cs -> cs.getIsActive() == null || cs.getIsActive())
-                .sorted(Comparator.comparing(CardSet::getId))
+        List<CardSetResponseDTO> cachedSets = catalogCacheService.getAllCardSets();
+        return cachedSets.stream()
+                .filter(cs -> cs.isActive() == null || cs.isActive())
+                .sorted(Comparator.comparing(CardSetResponseDTO::id))
                 .map(cs -> {
-                    int cardsPerPack = cs.getCardsPerPack() != null && cs.getCardsPerPack() > 0 ? cs.getCardsPerPack() : 6;
-                    int packsPerBox = cs.getPacksPerBox() != null && cs.getPacksPerBox() > 0 ? cs.getPacksPerBox() : 20;
-                    BigDecimal packPrice = cs.getPackPrice() != null ? cs.getPackPrice() : new BigDecimal("450.00");
+                    int cardsPerPack = cs.cardsPerPack() != null && cs.cardsPerPack() > 0 ? cs.cardsPerPack() : 6;
+                    int packsPerBox = cs.packsPerBox() != null && cs.packsPerBox() > 0 ? cs.packsPerBox() : 20;
+                    BigDecimal packPrice = cs.packPrice() != null ? cs.packPrice() : new BigDecimal("450.00");
                     BigDecimal boxOriginal = packPrice.multiply(BigDecimal.valueOf(packsPerBox)).setScale(2, RoundingMode.HALF_UP);
                     BigDecimal boxDiscounted = computeDiscountedBoxPrice(packPrice, packsPerBox);
 
-                    int packLimit = cs.getDailyPackLimit() != null ? cs.getDailyPackLimit() : 200;
-                    int boxLimit = cs.getDailyBoxLimit() != null ? cs.getDailyBoxLimit() : 15;
+                    int packLimit = cs.dailyPackLimit() != null ? cs.dailyPackLimit() : 200;
+                    int boxLimit = cs.dailyBoxLimit() != null ? cs.dailyBoxLimit() : 15;
 
-                    SetDailySale sale = todaySales.get(cs.getId());
+                    SetDailySale sale = todaySales.get(cs.id());
                     int packsSold = sale != null ? sale.getPacksSold() : 0;
                     int boxesSold = sale != null ? sale.getBoxesSold() : 0;
 
                     return new StoreSetCatalogItem(
-                            cs.getId(),
-                            cs.getName(),
-                            cs.getCode(),
-                            cs.getBaseSetTotal(),
+                            cs.id(),
+                            cs.name(),
+                            cs.code(),
+                            cs.packImageUrl(),
+                            cs.boxImageUrl(),
+                            cs.baseSetTotal(),
                             cardsPerPack,
                             packsPerBox,
                             packPrice,
@@ -160,6 +168,8 @@ public class SealedStoreVaultService {
 
     /**
      * Mua Pack lẻ tại Cửa hàng -> cộng trực tiếp vào Kho đồ (UserSealedItem).
+     * P1-6: Dùng INSERT IGNORE + Atomic Conditional UPDATE để tránh giữ khóa PESSIMISTIC_WRITE
+     * trên dòng hot-row set_daily_sales suốt thời gian trừ tiền ví & ghi lịch sử.
      */
     @Transactional
     public Map<String, Object> buyPacksFromStore(Long userId, Long setId, int quantity) {
@@ -173,10 +183,14 @@ public class SealedStoreVaultService {
         }
 
         LocalDate today = LocalDate.now();
-        SetDailySale dailySale = lockOrCreateDailySale(cardSet, today);
         int limit = cardSet.getDailyPackLimit() != null ? cardSet.getDailyPackLimit() : 200;
-        int remaining = limit - dailySale.getPacksSold();
-        if (quantity > remaining) {
+        setDailySaleRepository.initDailySaleIfAbsent(setId, today);
+        int updated = setDailySaleRepository.incrementPacksSoldAtomically(setId, today, quantity, limit);
+        if (updated == 0) {
+            int currentSold = setDailySaleRepository.findByCardSetIdAndSaleDate(setId, today)
+                    .map(SetDailySale::getPacksSold)
+                    .orElse(limit);
+            int remaining = Math.max(0, limit - currentSold);
             throw new BusinessValidationException(remaining <= 0
                     ? "Đã hết suất Pack hôm nay cho bộ " + cardSet.getName() + "! Hãy tìm mua trên Chợ."
                     : "Chỉ còn " + remaining + " Pack hôm nay cho bộ " + cardSet.getName() + "!");
@@ -198,9 +212,6 @@ public class SealedStoreVaultService {
                 String.format("Mua %d Pack bộ %s (%s) vào Kho đồ", quantity, cardSet.getName(), cardSet.getCode())
         );
 
-        dailySale.setPacksSold(dailySale.getPacksSold() + quantity);
-        setDailySaleRepository.saveAndFlush(dailySale);
-
         List<UserSealedItem> items = new ArrayList<>(quantity);
         LocalDateTime now = LocalDateTime.now();
         for (int i = 0; i < quantity; i++) {
@@ -217,7 +228,10 @@ public class SealedStoreVaultService {
         }
         userSealedItemRepository.saveAll(items);
 
-        int newRemaining = Math.max(0, limit - dailySale.getPacksSold());
+        int packsSoldToday = setDailySaleRepository.findByCardSetIdAndSaleDate(setId, today)
+                .map(SetDailySale::getPacksSold)
+                .orElse(quantity);
+        int newRemaining = Math.max(0, limit - packsSoldToday);
         log.info("User {} bought {} PACK(s) of set {} (remaining today: {})", userId, quantity, cardSet.getCode(), newRemaining);
 
         return Map.of(
@@ -228,7 +242,7 @@ public class SealedStoreVaultService {
                 "totalCost", totalCost,
                 "newWalletBalance", savedWallet.getBalance(),
                 "packsRemainingToday", newRemaining,
-                "packsSoldToday", dailySale.getPacksSold(),
+                "packsSoldToday", packsSoldToday,
                 "message", String.format("Đã mua %d Pack \"%s\" và lưu vào Kho đồ!", quantity, cardSet.getName())
         );
     }
@@ -248,10 +262,14 @@ public class SealedStoreVaultService {
         }
 
         LocalDate today = LocalDate.now();
-        SetDailySale dailySale = lockOrCreateDailySale(cardSet, today);
         int limit = cardSet.getDailyBoxLimit() != null ? cardSet.getDailyBoxLimit() : 15;
-        int remaining = limit - dailySale.getBoxesSold();
-        if (quantity > remaining) {
+        setDailySaleRepository.initDailySaleIfAbsent(setId, today);
+        int updated = setDailySaleRepository.incrementBoxesSoldAtomically(setId, today, quantity, limit);
+        if (updated == 0) {
+            int currentSold = setDailySaleRepository.findByCardSetIdAndSaleDate(setId, today)
+                    .map(SetDailySale::getBoxesSold)
+                    .orElse(limit);
+            int remaining = Math.max(0, limit - currentSold);
             throw new BusinessValidationException(remaining <= 0
                     ? "Đã hết suất Box hôm nay cho bộ " + cardSet.getName() + "! Hãy tìm mua trên Chợ."
                     : "Chỉ còn " + remaining + " Box hôm nay cho bộ " + cardSet.getName() + "!");
@@ -274,9 +292,6 @@ public class SealedStoreVaultService {
                 String.format("Mua %d Box nguyên seal (%d Pack/Box, -10%%) bộ %s vào Kho đồ", quantity, packsPerBox, cardSet.getName())
         );
 
-        dailySale.setBoxesSold(dailySale.getBoxesSold() + quantity);
-        setDailySaleRepository.saveAndFlush(dailySale);
-
         List<UserSealedItem> items = new ArrayList<>(quantity);
         LocalDateTime now = LocalDateTime.now();
         for (int i = 0; i < quantity; i++) {
@@ -293,7 +308,10 @@ public class SealedStoreVaultService {
         }
         userSealedItemRepository.saveAll(items);
 
-        int newRemaining = Math.max(0, limit - dailySale.getBoxesSold());
+        int boxesSoldToday = setDailySaleRepository.findByCardSetIdAndSaleDate(setId, today)
+                .map(SetDailySale::getBoxesSold)
+                .orElse(quantity);
+        int newRemaining = Math.max(0, limit - boxesSoldToday);
         log.info("User {} bought {} BOX(es) of set {} (remaining today: {})", userId, quantity, cardSet.getCode(), newRemaining);
 
         return Map.of(
@@ -304,50 +322,64 @@ public class SealedStoreVaultService {
                 "totalCost", totalCost,
                 "newWalletBalance", savedWallet.getBalance(),
                 "boxesRemainingToday", newRemaining,
-                "boxesSoldToday", dailySale.getBoxesSold(),
+                "boxesSoldToday", boxesSoldToday,
                 "message", String.format("Đã mua %d Box nguyên seal \"%s\" và lưu vào Kho đồ!", quantity, cardSet.getName())
         );
     }
 
     /**
      * Lấy danh sách Pack & Box trong Kho đồ của người chơi gom theo từng Bộ sưu tập.
+     * P1-6: Gom nhóm trực tiếp bằng câu lệnh JPQL GROUP BY (COUNT + MIN(id)) thay vì kéo hàng nghìn dòng vào RAM.
      */
     @Transactional(readOnly = true)
     public List<SealedSetVaultGroup> getUserSealedVaultGroups(Long userId) {
-        List<UserSealedItem> all = userSealedItemRepository.findByUserIdAndIsConsumedFalseOrderByAcquiredAtDesc(userId);
-        Map<Long, List<UserSealedItem>> bySet = all.stream()
-                .collect(Collectors.groupingBy(u -> u.getCardSet().getId(), LinkedHashMap::new, Collectors.toList()));
+        List<UserSealedItemRepository.SealedVaultAggProjection> rows =
+                userSealedItemRepository.aggregateVaultByUserId(userId);
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, List<UserSealedItemRepository.SealedVaultAggProjection>> bySet = rows.stream()
+                .collect(Collectors.groupingBy(
+                        UserSealedItemRepository.SealedVaultAggProjection::getSetId,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
 
         List<SealedSetVaultGroup> groups = new ArrayList<>();
-        for (List<UserSealedItem> list : bySet.values()) {
-            CardSet cs = list.getFirst().getCardSet();
-            int cardsPerPack = cs.getCardsPerPack() != null ? cs.getCardsPerPack() : 6;
-            int packsPerBox = cs.getPacksPerBox() != null ? cs.getPacksPerBox() : 20;
-            BigDecimal packPrice = cs.getPackPrice() != null ? cs.getPackPrice() : new BigDecimal("450.00");
+        for (List<UserSealedItemRepository.SealedVaultAggProjection> list : bySet.values()) {
+            UserSealedItemRepository.SealedVaultAggProjection head = list.getFirst();
+            int cardsPerPack = head.getSetCardsPerPack() != null ? head.getSetCardsPerPack() : 6;
+            int packsPerBox = head.getSetPacksPerBox() != null ? head.getSetPacksPerBox() : 20;
+            BigDecimal packPrice = head.getPackPrice() != null ? head.getPackPrice() : new BigDecimal("450.00");
             BigDecimal boxPrice = computeDiscountedBoxPrice(packPrice, packsPerBox);
 
             long availPacks = 0, lockedPacks = 0, availBoxes = 0, lockedBoxes = 0;
             Long firstAvailPackId = null, firstAvailBoxId = null;
 
-            for (UserSealedItem item : list) {
-                boolean locked = Boolean.TRUE.equals(item.getIsLocked());
-                if (item.getItemType() == SealedItemType.PACK) {
-                    if (locked) lockedPacks++;
-                    else {
-                        availPacks++;
-                        if (firstAvailPackId == null) firstAvailPackId = item.getId();
+            for (UserSealedItemRepository.SealedVaultAggProjection r : list) {
+                boolean locked = Boolean.TRUE.equals(r.getIsLocked());
+                long count = r.getTotalCount() != null ? r.getTotalCount() : 0L;
+                if (r.getItemType() == SealedItemType.PACK) {
+                    if (locked) {
+                        lockedPacks += count;
+                    } else {
+                        availPacks += count;
+                        if (firstAvailPackId == null) firstAvailPackId = r.getFirstItemId();
                     }
                 } else {
-                    if (locked) lockedBoxes++;
-                    else {
-                        availBoxes++;
-                        if (firstAvailBoxId == null) firstAvailBoxId = item.getId();
+                    if (locked) {
+                        lockedBoxes += count;
+                    } else {
+                        availBoxes += count;
+                        if (firstAvailBoxId == null) firstAvailBoxId = r.getFirstItemId();
                     }
                 }
             }
 
             groups.add(new SealedSetVaultGroup(
-                    cs.getId(), cs.getName(), cs.getCode(),
+                    head.getSetId(), head.getSetName(), head.getSetCode(),
+                    head.getPackImageUrl(), head.getBoxImageUrl(),
                     cardsPerPack, packsPerBox, packPrice, boxPrice,
                     availPacks, lockedPacks, availBoxes, lockedBoxes,
                     firstAvailPackId, firstAvailBoxId
@@ -358,38 +390,44 @@ public class SealedStoreVaultService {
 
     /**
      * Lấy danh sách Pack & Box sẵn sàng đưa lên Chợ (gom theo Bộ + Loại) cho Popup Đăng bán.
+     * P1-6: Tái sử dụng kết quả GROUP BY từ DB thay vì load toàn bộ entity UserSealedItem.
      */
     @Transactional(readOnly = true)
     public List<SealedMarketOption> getSellableSealedOptions(Long userId) {
-        List<UserSealedItem> unlocked = userSealedItemRepository
-                .findByUserIdAndIsConsumedFalseAndIsLockedFalseOrderByAcquiredAtDesc(userId);
-
-        Map<String, List<UserSealedItem>> grouped = unlocked.stream()
-                .collect(Collectors.groupingBy(
-                        u -> u.getCardSet().getId() + "_" + u.getItemType().name(),
-                        LinkedHashMap::new,
-                        Collectors.toList()
-                ));
+        List<UserSealedItemRepository.SealedVaultAggProjection> rows =
+                userSealedItemRepository.aggregateVaultByUserId(userId);
+        if (rows == null || rows.isEmpty()) {
+            return List.of();
+        }
 
         List<SealedMarketOption> result = new ArrayList<>();
-        for (List<UserSealedItem> items : grouped.values()) {
-            UserSealedItem first = items.getFirst();
-            CardSet cs = first.getCardSet();
-            int packsPerBox = first.getPacksPerBox() != null ? first.getPacksPerBox() : 20;
-            BigDecimal refPrice = first.getItemType() == SealedItemType.BOX
-                    ? computeDiscountedBoxPrice(cs.getPackPrice(), packsPerBox)
-                    : cs.getPackPrice();
+        for (UserSealedItemRepository.SealedVaultAggProjection r : rows) {
+            if (Boolean.TRUE.equals(r.getIsLocked())) {
+                continue;
+            }
+            long qty = r.getTotalCount() != null ? r.getTotalCount() : 0L;
+            if (qty <= 0 || r.getFirstItemId() == null) {
+                continue;
+            }
+            int cardsPerPack = r.getSetCardsPerPack() != null ? r.getSetCardsPerPack() : 6;
+            int packsPerBox = r.getSetPacksPerBox() != null ? r.getSetPacksPerBox() : 20;
+            BigDecimal packPrice = r.getPackPrice() != null ? r.getPackPrice() : new BigDecimal("450.00");
+            BigDecimal refPrice = r.getItemType() == SealedItemType.BOX
+                    ? computeDiscountedBoxPrice(packPrice, packsPerBox)
+                    : packPrice;
 
             result.add(new SealedMarketOption(
-                    first.getId(),
-                    cs.getId(),
-                    cs.getName(),
-                    cs.getCode(),
-                    first.getItemType(),
-                    first.getCardsPerPack(),
+                    r.getFirstItemId(),
+                    r.getSetId(),
+                    r.getSetName(),
+                    r.getSetCode(),
+                    r.getPackImageUrl(),
+                    r.getBoxImageUrl(),
+                    r.getItemType(),
+                    cardsPerPack,
                     packsPerBox,
                     refPrice,
-                    items.size()
+                    qty
             ));
         }
         return result;
@@ -455,11 +493,12 @@ public class SealedStoreVaultService {
         }
 
         List<RarityResponseDTO> cachedRarities = catalogCacheService.getAllRaritiesWithWeights();
-        List<WeightedPool> activePools = buildActivePools(setId, cachedRarities);
+        List<GachaEngineService.WeightedRarityPool> activePools =
+                GachaEngineService.buildActiveRarityPools(catalogCacheService, setId, cachedRarities);
         if (activePools.isEmpty()) {
             throw new BusinessValidationException("Bộ sưu tập chưa có khuôn mẫu thẻ bài hợp lệ để mở Pack!");
         }
-        int totalWeight = activePools.stream().mapToInt(WeightedPool::dropWeight).sum();
+        int totalWeight = activePools.stream().mapToInt(GachaEngineService.WeightedRarityPool::dropWeight).sum();
 
         LocalDateTime now = LocalDateTime.now();
         List<UserCard> cardsToSave = new ArrayList<>();
@@ -469,8 +508,8 @@ public class SealedStoreVaultService {
             pack.setIsConsumed(true);
             int cardsPerPack = pack.getCardsPerPack() != null && pack.getCardsPerPack() > 0 ? pack.getCardsPerPack() : 6;
             for (int i = 0; i < cardsPerPack; i++) {
-                WeightedPool pool = rollPool(activePools, totalWeight);
-                CardTemplateResponseDTO dto = pool.templates().get(SECURE_RANDOM.nextInt(pool.templates().size()));
+                GachaEngineService.WeightedRarityPool pool = GachaEngineService.rollRarityPool(activePools, totalWeight);
+                CardTemplateResponseDTO dto = GachaEngineService.drawRandomTemplateFromPool(pool);
                 CardTemplate ref = cardTemplateRepository.getReferenceById(dto.id());
                 cardsToSave.add(UserCard.builder()
                         .userId(userId)
@@ -560,6 +599,7 @@ public class SealedStoreVaultService {
     }
 
     private SetDailySale lockOrCreateDailySale(CardSet cardSet, LocalDate today) {
+        setDailySaleRepository.initDailySaleIfAbsent(cardSet.getId(), today);
         return setDailySaleRepository.findByCardSetIdAndSaleDateForUpdate(cardSet.getId(), today)
                 .orElseGet(() -> setDailySaleRepository.saveAndFlush(SetDailySale.builder()
                         .cardSet(cardSet)
@@ -568,30 +608,4 @@ public class SealedStoreVaultService {
                         .boxesSold(0)
                         .build()));
     }
-
-    private List<WeightedPool> buildActivePools(Long setId, List<RarityResponseDTO> rarities) {
-        if (rarities == null || rarities.isEmpty()) return List.of();
-        List<WeightedPool> pools = new ArrayList<>();
-        for (RarityResponseDTO r : rarities) {
-            if (r.dropWeight() != null && r.dropWeight() > 0) {
-                List<CardTemplateResponseDTO> templates = catalogCacheService.getCardTemplatesBySetAndRarity(setId, r.id());
-                if (templates != null && !templates.isEmpty()) {
-                    pools.add(new WeightedPool(r.dropWeight(), templates));
-                }
-            }
-        }
-        return pools;
-    }
-
-    private WeightedPool rollPool(List<WeightedPool> pools, int totalWeight) {
-        int roll = SECURE_RANDOM.nextInt(totalWeight);
-        int cumulative = 0;
-        for (WeightedPool p : pools) {
-            cumulative += p.dropWeight();
-            if (roll < cumulative) return p;
-        }
-        return pools.getLast();
-    }
-
-    private record WeightedPool(int dropWeight, List<CardTemplateResponseDTO> templates) {}
 }

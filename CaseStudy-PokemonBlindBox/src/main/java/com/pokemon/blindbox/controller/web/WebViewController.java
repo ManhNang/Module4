@@ -114,6 +114,8 @@ public class WebViewController {
         model.addAttribute("sealedGroups", sealedGroups);
         model.addAttribute("totalSealedCount", totalSealedCount);
         model.addAttribute("templateCopyCounts", data.templateCopyCounts());
+        model.addAttribute("templateSellableCounts", data.templateSellableCounts());
+        model.addAttribute("totalCardCopies", data.totalCardCopies());
         model.addAttribute("unlockedCardCount", data.unlockedCardCount());
         model.addAttribute("listedCardCount", data.listedCardCount());
         model.addAttribute("progress", progress);
@@ -180,6 +182,10 @@ public class WebViewController {
         model.addAttribute("sellerNameMap", data.sellerNameMap());
         model.addAttribute("bidCountMap", data.bidCountMap());
         model.addAttribute("myCards", data.myCards());
+        model.addAttribute("myCardCopyCounts", data.myCardCopyCounts());
+        model.addAttribute("activeAuctionCount", data.activeCount());
+        model.addAttribute("mineAuctionCount", data.mineCount());
+        model.addAttribute("endedAuctionCount", data.endedCount());
         model.addAttribute("sellableSealed", sellableSealed);
         model.addAttribute("cardSets", data.cardSets());
         model.addAttribute("rarities", data.rarities());
@@ -245,11 +251,14 @@ public class WebViewController {
 
     /**
      * 5B. Trang Đảo Nuôi Dưỡng & Thám Hiểm 2.5D (Poke-Sanctuary Idle)
+     * Nạp sẵn trạng thái Đảo ngay từ SSR để trang hiển thị tức thì không bị chớp rỗng rồi ghi đè bằng AJAX.
      */
     @GetMapping("/sanctuary")
     public String sanctuaryPage(Model model) {
         Long userId = authUserProvider.getRequiredUserId();
+        Map<String, Object> initialSanctuaryState = sanctuaryService.getSanctuaryState(userId);
         populateCommonUserAndWallet(model, "sanctuary", userId);
+        model.addAttribute("initialSanctuaryState", initialSanctuaryState);
         return "sanctuary/index";
     }
 

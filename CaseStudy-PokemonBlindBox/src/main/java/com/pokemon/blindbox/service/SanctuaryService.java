@@ -2,11 +2,12 @@ package com.pokemon.blindbox.service;
 
 import com.pokemon.blindbox.dto.request.StartExpeditionRequest;
 import com.pokemon.blindbox.dto.response.CardTemplateResponseDTO;
+import com.pokemon.blindbox.dto.response.RarityResponseDTO;
 import com.pokemon.blindbox.dto.response.UserCardResponseDTO;
 import com.pokemon.blindbox.entity.*;
-import com.pokemon.blindbox.entity.enums.BoxStatus;
 import com.pokemon.blindbox.entity.enums.ExpeditionStatus;
-import com.pokemon.blindbox.entity.enums.PackStatus;
+import com.pokemon.blindbox.entity.enums.RevealEffect;
+import com.pokemon.blindbox.entity.enums.SealedItemType;
 import com.pokemon.blindbox.entity.enums.TransactionType;
 import com.pokemon.blindbox.exception.BusinessValidationException;
 import com.pokemon.blindbox.exception.ResourceNotFoundException;
@@ -23,6 +24,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
@@ -37,9 +39,11 @@ import java.util.*;
 public class SanctuaryService {
 
     public static final int MAX_ISLAND_SLOTS = 5;
+    public static final int MAX_ACTIVE_EXPEDITIONS = 2;
+    public static final int MAX_EXPEDITION_PACK_CHANCE = 75;
     public static final long HARVEST_TICK_SECONDS = 60L;
     public static final long MAX_ACCUMULATED_TICKS = 12L;
-    public static final BigDecimal DAILY_GAME_COIN_CAP = new BigDecimal("250.00");
+    public static final BigDecimal DAILY_GAME_COIN_CAP = new BigDecimal("1000.00");
 
     public static final String QUEST_HARVEST = "HARVEST_ONCE";
     public static final String QUEST_EXPEDITION = "EXPEDITION_ONCE";
@@ -61,8 +65,9 @@ public class SanctuaryService {
     private final UserCardRepository userCardRepository;
     private final WalletRepository walletRepository;
     private final WalletService walletService;
-    private final BoosterBoxRepository boosterBoxRepository;
-    private final BoosterPackRepository boosterPackRepository;
+    private final CardSetRepository cardSetRepository;
+    private final UserSealedItemRepository userSealedItemRepository;
+    private final RarityRepository rarityRepository;
 
     public record ExpeditionZoneConfig(
             String code,
@@ -124,12 +129,15 @@ public class SanctuaryService {
                 .orElse(BigDecimal.ZERO);
 
         List<UserCardResponseDTO> availableCards = userCardRepository
-                .findByUserIdOrderByAcquiredAtDesc(userId, PageRequest.of(0, 150))
-                .getContent()
+                .findUnlockedForSanctuary(userId)
                 .stream()
-                .filter(uc -> !Boolean.TRUE.equals(uc.getIsLocked()))
                 .filter(uc -> !islandCardIds.contains(uc.getId()))
                 .map(uc -> UserCardResponseDTO.fromEntity(uc, CardTemplateResponseDTO.fromEntity(uc.getCardTemplate())))
+                .toList();
+
+        List<RarityResponseDTO> rarities = rarityRepository.findAllByOrderByDropWeightDesc()
+                .stream()
+                .map(RarityResponseDTO::fromEntity)
                 .toList();
 
         BigDecimal walletBalance = walletRepository.findByUserId(userId)
@@ -139,6 +147,7 @@ public class SanctuaryService {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("serverTime", now.toString());
         result.put("maxSlots", MAX_ISLAND_SLOTS);
+        result.put("maxActiveExpeditions", MAX_ACTIVE_EXPEDITIONS);
         result.put("harvestTickSeconds", HARVEST_TICK_SECONDS);
         result.put("dailyCap", DAILY_GAME_COIN_CAP);
         result.put("dailyEarned", earnedToday);
@@ -147,15 +156,21 @@ public class SanctuaryService {
         result.put("slots", slotDtos);
         result.put("expeditions", expeditionDtos);
         result.put("quests", questDtos);
+        result.put("rarities", rarities);
         result.put("availableCards", availableCards);
         return result;
     }
 
     /**
      * Thả 1 thẻ bài từ Kho đồ lên Đảo (tối đa 5 thẻ).
+     * P0-1: Khóa dòng Wallet của người chơi để tuần tự hóa thao tác thả thẻ song song,
+     * và đặt lastHarvestAt = Instant.now() (chặn exploit thả-thu hoạch-gỡ 250 Xu/2 giây).
      */
     @Transactional
     public Map<String, Object> placeCardOnIsland(Long userId, Long userCardId) {
+        walletRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ví của người dùng."));
+
         if (sanctuarySlotRepository.countByUserId(userId) >= MAX_ISLAND_SLOTS) {
             throw new BusinessValidationException("Đảo đã đạt giới hạn tối đa " + MAX_ISLAND_SLOTS + " Pokémon! Hãy gỡ bớt trước khi thêm mới.");
         }
@@ -175,7 +190,7 @@ public class SanctuaryService {
         SanctuarySlot saved = sanctuarySlotRepository.save(SanctuarySlot.builder()
                 .userId(userId)
                 .userCard(card)
-                .lastHarvestAt(Instant.now().minusSeconds(HARVEST_TICK_SECONDS)) // Cho sẵn 1 bong bóng thu hoạch đầu tiên để trải nghiệm ngay!
+                .lastHarvestAt(Instant.now())
                 .build());
 
         log.info("User {} placed card {} on Sanctuary island slot {}", userId, userCardId, saved.getId());
@@ -243,12 +258,13 @@ public class SanctuaryService {
                 "newWalletBalance", wallet != null ? wallet.getBalance() : BigDecimal.ZERO,
                 "message", actualCredited.compareTo(BigDecimal.ZERO) > 0
                         ? String.format("Thu hoạch thành công +%s Xu!", actualCredited.stripTrailingZeros().toPlainString())
-                        : "Đã đạt giới hạn thu nhập Đảo hôm nay (250 Xu/ngày)!"
+                        : "Đã đạt giới hạn thu nhập Đảo hôm nay (1.000 Xu/ngày)!"
         );
     }
 
     /**
-     * Bắt đầu 1 chuyến Thám Hiểm (khóa thẻ tham gia, tính thời gian kết thúc hoàn toàn trên Server).
+     * Bắt đầu 1 chuyến Thám Hiểm (khóa thẻ tham gia, giới hạn tối đa 2 chuyến cùng lúc,
+     * tính thưởng Xu & % Pack theo Rarity Bonus động từ DB hoàn toàn trên Server).
      */
     @Transactional
     public Map<String, Object> startExpedition(Long userId, StartExpeditionRequest request) {
@@ -257,13 +273,25 @@ public class SanctuaryService {
             throw new BusinessValidationException("Vùng đất thám hiểm không hợp lệ!");
         }
 
-        List<Long> uniqueCardIds = request.userCardIds().stream().distinct().toList();
+        // Khóa dòng Wallet của người chơi để tuần tự hóa kiểm tra giới hạn 2 chuyến song song
+        walletRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ví của người dùng."));
+
+        long activeExpeditionCount = expeditionRepository.countByUserIdAndStatus(userId, ExpeditionStatus.IN_PROGRESS);
+        if (activeExpeditionCount >= MAX_ACTIVE_EXPEDITIONS) {
+            throw new BusinessValidationException(
+                    "Bạn đã đạt giới hạn tối đa " + MAX_ACTIVE_EXPEDITIONS + " chuyến thám hiểm đang diễn ra cùng lúc! Hãy hoàn thành và nhận thưởng trước khi cử thêm."
+            );
+        }
+
+        List<Long> uniqueCardIds = request.userCardIds().stream().distinct().sorted().toList();
         if (uniqueCardIds.isEmpty() || uniqueCardIds.size() > 3) {
             throw new BusinessValidationException("Mỗi chuyến thám hiểm cần từ 1 đến 3 thẻ bài!");
         }
 
         List<UserCard> lockedCards = new ArrayList<>();
-        BigDecimal rarityBonus = BigDecimal.ZERO;
+        double totalCoinBonusPct = 0.0;
+        double totalPackBonusPct = 0.0;
 
         for (Long cardId : uniqueCardIds) {
             UserCard card = userCardRepository.findByIdForUpdate(cardId)
@@ -279,13 +307,18 @@ public class SanctuaryService {
             }
             card.setIsLocked(true);
             lockedCards.add(card);
-            rarityBonus = rarityBonus.add(resolveHarvestCoinsPerTick(card.getCardTemplate().getRarity()).multiply(BigDecimal.valueOf(2)));
+
+            RarityExpeditionBonus bonus = resolveExpeditionRarityBonus(card.getCardTemplate().getRarity());
+            totalCoinBonusPct += bonus.coinBonusPct();
+            totalPackBonusPct += bonus.packBonusPct();
         }
         userCardRepository.saveAll(lockedCards);
 
         Instant now = Instant.now();
         Instant endsAt = now.plus(Duration.ofMinutes(zone.durationMinutes()));
-        BigDecimal totalRewardCoins = zone.baseCoins().setScale(2, RoundingMode.HALF_UP);
+        long computedCoins = Math.round(zone.baseCoins().doubleValue() * (1.0 + totalCoinBonusPct / 100.0));
+        BigDecimal totalRewardCoins = BigDecimal.valueOf(computedCoins).setScale(2, RoundingMode.HALF_UP);
+        int totalPackChance = Math.min(MAX_EXPEDITION_PACK_CHANCE, (int) Math.round(zone.bonusPackChance() + totalPackBonusPct));
 
         Expedition expedition = Expedition.builder()
                 .userId(userId)
@@ -295,7 +328,7 @@ public class SanctuaryService {
                 .startedAt(now)
                 .endsAt(endsAt)
                 .rewardCoins(totalRewardCoins)
-                .bonusPackChance(zone.bonusPackChance())
+                .bonusPackChance(totalPackChance)
                 .status(ExpeditionStatus.IN_PROGRESS)
                 .build();
 
@@ -307,12 +340,13 @@ public class SanctuaryService {
         }
 
         Expedition saved = expeditionRepository.save(expedition);
-        log.info("User {} started expedition {} to {} ({} min, {} cards)",
-                userId, saved.getId(), zone.code(), zone.durationMinutes(), lockedCards.size());
+        log.info("User {} started expedition {} to {} ({} min, {} cards, rewardCoins={}, packChance={}%)",
+                userId, saved.getId(), zone.code(), zone.durationMinutes(), lockedCards.size(), totalRewardCoins, totalPackChance);
 
         return Map.of(
                 "expedition", toExpeditionMap(saved, now),
-                "message", String.format("Đội hình %d Pokémon đã xuất phát tới %s!", lockedCards.size(), zone.name())
+                "message", String.format("Đội hình %d Pokémon đã xuất phát tới %s (+%d Xu • %d%% Pack)!",
+                        lockedCards.size(), zone.name(), computedCoins, totalPackChance)
         );
     }
 
@@ -434,6 +468,12 @@ public class SanctuaryService {
 
     private List<DailyQuest> ensureDailyQuests(Long userId, LocalDate today) {
         List<DailyQuest> existing = dailyQuestRepository.findByUserIdAndQuestDateOrderByIdAsc(userId, today);
+        if (existing.size() < 3) {
+            dailyQuestRepository.insertIgnoreQuest(userId, today, QUEST_HARVEST, "Thu hoạch Xu trên đảo 1 lần", 1, new BigDecimal("25.00"));
+            dailyQuestRepository.insertIgnoreQuest(userId, today, QUEST_EXPEDITION, "Hoàn thành 1 chuyến thám hiểm", 1, new BigDecimal("40.00"));
+            dailyQuestRepository.insertIgnoreQuest(userId, today, QUEST_OPEN_PACK, "Mở 1 Pack bất kỳ", 1, new BigDecimal("35.00"));
+            existing = dailyQuestRepository.findByUserIdAndQuestDateOrderByIdAsc(userId, today);
+        }
         if (!existing.isEmpty()) {
             boolean dirty = false;
             for (DailyQuest q : existing) {
@@ -452,25 +492,12 @@ public class SanctuaryService {
             }
             return dirty ? dailyQuestRepository.saveAll(existing) : existing;
         }
-        List<DailyQuest> created = List.of(
-                DailyQuest.builder()
-                        .userId(userId).questDate(today).questCode(QUEST_HARVEST)
-                        .title("Thu hoạch Xu trên đảo 1 lần")
-                        .targetCount(1).currentCount(0).rewardCoins(new BigDecimal("25.00")).isClaimed(false).build(),
-                DailyQuest.builder()
-                        .userId(userId).questDate(today).questCode(QUEST_EXPEDITION)
-                        .title("Hoàn thành 1 chuyến thám hiểm")
-                        .targetCount(1).currentCount(0).rewardCoins(new BigDecimal("40.00")).isClaimed(false).build(),
-                DailyQuest.builder()
-                        .userId(userId).questDate(today).questCode(QUEST_OPEN_PACK)
-                        .title("Mở 1 Pack bất kỳ")
-                        .targetCount(1).currentCount(0).rewardCoins(new BigDecimal("35.00")).isClaimed(false).build()
-        );
-        return dailyQuestRepository.saveAll(created);
+        return existing;
     }
 
     private BigDecimal creditWithDailyCap(Long userId, BigDecimal requestedAmount, TransactionType type, String description) {
         LocalDate today = LocalDate.now();
+        dailyEarningRepository.insertIgnoreDailyEarning(userId, today);
         SanctuaryDailyEarning daily = dailyEarningRepository.findByUserIdAndEarningDateForUpdate(userId, today)
                 .orElseGet(() -> dailyEarningRepository.save(SanctuaryDailyEarning.builder()
                         .userId(userId)
@@ -496,34 +523,68 @@ public class SanctuaryService {
         return allowed;
     }
 
+    /**
+     * P1-7: Tặng thưởng O(1) trực tiếp 1 Pack lẻ (UserSealedItem) vào Kho chứa Pack/Box của người chơi,
+     * thay vì quét toàn bảng BoosterBox + BoosterPack gây nghẽn DB và hao hụt hàng tồn Cửa hàng.
+     */
     private Long tryGrantBonusPackToUser(Long userId) {
-        List<BoosterBox> boxes = boosterBoxRepository.findAllByOrderByIdAsc();
-        for (BoosterBox box : boxes) {
-            if (box.getStatus() != BoxStatus.AVAILABLE || box.getRemainingPacks() <= 0) continue;
-            List<BoosterPack> packs = boosterPackRepository.findByBoosterBoxIdOrderByPositionInBoxAsc(box.getId());
-            for (BoosterPack pack : packs) {
-                if (pack.getStatus() == PackStatus.AVAILABLE) {
-                    pack.setStatus(PackStatus.SOLD);
-                    pack.setBuyerId(userId);
-                    boosterPackRepository.save(pack);
-                    boosterBoxRepository.decrementRemainingPackAtomically(box.getId());
-                    log.info("Granted bonus Expedition Pack {} (box {}) to user {}", pack.getId(), box.getBoxCode(), userId);
-                    return pack.getId();
-                }
-            }
+        List<CardSet> activeSets = cardSetRepository.findAll().stream()
+                .filter(cs -> cs.getIsActive() == null || cs.getIsActive())
+                .sorted(Comparator.comparing(CardSet::getId))
+                .toList();
+        if (activeSets.isEmpty()) {
+            return null;
         }
-        return null;
+        CardSet chosenSet = activeSets.get(SECURE_RANDOM.nextInt(activeSets.size()));
+        int cardsPerPack = chosenSet.getCardsPerPack() != null && chosenSet.getCardsPerPack() > 0 ? chosenSet.getCardsPerPack() : 6;
+        int packsPerBox = chosenSet.getPacksPerBox() != null && chosenSet.getPacksPerBox() > 0 ? chosenSet.getPacksPerBox() : 20;
+
+        UserSealedItem bonusPack = userSealedItemRepository.save(UserSealedItem.builder()
+                .userId(userId)
+                .cardSet(chosenSet)
+                .itemType(SealedItemType.PACK)
+                .cardsPerPack(cardsPerPack)
+                .packsPerBox(packsPerBox)
+                .isLocked(false)
+                .isConsumed(false)
+                .acquiredAt(LocalDateTime.now())
+                .build());
+        log.info("Granted O(1) bonus Expedition Sealed PACK id={} (set={}) to user {}",
+                bonusPack.getId(), chosenSet.getCode(), userId);
+        return bonusPack.getId();
+    }
+
+    private record RarityExpeditionBonus(int coinBonusPct, double packBonusPct) {}
+
+    /**
+     * Tính hệ số Rarity Bonus động 100% từ cấu hình Độ hiếm trong DB (revealEffect + sanctuaryCoinsPerMin).
+     */
+    private RarityExpeditionBonus resolveExpeditionRarityBonus(Rarity rarity) {
+        if (rarity == null) {
+            return new RarityExpeditionBonus(5, 0.5);
+        }
+        RevealEffect eff = rarity.getRevealEffect() != null ? rarity.getRevealEffect() : RevealEffect.NONE;
+        return switch (eff) {
+            case MEGA_HYPER -> new RarityExpeditionBonus(100, 12.0);
+            case FUTURISTIC -> new RarityExpeditionBonus(80, 9.0);
+            case SPECIAL_ILLUSTRATION -> new RarityExpeditionBonus(60, 7.0);
+            case ULTRA -> new RarityExpeditionBonus(45, 5.0);
+            case ILLUSTRATION -> new RarityExpeditionBonus(35, 4.0);
+            case DOUBLE_RARE -> new RarityExpeditionBonus(25, 3.0);
+            case NONE -> {
+                int rate = rarity.getSanctuaryCoinsPerMin() != null ? rarity.getSanctuaryCoinsPerMin() : 1;
+                if (rate >= 3) yield new RarityExpeditionBonus(15, 2.0);
+                if (rate == 2) yield new RarityExpeditionBonus(10, 1.0);
+                yield new RarityExpeditionBonus(5, 0.5);
+            }
+        };
     }
 
     private BigDecimal resolveHarvestCoinsPerTick(Rarity rarity) {
-        String name = rarity != null && rarity.getName() != null ? rarity.getName().toLowerCase() : "";
-        if (name.matches(".*(hyper|secret|gold|special illustration).*")) return new BigDecimal("25.00");
-        if (name.matches(".*(\\bex\\b|double rare|ultra rare|full art|illustration rare).*")) return new BigDecimal("12.00");
-        if (name.matches(".*(uncommon|không phổ biến).*")) return new BigDecimal("4.00");
-        if (name.matches(".*(\\brare\\b|hiếm).*") || (rarity != null && Boolean.TRUE.equals(rarity.getIsHolographic()))) {
-            return new BigDecimal("8.00");
-        }
-        return new BigDecimal("2.00");
+        int rate = (rarity != null && rarity.getSanctuaryCoinsPerMin() != null && rarity.getSanctuaryCoinsPerMin() > 0)
+                ? rarity.getSanctuaryCoinsPerMin()
+                : 2;
+        return BigDecimal.valueOf(rate).setScale(2, RoundingMode.HALF_UP);
     }
 
     private Map<String, Object> toSlotMap(SanctuarySlot slot, Instant now) {

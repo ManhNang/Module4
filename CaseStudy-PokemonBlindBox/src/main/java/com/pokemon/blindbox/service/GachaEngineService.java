@@ -102,10 +102,7 @@ public class GachaEngineService {
 
         for (int i = 0; i < cardsToDraw; i++) {
             WeightedRarityPool chosenPool = rollRarityPool(activePools, totalWeight);
-            List<CardTemplateResponseDTO> templatesInPool = chosenPool.templates();
-            CardTemplateResponseDTO chosenCardDto = templatesInPool.get(
-                    SECURE_RANDOM.nextInt(templatesInPool.size())
-            );
+            CardTemplateResponseDTO chosenCardDto = drawRandomTemplateFromPool(chosenPool);
 
             CardTemplate templateRef = cardTemplateRepository.getReferenceById(chosenCardDto.id());
             UserCard userCard = UserCard.builder()
@@ -150,6 +147,14 @@ public class GachaEngineService {
     }
 
     private List<WeightedRarityPool> buildActiveRarityPools(Long setId, List<RarityResponseDTO> rarities) {
+        return buildActiveRarityPools(catalogCacheService, setId, rarities);
+    }
+
+    public static List<WeightedRarityPool> buildActiveRarityPools(
+            CatalogCacheService cacheService,
+            Long setId,
+            List<RarityResponseDTO> rarities
+    ) {
         if (rarities == null || rarities.isEmpty()) {
             return List.of();
         }
@@ -157,7 +162,7 @@ public class GachaEngineService {
         for (RarityResponseDTO rarity : rarities) {
             if (rarity.dropWeight() != null && rarity.dropWeight() > 0) {
                 List<CardTemplateResponseDTO> templates =
-                        catalogCacheService.getCardTemplatesBySetAndRarity(setId, rarity.id());
+                        cacheService.getCardTemplatesBySetAndRarity(setId, rarity.id());
                 if (templates != null && !templates.isEmpty()) {
                     pools.add(new WeightedRarityPool(rarity, rarity.dropWeight(), templates));
                 }
@@ -166,7 +171,7 @@ public class GachaEngineService {
         return pools;
     }
 
-    private WeightedRarityPool rollRarityPool(List<WeightedRarityPool> pools, int totalWeight) {
+    public static WeightedRarityPool rollRarityPool(List<WeightedRarityPool> pools, int totalWeight) {
         int randomRoll = SECURE_RANDOM.nextInt(totalWeight);
         int cumulative = 0;
         for (WeightedRarityPool pool : pools) {
@@ -178,7 +183,12 @@ public class GachaEngineService {
         return pools.getLast();
     }
 
-    private record WeightedRarityPool(
+    public static CardTemplateResponseDTO drawRandomTemplateFromPool(WeightedRarityPool pool) {
+        List<CardTemplateResponseDTO> templates = pool.templates();
+        return templates.get(SECURE_RANDOM.nextInt(templates.size()));
+    }
+
+    public record WeightedRarityPool(
             RarityResponseDTO rarity,
             int dropWeight,
             List<CardTemplateResponseDTO> templates

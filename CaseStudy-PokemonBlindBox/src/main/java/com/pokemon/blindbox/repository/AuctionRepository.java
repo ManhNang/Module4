@@ -99,6 +99,36 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
             @Param("setName") String setName
     );
 
+    @EntityGraph(attributePaths = {
+            "userCard",
+            "userCard.cardTemplate",
+            "userCard.cardTemplate.cardSet",
+            "userCard.cardTemplate.rarity",
+            "userCard.cardTemplate.cardSpecies",
+            "sealedItem",
+            "sealedItem.cardSet"
+    })
+    @Query("""
+            SELECT a FROM Auction a
+            LEFT JOIN a.userCard uc
+            LEFT JOIN uc.cardTemplate ct
+            LEFT JOIN ct.cardSet cs
+            LEFT JOIN a.sealedItem si
+            LEFT JOIN si.cardSet scs
+            WHERE a.status = :status
+              AND (:setId IS NULL OR cs.id = :setId OR scs.id = :setId)
+              AND (:setCode IS NULL OR cs.code = :setCode OR scs.code = :setCode)
+              AND (:setName IS NULL OR cs.name = :setName OR scs.name = :setName)
+            ORDER BY a.endTime ASC
+            """)
+    List<Auction> findActiveByCardSet(
+            @Param("status") AuctionStatus status,
+            @Param("setId") Long setId,
+            @Param("setCode") String setCode,
+            @Param("setName") String setName,
+            Pageable pageable
+    );
+
     /**
      * Tra cứu chéo các phiên Đấu Giá đang diễn ra theo Loài (bỏ LOWER() để giữ B-Tree Index, P2-06).
      */
@@ -123,6 +153,30 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
             @Param("status") AuctionStatus status,
             @Param("speciesId") Long speciesId,
             @Param("speciesName") String speciesName
+    );
+
+    @EntityGraph(attributePaths = {
+            "userCard",
+            "userCard.cardTemplate",
+            "userCard.cardTemplate.cardSet",
+            "userCard.cardTemplate.rarity",
+            "userCard.cardTemplate.cardSpecies"
+    })
+    @Query("""
+            SELECT a FROM Auction a
+            JOIN a.userCard uc
+            JOIN uc.cardTemplate ct
+            JOIN ct.cardSpecies sp
+            WHERE a.status = :status
+              AND (:speciesId IS NULL OR sp.id = :speciesId)
+              AND (:speciesName IS NULL OR sp.name = :speciesName)
+            ORDER BY a.endTime ASC, ct.cardNumber ASC
+            """)
+    List<Auction> findActiveBySpecies(
+            @Param("status") AuctionStatus status,
+            @Param("speciesId") Long speciesId,
+            @Param("speciesName") String speciesName,
+            Pageable pageable
     );
 
     @EntityGraph(attributePaths = {

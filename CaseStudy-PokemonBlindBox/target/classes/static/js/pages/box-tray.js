@@ -10,25 +10,19 @@ let isTearInProgress = false;
 
 const TIER_RANK = { common: 1, uncommon: 2, rare: 3, ex: 4, hyper: 5 };
 
-function resolveRarityTier(card) {
-    const rawName = String(card?.rarityName || '').trim().toLowerCase();
-    if (/hyper|secret|gold|special illustration|\bsir\b/.test(rawName)) return 'hyper';
-    if (/\bex\b|double rare|ultra rare|full art|illustration rare|\bsar\b|\bur\b/.test(rawName)) return 'ex';
-    if (/uncommon|không phổ biến|khong pho bien/.test(rawName)) return 'uncommon';
-    if (/\brare\b|hiếm|hiem/.test(rawName) || card?.rarityIsHolographic === true) return 'rare';
-    return 'common';
+function resolveCardRevealEffect(card) {
+    if (window.PokemonRevealVfx) {
+        return window.PokemonRevealVfx.normalizeEffect(card?.rarityRevealEffect);
+    }
+    return String(card?.rarityRevealEffect || 'NONE').toUpperCase();
 }
 
-function getTierDefaultColor(tier, fallbackHex) {
+function getTierDefaultColor(revealEffect, fallbackHex) {
     if (/^#[0-9a-fA-F]{3,8}$/.test(fallbackHex || '')) return fallbackHex;
-    const map = {
-        common: '#CBD5E1',
-        uncommon: '#34D399',
-        rare: '#38BDF8',
-        ex: '#FBBF24',
-        hyper: '#EC4899'
-    };
-    return map[tier] || '#CBD5E1';
+    if (window.PokemonRevealVfx) {
+        return window.PokemonRevealVfx.getPreset(revealEffect).accent;
+    }
+    return '#CBD5E1';
 }
 
 // ==================== LIGHTWEIGHT HTML5 CANVAS PARTICLE / CONFETTI ENGINE ====================
@@ -420,9 +414,17 @@ function checkAllCardsFlippedState() {
     }
 }
 
-window.handleGachaCardClick = function (idx) {
+window.handleGachaCardClick = function (idx, isBulkFlip) {
     const scene = document.getElementById(`flip-card-${idx}`);
     if (!scene) return;
+
+    // Click lần 2 khi đang chạy hiệu ứng -> skip ngay!
+    if (scene.dataset.revealing === 'true') {
+        if (!isBulkFlip && window.PokemonRevealVfx) {
+            window.PokemonRevealVfx.skipRevealIfActive(scene);
+        }
+        return;
+    }
 
     // Nếu thẻ đã lật -> mở Card Spotlight xem cận cảnh!
     if (scene.classList.contains('is-flipped')) {
@@ -430,47 +432,32 @@ window.handleGachaCardClick = function (idx) {
         return;
     }
 
-    // Chặn double-click khi đang chạy hiệu ứng hồi hộp 0.6s
-    if (scene.dataset.revealing === 'true') return;
-    scene.dataset.revealing = 'true';
+    const cardItem = currentDrawnCards[idx] || {};
+    const effectCode = cardItem.revealEffect || 'NONE';
 
-    const cardItem = currentDrawnCards[idx];
-    const tier = cardItem ? cardItem.tier : 'common';
-    const rect = scene.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-
-    const completeFlip = () => {
-        scene.classList.remove('is-anticipation');
-        scene.classList.add('is-flipped');
-        delete scene.dataset.revealing;
-
+    const onRevealComplete = ({ effectCode: eff, skipped }) => {
         const captionEl = document.getElementById(`flip-caption-${idx}`);
         if (captionEl) {
             captionEl.classList.remove('opacity-0', 'pointer-events-none');
             captionEl.classList.add('opacity-100');
         }
-
-        if (tier === 'ex' || tier === 'hyper') {
-            triggerStageFlash(tier);
+        if (!skipped && (eff === 'ULTRA' || eff === 'FUTURISTIC' || eff === 'MEGA_HYPER')) {
             triggerStageShake();
-            GachaVfxCanvas.burst(cx, cy, tier);
-            const holoEl = scene.querySelector('.pk-holo-card');
-            if (holoEl) {
-                holoEl.classList.add('pk-holo-shimmer');
-            }
-        } else if (tier === 'rare') {
-            GachaVfxCanvas.burst(cx, cy, 'rare', 26);
         }
-
         checkAllCardsFlippedState();
     };
 
-    if (tier === 'ex' || tier === 'hyper') {
-        scene.classList.add('is-anticipation');
-        setTimeout(completeFlip, 600);
+    if (window.PokemonRevealVfx) {
+        window.PokemonRevealVfx.playCardReveal(scene, {
+            revealEffect: effectCode,
+            colorHex: cardItem.rarityColorHex,
+            isHolo: cardItem.isHolo,
+            isBulkFlip: Boolean(isBulkFlip),
+            onComplete: onRevealComplete
+        });
     } else {
-        completeFlip();
+        scene.classList.add('is-flipped');
+        onRevealComplete({ effectCode, skipped: false });
     }
 };
 
@@ -523,24 +510,29 @@ window.openPurchasedPack = async function (packId) {
         flipAllBtn.classList.add('hidden');
         saveBtn?.classList.remove('ring-2', 'ring-amber-400/70', 'shadow-xl');
 
-        // Tính độ hiếm cao nhất trong 5 lá bài
-        let bestTier = 'common';
+        // Tính cấp hiệu ứng cao nhất trong các lá bài hoàn toàn động từ DB
+        const highestEffect = window.PokemonRevealVfx
+            ? window.PokemonRevealVfx.getHighestEffect(data.drawnCards || [])
+            : 'NONE';
         currentDrawnCards = (data.drawnCards || []).map(uc => {
             const c = uc.card;
-            const tier = resolveRarityTier(c);
-            if (TIER_RANK[tier] > TIER_RANK[bestTier]) bestTier = tier;
+            const effectCode = resolveCardRevealEffect(c);
+            const preset = window.PokemonRevealVfx ? window.PokemonRevealVfx.getPreset(effectCode) : { tearTier: 'normal' };
             return {
                 id: c.id,
                 name: c.name,
                 formattedCardNumber: c.formattedCardNumber,
                 rarityName: c.rarityName,
-                rarityColorHex: getTierDefaultColor(tier, c.rarityColorHex),
+                rarityColorHex: getTierDefaultColor(effectCode, c.rarityColorHex),
                 imageUrl: c.imageUrl,
-                isHolo: Boolean(c.rarityIsHolographic) || tier === 'rare' || tier === 'ex' || tier === 'hyper',
-                tier
+                isHolo: Boolean(c.rarityIsHolographic) || effectCode !== 'NONE',
+                revealEffect: effectCode,
+                tier: preset.tearTier
             };
         });
-        currentPackHighestTier = bestTier;
+        currentPackHighestTier = window.PokemonRevealVfx
+            ? window.PokemonRevealVfx.getPreset(highestEffect).tearTier
+            : 'normal';
 
         const esc = window.escapeHtml || (v => String(v ?? ''));
         container.innerHTML = currentDrawnCards.map((c, idx) => {
@@ -550,7 +542,9 @@ window.openPurchasedPack = async function (packId) {
             const safeImg = esc(c.imageUrl);
             const safeColor = c.rarityColorHex;
             const holoClass = c.isHolo ? 'is-holo-active' : '';
-            const auraClass = `pk-aura-${c.tier}`;
+            const auraClass = window.PokemonRevealVfx
+                ? window.PokemonRevealVfx.getBackAuraClass(c.revealEffect, c.isHolo)
+                : 'pk-aura-common';
 
             return `
                 <div class="flex flex-col gap-2.5 pk-card-deal-in" style="animation-delay: ${idx * 75}ms">

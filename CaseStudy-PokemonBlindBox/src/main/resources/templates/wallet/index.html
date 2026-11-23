@@ -200,7 +200,8 @@
                 </tr>
                 </thead>
                 <tbody id="wallet-tx-tbody" class="divide-y divide-slate-200/70 dark:divide-slate-800/70">
-                <tr th:each="tx : ${transactions}"
+                <tr th:each="tx, iterStat : ${transactions}"
+                    th:style="${iterStat.index >= 10} ? 'display:none;' : ''"
                     th:with="typeName=${tx.type().name()},
                              friendlyType=${typeName == 'DEPOSIT_VNPAY' ? 'Nạp Xu VNPay' :
                                            (typeName == 'PURCHASE_PACK' ? 'Mua / Mở Pack' :

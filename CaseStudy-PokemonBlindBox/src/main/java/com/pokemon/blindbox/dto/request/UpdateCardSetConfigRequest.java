@@ -27,6 +27,10 @@ public record UpdateCardSetConfigRequest(
         Integer dailyPackLimit,
 
         @Min(value = 0, message = "Hạn mức Box/ngày phải >= 0")
-        Integer dailyBoxLimit
+        Integer dailyBoxLimit,
+
+        String packImageUrl,
+
+        String boxImageUrl
 ) {
 }

@@ -123,9 +123,14 @@ public class InventoryBuybackService {
                 userId, requestedQtyByTemplate.keySet()
         );
 
-        // Lọc bỏ thẻ đang đi thám hiểm (phòng trường hợp dữ liệu cũ chưa gắn isLocked)
+        // Batch 1 query kiểm tra thẻ đang đi thám hiểm (loại bỏ hoàn toàn N+1 query)
+        List<Long> unlockedCardIds = unlockedCards.stream().map(UserCard::getId).toList();
+        Set<Long> activeExpeditionCardIds = unlockedCardIds.isEmpty()
+                ? Collections.emptySet()
+                : expeditionCardRepository.findActiveExpeditionCardIdsByUserCardIdIn(unlockedCardIds, ExpeditionStatus.IN_PROGRESS);
+
         Map<Long, List<UserCard>> availableByTemplate = unlockedCards.stream()
-                .filter(uc -> !expeditionCardRepository.existsByUserCardIdAndExpeditionStatus(uc.getId(), ExpeditionStatus.IN_PROGRESS))
+                .filter(uc -> !activeExpeditionCardIds.contains(uc.getId()))
                 .collect(Collectors.groupingBy(uc -> uc.getCardTemplate().getId()));
 
         List<UserCard> cardsToSell = new ArrayList<>();
@@ -152,11 +157,12 @@ public class InventoryBuybackService {
             }
         }
 
-        // Gỡ khỏi Đảo nếu có thẻ đang đứng chơi trên Đảo
+        // Batch 1 lệnh DELETE gỡ toàn bộ thẻ bán khỏi Đảo nếu có (loại bỏ 2N queries)
+        List<Long> soldCardIds = cardsToSell.stream().map(UserCard::getId).toList();
+        if (!soldCardIds.isEmpty()) {
+            sanctuarySlotRepository.deleteByUserCardIdIn(soldCardIds);
+        }
         for (UserCard uc : cardsToSell) {
-            if (sanctuarySlotRepository.existsByUserCardId(uc.getId())) {
-                sanctuarySlotRepository.deleteByUserCardId(uc.getId());
-            }
             uc.setUserId(SYSTEM_SHOP_USER_ID);
             uc.setIsLocked(true);
         }

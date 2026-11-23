@@ -13,43 +13,24 @@
     </title>
 
     <!-- Chống nháy giao diện (Anti-FOUC) khi chuyển trang: Mặc định là Cream Mode ('light') -->
-    <script th:src="@{/js/theme-init.js}"></script>
+    <script th:src="@{/js/theme-init.js(v='20261122c')}"></script>
 
-    <!-- Tailwind CSS via CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: ["selector", '[data-theme="dark"]'],
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: [
-                '"Be Vietnam Pro"',
-                '"Plus Jakarta Sans"',
-                "system-ui",
-                "-apple-system",
-                "sans-serif",
-              ],
-            },
-          },
-        },
-      };
-    </script>
-
-    <!-- Google Fonts: Be Vietnam Pro & Plus Jakarta Sans -->
+    <!-- Preconnect tới Cloudinary & Google Fonts -->
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- Tailwind CSS biên dịch tĩnh (Thay thế Play CDN Runtime JS để triệt tiêu 100% giật chớp FOUC) -->
+    <link rel="stylesheet" th:href="@{/css/tailwind.min.css(v='20261122c')}" />
+
+    <!-- Global Dual-Theme & Custom Component Stylesheet -->
+    <link rel="stylesheet" th:href="@{/css/app.css(v='20261122c')}" />
+
+    <!-- Google Fonts: Be Vietnam Pro & Plus Jakarta Sans -->
     <link
       href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-
-    <!-- SockJS & STOMP.js via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
-
-    <!-- Global Dual-Theme & Custom Component Stylesheet -->
-    <link rel="stylesheet" th:href="@{/css/app.css(v='20261121n')}" />
   </head>
 
   <body>
@@ -581,7 +562,7 @@
       <!-- Global Toast Notification Container (Bottom-Right để không che Header/Tiêu đề) -->
       <div
         id="toast-container"
-        class="fixed bottom-5 right-3 sm:right-5 z-50 flex flex-col gap-3 max-w-[calc(100vw-1.5rem)] sm:max-w-md w-full pointer-events-none"
+        class="fixed bottom-5 right-3 sm:right-5 z-[100] flex flex-col gap-3 max-w-[calc(100vw-1.5rem)] sm:max-w-md w-full pointer-events-none"
       ></div>
     </th:block>
 
@@ -593,6 +574,7 @@
         hidden
       ></div>
       <script defer th:src="@{/js/common.js(v='20261121k')}"></script>
+      <script defer th:src="@{/js/reveal-vfx.js(v='20261123a')}"></script>
     </th:block>
   </body>
 </html>

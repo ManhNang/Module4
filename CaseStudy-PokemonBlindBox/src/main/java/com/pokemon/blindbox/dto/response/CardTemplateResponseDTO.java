@@ -1,6 +1,7 @@
 package com.pokemon.blindbox.dto.response;
 
 import com.pokemon.blindbox.entity.CardTemplate;
+import com.pokemon.blindbox.entity.enums.RevealEffect;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -25,6 +26,8 @@ public record CardTemplateResponseDTO(
         String rarityName,
         String rarityColorHex,
         Boolean rarityIsHolographic,
+        String rarityRevealEffect,
+        Integer raritySanctuaryCoinsPerMin,
         BigDecimal rarityBuybackPrice,
         Long speciesId,
         String speciesName,
@@ -65,6 +68,12 @@ public record CardTemplateResponseDTO(
                 .rarityName(entity.getRarity().getName())
                 .rarityColorHex(entity.getRarity().getColorHex())
                 .rarityIsHolographic(Boolean.TRUE.equals(entity.getRarity().getIsHolographic()))
+                .rarityRevealEffect(entity.getRarity().getRevealEffect() != null
+                        ? entity.getRarity().getRevealEffect().name()
+                        : RevealEffect.NONE.name())
+                .raritySanctuaryCoinsPerMin(entity.getRarity().getSanctuaryCoinsPerMin() != null
+                        ? entity.getRarity().getSanctuaryCoinsPerMin()
+                        : 2)
                 .rarityBuybackPrice(entity.getRarity().getBuybackPrice() != null
                         ? entity.getRarity().getBuybackPrice()
                         : new BigDecimal("5.00"))

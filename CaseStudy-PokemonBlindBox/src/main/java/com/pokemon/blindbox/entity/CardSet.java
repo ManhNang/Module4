@@ -63,6 +63,12 @@ public class CardSet implements Serializable {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "pack_image_url", length = 500)
+    private String packImageUrl;
+
+    @Column(name = "box_image_url", length = 500)
+    private String boxImageUrl;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

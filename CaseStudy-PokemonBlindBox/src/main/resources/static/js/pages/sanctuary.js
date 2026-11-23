@@ -15,7 +15,7 @@
     const SHOWDOWN_DEX_BASE = 'https://play.pokemonshowdown.com/sprites/dex/';
     const FALLBACK_ART = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png';
     const MAX_ACCUMULATED_TICKS = 12;
-    const MIN_ACTOR_DIST = 0.62;
+    const MIN_TARGET_DIST = 0.24; // ~12% chiều rộng mặt đảo (chỉ dùng khi chọn điểm đến, không chặn di chuyển)
 
     // Lucide-style crisp inline SVGs (zero OS emojis)
     const SVG_COIN = '<svg class="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></svg>';
@@ -37,7 +37,7 @@
 
     function isDailyCapReached() {
         if (!sanctuaryState) return false;
-        const cap = Number(sanctuaryState.dailyCap || 250);
+        const cap = Number(sanctuaryState.dailyCap || 1000);
         const earned = Number(sanctuaryState.dailyEarned || 0);
         return cap > 0 && earned >= cap;
     }
@@ -166,13 +166,22 @@
         if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(raw)) {
             return [];
         }
+        // Bỏ qua thẻ Trainer / Supporter / Item có dấu nháy sở hữu ('s) hoặc ký tự đặc biệt để không gọi Showdown gây lỗi 404 / ORB
+        if (/['’&!]/.test(raw)) {
+            return [];
+        }
         const lower = raw.toLowerCase()
             .replace(/♀/g, 'f')
             .replace(/♂/g, 'm')
             .replace(/\b(ex|gx|v|vmax|vstar|radiant|shining|dark|light|delta|heat|wash|frost|fan|mow)\b/gi, ' ')
             .trim();
         const isMega = /\bmega\b/i.test(lower);
-        const cleanBase = lower.replace(/\bmega\b/gi, '').replace(/[^a-z0-9]/g, '');
+        const withoutMega = lower.replace(/\bmega\b/gi, '').trim();
+        // Nếu sau khi bỏ hậu tố TCG mà tên vẫn có từ 2 từ trở lên (VD: Trainer card), dùng thẳng ảnh thẻ gốc
+        if (/\s+/.test(withoutMega)) {
+            return [];
+        }
+        const cleanBase = withoutMega.replace(/[^a-z0-9]/g, '');
         if (!cleanBase || cleanBase.length < 2) return [];
 
         const slugs = [];
@@ -450,12 +459,19 @@
         let bestU = zone.u;
         let bestV = zone.v;
         let bestMinDist = -1;
+        let fallbackU = null;
+        let fallbackV = null;
 
-        for (let tries = 0; tries < 14; tries++) {
-            // Allow Pokémon to roam freely across the entire open meadow surface
+        // Thử tối đa 5 lần để chọn điểm đích cách các Pokémon khác tối thiểu ~12% chiều rộng đảo
+        for (let tries = 0; tries < 5; tries++) {
             const candU = Math.max(-0.68, Math.min(0.68, (Math.random() * 1.36) - 0.68));
             const candV = Math.max(-0.60, Math.min(0.64, (Math.random() * 1.24) - 0.60));
             if (isInsidePond(candU, candV) || isNearPortal(candU, candV)) continue;
+
+            if (fallbackU === null) {
+                fallbackU = candU;
+                fallbackV = candV;
+            }
 
             let minDist = 99;
             islandActors.forEach((other) => {
@@ -470,7 +486,12 @@
                 bestU = candU;
                 bestV = candV;
             }
-            if (minDist >= MIN_ACTOR_DIST + 0.12) break;
+            if (minDist >= MIN_TARGET_DIST) break;
+        }
+
+        if (bestMinDist < 0 && fallbackU !== null) {
+            bestU = fallbackU;
+            bestV = fallbackV;
         }
         actor.targetU = bestU;
         actor.targetV = bestV;
@@ -519,41 +540,20 @@
             });
         }
 
-        // Pairwise separation (zero overlap!)
-        for (let i = 0; i < list.length; i++) {
-            for (let j = i + 1; j < list.length; j++) {
-                const a = list[i];
-                const b = list[j];
-                let du = b.u - a.u;
-                let dv = b.v - a.v;
-                let dist = Math.hypot(du, dv);
-                if (dist < MIN_ACTOR_DIST) {
-                    if (dist < 0.001) {
-                        du = 0.01;
-                        dv = -0.01;
-                        dist = Math.hypot(du, dv);
-                    }
-                    const push = Math.min((MIN_ACTOR_DIST - dist) * 0.5, 0.95 * dt);
-                    const nx = du / dist;
-                    const ny = dv / dist;
-                    a.u -= nx * push;
-                    a.v -= ny * push;
-                    b.u += nx * push;
-                    b.v += ny * push;
-                }
-            }
-        }
-
-        // Sync GPU transforms & Y-sorted z-index to DOM Layers
+        // Giữ Pokémon trong phạm vi mặt đảo & né vật cản cố định (không va chạm chặn nhau)
         list.forEach((actor) => {
             clampToIsland(actor);
             const p = isoToScreen(actor.u, actor.v);
             actor.screenX = p.x;
             actor.screenY = p.y;
-            const z = Math.max(11, Math.min(38, Math.round(p.y / 14)));
+        });
 
+        // Y-sorting động theo tọa độ screenY (con đứng thấp hơn có z-index cao hơn)
+        const sortedByY = list.slice().sort((a, b) => a.screenY - b.screenY);
+        sortedByY.forEach((actor, idx) => {
+            const z = 10 + idx;
             if (actor.el) {
-                actor.el.style.transform = `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0)`;
+                actor.el.style.transform = `translate3d(${actor.screenX.toFixed(1)}px, ${actor.screenY.toFixed(1)}px, 0)`;
                 actor.el.style.zIndex = String(z);
             }
             if (actor.imgEl && !actor.imgEl.classList.contains('is-card-fallback')) {
@@ -561,7 +561,7 @@
                 actor.imgEl.style.transform = actor.facing === 1 ? 'scaleX(-1)' : 'scaleX(1)';
             }
             if (actor.overlayEl) {
-                actor.overlayEl.style.transform = `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0)`;
+                actor.overlayEl.style.transform = `translate3d(${actor.screenX.toFixed(1)}px, ${actor.screenY.toFixed(1)}px, 0)`;
                 actor.overlayEl.style.zIndex = String(z);
             }
         });
@@ -1045,7 +1045,10 @@
     }
 
     function gameLoop(now) {
-        if (isPaused) return;
+        if (isPaused || document.hidden) {
+            rafId = null;
+            return;
+        }
         const dt = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
         lastFrameTime = now;
         elapsedTime += dt;
@@ -1108,14 +1111,16 @@
     function handleVisibilityChange() {
         if (document.hidden) {
             isPaused = true;
-            if (rafId) {
+            if (rafId !== null) {
                 cancelAnimationFrame(rafId);
                 rafId = null;
             }
         } else {
             isPaused = false;
             lastFrameTime = performance.now();
-            if (!rafId) rafId = requestAnimationFrame(gameLoop);
+            if (rafId === null) {
+                rafId = requestAnimationFrame(gameLoop);
+            }
         }
     }
 
@@ -1147,12 +1152,8 @@
     }
 
     function estimateCoinsPerMinute(card) {
-        const name = ((card && card.rarityName) || '').toLowerCase();
-        if (/(hyper|secret|gold|special illustration)/.test(name)) return 25;
-        if (/(\bex\b|double rare|ultra rare|full art|illustration rare)/.test(name)) return 12;
-        if (/(uncommon|không phổ biến)/.test(name)) return 4;
-        if (/(\brare\b|hiếm)/.test(name) || (card && card.rarityIsHolographic)) return 8;
-        return 2;
+        const dbRate = Number(card && card.raritySanctuaryCoinsPerMin);
+        return Number.isFinite(dbRate) && dbRate > 0 ? dbRate : 2;
     }
 
     window.openSanctuaryCardInfoModal = function (slot) {
@@ -1196,14 +1197,16 @@
         const rarityEl = document.getElementById('picker-rarity-filter');
         if (searchEl) searchEl.value = '';
 
-        // Populate distinct rarities from availableCards
+        // Populate full rarities dynamically from DB (sorted Common -> Mega Hyper Rare by dropWeight DESC)
         if (rarityEl) {
-            const rarities = Array.from(new Set(
-                (sanctuaryState.availableCards || [])
-                    .map((uc) => (uc.card && uc.card.rarityName) ? uc.card.rarityName : 'Common')
-            ));
+            const dbRarities = Array.isArray(sanctuaryState.rarities) && sanctuaryState.rarities.length > 0
+                ? sanctuaryState.rarities.map((r) => r.name).filter(Boolean)
+                : Array.from(new Set(
+                    (sanctuaryState.availableCards || [])
+                        .map((uc) => (uc.card && uc.card.rarityName) ? uc.card.rarityName : 'Common')
+                ));
             rarityEl.innerHTML = '<option value="">Tất cả độ hiếm</option>' +
-                rarities.map((r) => `<option value="${window.escapeHtml(r)}">${window.escapeHtml(r)}</option>`).join('');
+                dbRarities.map((r) => `<option value="${window.escapeHtml(r)}">${window.escapeHtml(r)}</option>`).join('');
             rarityEl.value = '';
         }
 
@@ -1275,7 +1278,7 @@
                         class="group relative pk-surface-elevated hover:border-amber-500/80 border border-slate-300/35 dark:border-slate-700/60 rounded-2xl p-2 flex flex-col items-center text-center gap-2 cursor-pointer transition hover:-translate-y-0.5 hover:shadow-lg">
                     ${qtyBadge}
                     <div class="w-[88%] aspect-[2.5/3.5] rounded-xl overflow-hidden pk-surface-muted shadow-md transition group-hover:scale-[1.03] shrink-0">
-                        <img src="${safeCardImg}" alt="${safeName}"
+                        <img src="${safeCardImg}" alt="${safeName}" loading="lazy" decoding="async"
                              onerror="this.onerror=null;this.src='${FALLBACK_ART}';"
                              class="h-full w-full object-cover"/>
                     </div>
@@ -1309,7 +1312,7 @@
 
     function renderDailyCap() {
         const earned = Number(sanctuaryState.dailyEarned || 0);
-        const cap = Number(sanctuaryState.dailyCap || 250);
+        const cap = Number(sanctuaryState.dailyCap || 1000);
         const pct = Math.min(100, Math.max(2, Math.round((earned / cap) * 100)));
         const txt = document.getElementById('sanctuary-daily-cap-text');
         const bar = document.getElementById('sanctuary-daily-cap-bar');
@@ -1467,8 +1470,35 @@
 
     function renderExpeditionsHud() {
         const list = (sanctuaryState.expeditions || []).slice();
+        const maxExp = Number(sanctuaryState.maxActiveExpeditions || 2);
+        const isFull = list.length >= maxExp;
         const wrap = document.getElementById('sanctuary-active-expeditions-wrap');
         const container = document.getElementById('sanctuary-active-expeditions');
+        const countBadge = document.getElementById('sanctuary-expedition-count-badge');
+
+        if (countBadge) {
+            countBadge.textContent = `${list.length} / ${maxExp} đang chạy`;
+            countBadge.className = isFull
+                ? 'pk-num tabular-nums rounded-full bg-rose-500/15 border border-rose-500/40 px-2.5 py-0.5 text-[10.5px] font-extrabold text-rose-600 dark:text-rose-400'
+                : 'pk-num tabular-nums rounded-full bg-amber-500/15 border border-amber-500/35 px-2.5 py-0.5 text-[10.5px] font-extrabold text-amber-600 dark:text-amber-400';
+        }
+
+        // Vô hiệu hóa nút Chọn đội hình khi đã đầy 2/2 chuyến đang chạy
+        document.querySelectorAll('.sanctuary-zone-start-btn').forEach((btn) => {
+            btn.disabled = isFull;
+            if (isFull) {
+                btn.textContent = `Đã đầy ${maxExp}/${maxExp} chuyến`;
+                btn.title = `Bạn đã đạt giới hạn tối đa ${maxExp}/${maxExp} chuyến thám hiểm đang chạy cùng lúc.`;
+                btn.classList.add('opacity-55', 'cursor-not-allowed');
+                btn.classList.remove('cursor-pointer');
+            } else {
+                btn.textContent = 'Chọn đội hình →';
+                btn.title = '';
+                btn.classList.remove('opacity-55', 'cursor-not-allowed');
+                btn.classList.add('cursor-pointer');
+            }
+        });
+
         if (!container) return;
         if (list.length === 0) {
             if (wrap) wrap.classList.add('hidden');
@@ -1730,6 +1760,14 @@
     }
 
     window.openExpeditionModal = function (btn) {
+        const activeCount = (sanctuaryState && Array.isArray(sanctuaryState.expeditions)) ? sanctuaryState.expeditions.length : 0;
+        const maxExp = Number((sanctuaryState && sanctuaryState.maxActiveExpeditions) || 2);
+        if (activeCount >= maxExp) {
+            if (window.showToast) {
+                window.showToast('info', `Đã đầy ${maxExp}/${maxExp} chuyến`, 'Hãy hoàn thành và nhận thưởng chuyến đang chạy trước khi cử thêm!');
+            }
+            return;
+        }
         selectedZoneCode = btn.getAttribute('data-zone-code');
         const zoneName = btn.getAttribute('data-zone-name') || selectedZoneCode;
         const duration = btn.getAttribute('data-zone-duration') || '';
@@ -1747,11 +1785,26 @@
         selectedExpeditionCardIds.clear();
     };
 
-    const EXPEDITION_ZONE_BASE_REWARDS = {
-        GREEN_FOREST: 20,
-        CRYSTAL_CAVE: 65,
-        LEGEND_PEAK: 160
+    const EXPEDITION_ZONE_BASE = {
+        GREEN_FOREST: { coins: 20, packChance: 5 },
+        CRYSTAL_CAVE: { coins: 65, packChance: 12 },
+        LEGEND_PEAK: { coins: 160, packChance: 25 }
     };
+    const MAX_EXPEDITION_PACK_CHANCE = 75;
+
+    function getExpeditionCardBonus(card) {
+        const eff = String((card && card.rarityRevealEffect) || 'NONE').toUpperCase();
+        if (eff === 'MEGA_HYPER') return { coinPct: 100, packPct: 12 };
+        if (eff === 'FUTURISTIC') return { coinPct: 80, packPct: 9 };
+        if (eff === 'SPECIAL_ILLUSTRATION') return { coinPct: 60, packPct: 7 };
+        if (eff === 'ULTRA') return { coinPct: 45, packPct: 5 };
+        if (eff === 'ILLUSTRATION') return { coinPct: 35, packPct: 4 };
+        if (eff === 'DOUBLE_RARE') return { coinPct: 25, packPct: 3 };
+        const rate = estimateCoinsPerMinute(card);
+        if (rate >= 3) return { coinPct: 15, packPct: 2 };
+        if (rate === 2) return { coinPct: 10, packPct: 1 };
+        return { coinPct: 5, packPct: 0.5 };
+    }
 
     function getSortedExpeditionCards() {
         const cards = (sanctuaryState && sanctuaryState.availableCards) ? sanctuaryState.availableCards.slice() : [];
@@ -1775,20 +1828,42 @@
         const rewardEl = document.getElementById('exp-modal-estimated-reward');
         const confirmBtn = document.getElementById('btn-confirm-start-expedition');
 
+        const cards = getSortedExpeditionCards();
         const selectedCount = selectedExpeditionCardIds.size;
-        const baseReward = EXPEDITION_ZONE_BASE_REWARDS[selectedZoneCode] || 20;
-        const estimatedCoins = selectedCount > 0 ? baseReward : 0;
+        const zoneBase = EXPEDITION_ZONE_BASE[selectedZoneCode] || { coins: 20, packChance: 5 };
+
+        let totalCoinBonusPct = 0;
+        let totalPackBonusPct = 0;
+        cards.forEach((uc) => {
+            if (!selectedExpeditionCardIds.has(uc.userCardId)) return;
+            const b = getExpeditionCardBonus(uc.card);
+            totalCoinBonusPct += b.coinPct;
+            totalPackBonusPct += b.packPct;
+        });
+
+        const estimatedCoins = selectedCount > 0 ? Math.round(zoneBase.coins * (1 + totalCoinBonusPct / 100)) : 0;
+        const estimatedPackChance = selectedCount > 0
+            ? Math.min(MAX_EXPEDITION_PACK_CHANCE, Math.round(zoneBase.packChance + totalPackBonusPct))
+            : zoneBase.packChance;
+        const addedPackChance = Math.max(0, estimatedPackChance - zoneBase.packChance);
 
         if (countEl) countEl.textContent = `Đã chọn: ${selectedCount} / 3 thẻ`;
         if (rewardEl) {
-            rewardEl.textContent = selectedCount > 0
-                ? `Thưởng dự kiến: +${formatVnd(estimatedCoins)}`
-                : 'Thưởng dự kiến: 0 Xu';
+            if (selectedCount > 0) {
+                const coinBonusBadge = totalCoinBonusPct > 0
+                    ? ` <span class="text-emerald-600 dark:text-emerald-400 font-extrabold">(+${totalCoinBonusPct}%)</span>`
+                    : '';
+                const packBonusBadge = addedPackChance > 0
+                    ? ` <span class="text-emerald-600 dark:text-emerald-400 font-extrabold">(+${addedPackChance}%)</span>`
+                    : '';
+                rewardEl.innerHTML = `Xu dự kiến: <strong>+${formatVnd(estimatedCoins)}</strong>${coinBonusBadge} <span class="mx-1 opacity-50">•</span> Cơ hội Pack: <strong>${estimatedPackChance}%</strong>${packBonusBadge}`;
+            } else {
+                rewardEl.textContent = `Gốc: +${formatVnd(zoneBase.coins)} • Cơ hội Pack: ${zoneBase.packChance}% (chọn thẻ để nhận Rarity Bonus)`;
+            }
         }
         if (confirmBtn) confirmBtn.disabled = selectedCount === 0;
         if (!container) return;
 
-        const cards = getSortedExpeditionCards();
         if (cards.length === 0) {
             container.innerHTML = '<div class="col-span-full pk-surface-muted rounded-2xl p-4 text-center text-xs pk-text-secondary">Không có thẻ bài rảnh trong Kho đồ (hãy gỡ bớt thẻ trên đảo hoặc mở thêm gói bài).</div>';
             return;
@@ -1800,6 +1875,7 @@
             const safeName = window.escapeHtml(c.name || 'Pokémon');
             const safeRarity = window.escapeHtml(c.rarityName || 'Common');
             const visual = getRarityVisual(c.rarityName, c.rarityColorHex);
+            const bonus = getExpeditionCardBonus(c);
             const selected = selectedExpeditionCardIds.has(uc.userCardId);
             const cardCls = selected
                 ? 'border-amber-500 ring-2 ring-amber-500/35 bg-amber-500/10'
@@ -1813,7 +1889,7 @@
                         class="group relative border-2 ${cardCls} rounded-2xl p-2 flex flex-col items-center text-center gap-2 cursor-pointer transition">
                     ${checkBadge}
                     <div class="w-[88%] aspect-[2.5/3.5] rounded-xl overflow-hidden pk-surface-muted shadow-md transition group-hover:scale-[1.03] shrink-0">
-                        <img src="${window.escapeHtml(c.imageUrl || FALLBACK_ART)}" alt="${safeName}"
+                        <img src="${window.escapeHtml(c.imageUrl || FALLBACK_ART)}" alt="${safeName}" loading="lazy" decoding="async"
                              onerror="this.onerror=null;this.src='${FALLBACK_ART}';"
                              class="h-full w-full object-cover"/>
                     </div>
@@ -1824,6 +1900,9 @@
                                   style="border-color: ${visual.color}; color: ${visual.color}">
                                 ${safeRarity}
                             </span>
+                        </div>
+                        <div class="pk-num text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                            +${bonus.coinPct}% Xu • +${bonus.packPct}% Pack
                         </div>
                     </div>
                 </button>
@@ -1936,9 +2015,16 @@
         }, 1000);
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function initSanctuaryPage() {
         setupDiorama();
-        loadSanctuaryState();
+        if (window.__INITIAL_SANCTUARY_STATE__) {
+            sanctuaryState = window.__INITIAL_SANCTUARY_STATE__;
+            window.__INITIAL_SANCTUARY_STATE__ = null;
+            renderAllHud();
+            syncActorsWithSlots(sanctuaryState.slots);
+        } else {
+            loadSanctuaryState();
+        }
         startCountdownTicker();
 
         const btnOpenPicker = document.getElementById('btn-open-card-picker');
@@ -1955,5 +2041,22 @@
 
         const btnRefresh = document.getElementById('btn-sanctuary-refresh');
         if (btnRefresh) btnRefresh.addEventListener('click', loadSanctuaryState);
-    });
+
+        window.addEventListener('pagehide', () => {
+            if (rafId != null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+            if (countdownTimerId != null) {
+                clearInterval(countdownTimerId);
+                countdownTimerId = null;
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSanctuaryPage);
+    } else {
+        initSanctuaryPage();
+    }
 })();

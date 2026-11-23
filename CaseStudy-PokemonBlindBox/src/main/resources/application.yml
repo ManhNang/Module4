@@ -55,6 +55,8 @@ spring:
       namespace: pokemon:blindbox:session
 
 app:
+  security:
+    remember-me-key: ${APP_REMEMBER_ME_KEY:change-me-in-prod}
   websocket:
     allowed-origins: ${APP_WS_ALLOWED_ORIGINS:http://localhost:8080,http://127.0.0.1:8080}
     broker-relay:
@@ -67,7 +69,7 @@ app:
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:thwphzkq}
   api-key: ${CLOUDINARY_API_KEY:241294794151565}
-  api-secret: ${CLOUDINARY_API_SECRET:Q_1vET-fiCmJM8weBFJMzvRQ_0E}
+  api-secret: ${CLOUDINARY_API_SECRET:}
   folder: pokemon-blindbox/cards
 
 vnpay:

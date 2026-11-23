@@ -7,6 +7,7 @@ import com.pokemon.blindbox.dto.response.AuctionBidResponseDTO;
 import com.pokemon.blindbox.dto.response.AuctionResponseDTO;
 import com.pokemon.blindbox.entity.*;
 import com.pokemon.blindbox.entity.enums.AuctionStatus;
+import com.pokemon.blindbox.entity.enums.ExpeditionStatus;
 import com.pokemon.blindbox.entity.enums.MarketItemType;
 import com.pokemon.blindbox.entity.enums.SealedItemType;
 import com.pokemon.blindbox.entity.enums.TransactionType;
@@ -51,6 +52,8 @@ public class AuctionService {
     private final WalletRepository walletRepository;
     private final WalletService walletService;
     private final ApplicationEventPublisher eventPublisher;
+    private final SanctuarySlotRepository sanctuarySlotRepository;
+    private final ExpeditionCardRepository expeditionCardRepository;
 
     /**
      * 1. Tạo phiên đấu giá mới từ Thẻ bài / Pack lẻ / Box nguyên seal của người chơi.
@@ -112,6 +115,13 @@ public class AuctionService {
         }
         if (Boolean.TRUE.equals(userCard.getIsLocked())) {
             throw new BusinessValidationException("Thẻ bài này đang bị khóa trên Sàn hoặc Phiên Đấu Giá khác!");
+        }
+        if (expeditionCardRepository != null
+                && expeditionCardRepository.existsByUserCardIdAndExpeditionStatus(userCard.getId(), ExpeditionStatus.IN_PROGRESS)) {
+            throw new BusinessValidationException("Thẻ bài này đang tham gia chuyến thám hiểm trên Đảo Pokémon!");
+        }
+        if (sanctuarySlotRepository != null) {
+            sanctuarySlotRepository.deleteByUserCardId(userCard.getId());
         }
 
         userCard.setIsLocked(true);

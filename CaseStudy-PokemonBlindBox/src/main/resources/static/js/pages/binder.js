@@ -16,8 +16,7 @@ function updateInventoryQuickStats() {
     statsEl.textContent = `${uniqueTypes} loại thẻ • ${totalCopies} bản sao`;
 }
 
-// Gom nhóm các bản sao trùng nhau thành 1 thẻ duy nhất kèm badge xN
-// Đồng thời đếm chính xác tổng số bản sao (data-total-count) và số bản sao chưa khóa có thể bán (data-sellable-count)
+// Khởi tạo tập ownedTemplateIds (danh sách thẻ từ Server đã được gộp trùng & sắp xếp sẵn theo Giá Cao -> Thấp, Mã thẻ Tăng dần)
 (function deduplicateInventoryCards() {
     const grid = document.getElementById('my-cards-grid');
     if (!grid) return;
@@ -26,12 +25,15 @@ function updateInventoryQuickStats() {
     items.forEach(el => {
         const tplId = el.getAttribute('data-template-id');
         const isLocked = el.getAttribute('data-is-locked') === 'true';
+        const ssrTotal = parseInt(el.getAttribute('data-total-count') || '0', 10);
+        const ssrSellable = parseInt(el.getAttribute('data-sellable-count') || '-1', 10);
+
         if (!keptByTemplate.has(tplId)) {
             keptByTemplate.set(tplId, {
                 el,
                 isLocked,
-                totalCount: 1,
-                sellableCount: isLocked ? 0 : 1
+                totalCount: ssrTotal > 0 ? ssrTotal : 1,
+                sellableCount: ssrSellable >= 0 ? ssrSellable : (isLocked ? 0 : 1)
             });
         } else {
             const entry = keptByTemplate.get(tplId);
@@ -126,7 +128,8 @@ window.filterAndSortInventoryCards = function (targetPage) {
     const rarityVal = (document.getElementById('inv-filter-rarity')?.value || '').trim().toLowerCase();
     const sortVal = document.getElementById('inv-filter-sort')?.value || 'rarity-desc';
 
-    const cards = Array.from(grid.querySelectorAll('.my-card-item')).filter(el => el.dataset.removing !== 'true');
+    const currentCards = Array.from(grid.querySelectorAll('.my-card-item')).filter(el => el.dataset.removing !== 'true');
+    const cards = currentCards.slice();
     cards.sort((a, b) => {
         if (sortVal === 'number-asc') {
             return (parseInt(a.dataset.cardNumber || '0', 10) || 0) - (parseInt(b.dataset.cardNumber || '0', 10) || 0);
@@ -139,7 +142,9 @@ window.filterAndSortInventoryCards = function (targetPage) {
         return (parseInt(a.dataset.cardNumber || '0', 10) || 0) - (parseInt(b.dataset.cardNumber || '0', 10) || 0);
     });
 
+    const orderChanged = cards.some((card, idx) => card !== currentCards[idx]);
     const matched = [];
+    const frag = orderChanged ? document.createDocumentFragment() : null;
     cards.forEach(card => {
         const name = (card.dataset.cardName || '').toLowerCase();
         const setName = (card.dataset.setName || '').toLowerCase();
@@ -151,7 +156,7 @@ window.filterAndSortInventoryCards = function (targetPage) {
         const isMatch = matchSearch && matchSet && matchRarity;
         card.dataset.filterMatch = isMatch ? 'true' : 'false';
         if (isMatch) matched.push(card);
-        grid.appendChild(card);
+        if (frag) frag.appendChild(card);
     });
 
     const totalMatched = matched.length;
@@ -164,9 +169,14 @@ window.filterAndSortInventoryCards = function (targetPage) {
     cards.forEach(card => {
         card.style.display = visibleSet.has(card) ? '' : 'none';
     });
+    if (frag) {
+        grid.appendChild(frag);
+    }
 
     renderInventoryPagination(totalMatched, startIdx, endIdx, totalPages);
 };
+
+window.debouncedFilterInventoryCards = (window.debounce || ((fn) => fn))(() => window.filterAndSortInventoryCards(1), 150);
 
 const binderMainEl = document.getElementById('binder-main');
 const INITIAL_TAB = (binderMainEl && binderMainEl.dataset.initialTab) ? binderMainEl.dataset.initialTab : 'inventory';
@@ -248,6 +258,8 @@ window.filterBinderGridClientSide = function () {
     });
 };
 
+window.debouncedFilterBinderGrid = (window.debounce || ((fn) => fn))(window.filterBinderGridClientSide, 150);
+
 // ==================== TAB 2: KHO PACK & BOX (BÓC SEAL, MỞ 1 PACK, MỞ NHANH 5 PACK) ====================
 let activeVaultSetId = null;
 let activeVaultSetName = '';
@@ -266,26 +278,25 @@ async function parseJsonSafe(res) {
     }
 }
 
-function classifyRarityTier(rarityName, isHolo) {
-    const n = (rarityName || '').toLowerCase();
-    if (/(hyper|secret|gold|special illustration)/.test(n)) return 'hyper';
-    if (/(\bex\b|double rare|ultra rare|full art|illustration rare)/.test(n)) return 'ex';
-    if (/(uncommon|không phổ biến)/.test(n)) return 'uncommon';
-    if (/(\brare\b|hiếm)/.test(n) || isHolo) return 'rare';
-    return 'common';
+function resolveCardRevealEffect(card) {
+    if (window.PokemonRevealVfx) {
+        return window.PokemonRevealVfx.normalizeEffect(card?.rarityRevealEffect);
+    }
+    return String(card?.rarityRevealEffect || 'NONE').toUpperCase();
 }
 
-function resolveStandardRarityColor(rarityName, fallbackHex) {
-    const n = (rarityName || '').toLowerCase();
-    if (n.includes('special illustration')) return '#ec4899';
-    if (/(hyper|secret|gold)/.test(n)) return '#f59e0b';
-    if (n.includes('illustration')) return '#c084fc';
-    if (n.includes('ultra')) return '#fb923c';
-    if (n.includes('double')) return '#818cf8';
-    if (n.includes('uncommon') || n.includes('không phổ biến')) return '#34d399';
-    if (n.includes('rare') || n.includes('hiếm')) return '#38bdf8';
-    if (n.includes('common') || n.includes('phổ biến')) return '#94a3b8';
-    return fallbackHex || '#94a3b8';
+function resolveCardColorHex(card) {
+    const raw = String(card?.rarityColorHex || '').trim();
+    if (/^#[0-9a-fA-F]{3,8}$/.test(raw)) return raw;
+    if (window.PokemonRevealVfx) {
+        return window.PokemonRevealVfx.getPreset(card?.rarityRevealEffect).accent;
+    }
+    return '#94A3B8';
+}
+
+function isCardRarePlus(card) {
+    const eff = resolveCardRevealEffect(card);
+    return eff !== 'NONE' || Boolean(card?.rarityIsHolographic);
 }
 
 function triggerIsolatedShake(targetEl) {
@@ -519,13 +530,13 @@ window.executeTearSinglePack = async function () {
         remainingVaultPacks = Math.max(0, remainingVaultPacks - 1);
         const drawnCards = data.drawnCards || [];
 
-        // Xác định độ hiếm cao nhất trong gói để chọn màu tia sáng xé gói
-        let highestTier = 'normal';
-        drawnCards.forEach(uc => {
-            const t = classifyRarityTier(uc.card?.rarityName, uc.card?.rarityIsHolographic);
-            if (t === 'hyper') highestTier = 'hyper';
-            else if (t === 'ex' && highestTier !== 'hyper') highestTier = 'ex';
-        });
+        // Xác định cấp hiệu ứng cao nhất trong gói từ DB (100% động, không hardcode tên)
+        const highestEffect = window.PokemonRevealVfx
+            ? window.PokemonRevealVfx.getHighestEffect(drawnCards)
+            : 'NONE';
+        const highestTier = window.PokemonRevealVfx
+            ? window.PokemonRevealVfx.getPreset(highestEffect).tearTier
+            : 'normal';
 
         // Cao trào: Tia sáng đường cắt + Rung cô lập trên chính gói bài (nếu có EX/Hyper) + Xé toạc vỏ + Lóe sáng
         if (wrap) {
@@ -632,25 +643,21 @@ function updateVaultFlipProgress() {
         if (filterRareBtn && total > 12) {
             filterRareBtn.classList.remove('hidden');
         }
-        // Tóm tắt kết quả mở pack theo độ hiếm (ưu tiên độ hiếm cao trước)
-        const rarityOrder = (name) => {
-            const n = (name || '').toLowerCase();
-            if (n.includes('special illustration')) return 8;
-            if (/(hyper|secret|gold)/.test(n)) return 7;
-            if (n.includes('illustration')) return 6;
-            if (n.includes('ultra')) return 5;
-            if (n.includes('double')) return 4;
-            if (n.includes('rare') && !n.includes('uncommon')) return 3;
-            if (n.includes('uncommon')) return 2;
-            return 1;
-        };
+        // Tóm tắt kết quả mở pack sắp xếp động theo bậc revealEffect + cờ holo từ DB
         const counts = new Map();
+        const rankByName = new Map();
         activeDrawnCards.forEach(uc => {
-            const rName = uc.card?.rarityName || 'Common';
+            const c = uc.card || {};
+            const rName = c.rarityName || 'Common';
             counts.set(rName, (counts.get(rName) || 0) + 1);
+            const effRank = window.PokemonRevealVfx ? window.PokemonRevealVfx.getRank(c.rarityRevealEffect) : 0;
+            const score = effRank * 10 + (c.rarityIsHolographic ? 2 : 0);
+            if (!rankByName.has(rName) || score > rankByName.get(rName)) {
+                rankByName.set(rName, score);
+            }
         });
         const summaryParts = Array.from(counts.entries())
-            .sort((a, b) => rarityOrder(b[0]) - rarityOrder(a[0]))
+            .sort((a, b) => (rankByName.get(b[0]) || 0) - (rankByName.get(a[0]) || 0))
             .map(([rName, cnt]) => `${cnt} ${rName}`);
         const subEl = document.getElementById('vault-open-subtitle');
         if (subEl && summaryParts.length > 0) {
@@ -666,8 +673,7 @@ window.toggleVaultRareFilter = function () {
     const btn = document.getElementById('btn-vault-filter-rare');
     const items = document.querySelectorAll('#vault-drawn-cards-grid .vault-flip-item');
     items.forEach(el => {
-        const tier = el.getAttribute('data-tier') || 'common';
-        const isRarePlus = tier !== 'common' && tier !== 'uncommon';
+        const isRarePlus = el.getAttribute('data-rare-plus') === 'true';
         el.style.display = (vaultRareOnlyFilter && !isRarePlus) ? 'none' : '';
     });
     if (btn) {
@@ -705,11 +711,13 @@ function renderDrawnCardsResult(drawnCards, faceDown) {
     grid.scrollTop = 0;
     grid.innerHTML = list.map((uc, idx) => {
         const c = uc.card || {};
-        const tier = classifyRarityTier(c.rarityName, c.rarityIsHolographic);
-        const color = resolveStandardRarityColor(c.rarityName, c.rarityColorHex);
-        const isHighHit = tier === 'ex' || tier === 'hyper';
-        const isRarePlus = tier !== 'common' && tier !== 'uncommon';
-        const auraClass = `pk-aura-${tier}`;
+        const effectCode = resolveCardRevealEffect(c);
+        const color = resolveCardColorHex(c);
+        const isHighHit = effectCode !== 'NONE';
+        const isRarePlus = isCardRarePlus(c);
+        const auraClass = window.PokemonRevealVfx
+            ? window.PokemonRevealVfx.getBackAuraClass(effectCode, c.rarityIsHolographic)
+            : (isHighHit ? 'pk-aura-ex' : 'pk-aura-common');
         const holoClass = (isHighHit || c.rarityIsHolographic) ? 'pk-holo-card is-holo-active' : '';
         const dealDelay = Math.min(idx * (isMultiPack ? 25 : 75), 520);
         const glowStyle = isRarePlus ? `box-shadow: 0 0 18px -3px ${color}88;` : '';
@@ -720,7 +728,10 @@ function renderDrawnCardsResult(drawnCards, faceDown) {
 
         return `
             <div class="vault-flip-item pk-flip-scene pk-card-deal-in ${faceDown ? '' : 'is-flipped'}"
-                 data-tier="${tier}"
+                 data-reveal-effect="${effectCode}"
+                 data-color="${color}"
+                 data-holo="${Boolean(c.rarityIsHolographic)}"
+                 data-rare-plus="${isRarePlus}"
                  data-card-index="${idx}"
                  style="animation-delay: ${dealDelay}ms"
                  onclick="window.handleVaultCardClick(this)">
@@ -745,7 +756,7 @@ function renderDrawnCardsResult(drawnCards, faceDown) {
                     <div class="pk-flip-face pk-flip-front ${holoClass} relative overflow-hidden bg-slate-900 border-2 shadow-xl"
                          style="border-color: ${color}; ${glowStyle}">
                         ${isNewCard ? '<span class="absolute top-1.5 left-1.5 z-20 rounded-md bg-amber-400 text-slate-950 px-1.5 py-0.5 text-[9px] font-black tracking-wide shadow">MỚI</span>' : ''}
-                        <img src="${esc(c.imageUrl)}" alt="${esc(c.name)}" class="w-full h-full object-cover"/>
+                        <img src="${esc(c.imageUrl)}" alt="${esc(c.name)}" loading="lazy" decoding="async" class="w-full h-full object-cover"/>
                     </div>
                 </div>
                 <div class="vault-card-caption ${faceDown ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 mt-1.5 text-center space-y-1">
@@ -773,55 +784,59 @@ function renderDrawnCardsResult(drawnCards, faceDown) {
 
 window.handleVaultCardClick = function (sceneEl) {
     if (!sceneEl) return;
+    if (sceneEl.dataset.revealing === 'true' && window.PokemonRevealVfx) {
+        window.PokemonRevealVfx.skipRevealIfActive(sceneEl);
+        return;
+    }
     if (sceneEl.classList.contains('is-flipped')) {
         const idx = parseInt(sceneEl.getAttribute('data-card-index') || '-1', 10);
         if (idx >= 0) window.openVaultCardLightbox(idx);
         return;
     }
-    window.flipSingleVaultCard(sceneEl);
+    window.flipSingleVaultCard(sceneEl, false);
 };
 
-window.flipSingleVaultCard = function (sceneEl) {
-    if (!sceneEl || sceneEl.classList.contains('is-flipped') || sceneEl.classList.contains('is-anticipation')) return;
-    const tier = sceneEl.getAttribute('data-tier') || 'common';
-    const isHighHit = tier === 'ex' || tier === 'hyper';
-
-    const finishFlip = () => {
-        sceneEl.classList.remove('is-anticipation');
-        sceneEl.classList.add('is-flipped');
-        sceneEl.querySelector('.vault-card-caption')?.classList.replace('opacity-0', 'opacity-100');
-
-        if (isHighHit) {
-            const frontEl = sceneEl.querySelector('.pk-flip-front');
-            frontEl?.classList.add('pk-holo-shimmer');
-            triggerIsolatedShake(sceneEl);
-            const now = Date.now();
-            if (now - lastHitVfxAt > 260) {
-                lastHitVfxAt = now;
-                spawnGachaConfetti(tier);
-            }
+window.flipSingleVaultCard = function (sceneEl, isBulkFlip) {
+    if (!sceneEl || sceneEl.classList.contains('is-flipped')) return;
+    if (sceneEl.dataset.revealing === 'true') {
+        if (!isBulkFlip && window.PokemonRevealVfx) {
+            window.PokemonRevealVfx.skipRevealIfActive(sceneEl);
         }
+        return;
+    }
+    const effectCode = sceneEl.getAttribute('data-reveal-effect') || 'NONE';
+    const colorHex = sceneEl.getAttribute('data-color') || '#94A3B8';
+    const isHolo = sceneEl.getAttribute('data-holo') === 'true';
 
-        // Cập nhật tiến độ lật & trạng thái nút Hoàn tất
+    const onRevealComplete = ({ effectCode: eff, skipped }) => {
+        sceneEl.querySelector('.vault-card-caption')?.classList.replace('opacity-0', 'opacity-100');
+        if (!skipped && eff !== 'NONE' && (eff === 'ULTRA' || eff === 'FUTURISTIC' || eff === 'MEGA_HYPER')) {
+            triggerIsolatedShake(sceneEl);
+        }
         updateVaultFlipProgress();
     };
 
-    if (isHighHit) {
-        // Rung nhẹ hồi hộp trước khi lật thẻ EX / Hyper Rare
-        sceneEl.classList.add('is-anticipation');
-        setTimeout(finishFlip, 420);
+    if (window.PokemonRevealVfx) {
+        window.PokemonRevealVfx.playCardReveal(sceneEl, {
+            revealEffect: effectCode,
+            colorHex,
+            isHolo,
+            isBulkFlip: Boolean(isBulkFlip),
+            onComplete: onRevealComplete
+        });
     } else {
-        finishFlip();
+        sceneEl.classList.add('is-flipped');
+        onRevealComplete({ effectCode, skipped: false });
     }
 };
 
 window.flipAllVaultCards = function () {
     const unflipped = Array.from(document.querySelectorAll('#vault-drawn-cards-grid .vault-flip-item:not(.is-flipped)'));
     document.getElementById('btn-flip-all-vault-cards')?.classList.add('hidden');
-    // Nhịp lật dây chuyền mượt mà (75ms cho 30 thẻ mở nhanh 5 Pack, 160ms cho 6 thẻ mở 1 Pack)
-    const stepDelay = unflipped.length > 12 ? 75 : 160;
+    // Nhịp lật dây chuyền mượt mà (75ms cho 30 thẻ mở nhanh 5 Pack, 150ms cho 6 thẻ mở 1 Pack)
+    const stepDelay = unflipped.length > 12 ? 75 : 150;
     unflipped.forEach((el, idx) => {
-        setTimeout(() => window.flipSingleVaultCard(el), idx * stepDelay);
+        setTimeout(() => window.flipSingleVaultCard(el, true), idx * stepDelay);
     });
 };
 
@@ -830,9 +845,9 @@ window.openVaultCardLightbox = function (cardIndex) {
     const uc = activeDrawnCards[cardIndex];
     if (!uc || !uc.card) return;
     const c = uc.card;
-    const tier = classifyRarityTier(c.rarityName, c.rarityIsHolographic);
-    const color = resolveStandardRarityColor(c.rarityName, c.rarityColorHex);
-    const isHolo = tier === 'ex' || tier === 'hyper' || tier === 'rare' || Boolean(c.rarityIsHolographic);
+    const effectCode = resolveCardRevealEffect(c);
+    const color = resolveCardColorHex(c);
+    const isHolo = effectCode !== 'NONE' || Boolean(c.rarityIsHolographic);
 
     const frame = document.getElementById('vault-lightbox-card-frame');
     const img = document.getElementById('vault-lightbox-card-img');
@@ -1390,11 +1405,17 @@ window.confirmBulkSellToShop = async function () {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+function initBinderPage() {
     setupTearPackInteractions();
     setupVaultLightboxInteractions();
     window.filterAndSortInventoryCards();
     const urlTab = new URLSearchParams(window.location.search).get('tab');
     window.switchInventoryTab(urlTab || INITIAL_TAB, false);
     if (window.bindHoloTiltEffects) window.bindHoloTiltEffects();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBinderPage);
+} else {
+    initBinderPage();
+}

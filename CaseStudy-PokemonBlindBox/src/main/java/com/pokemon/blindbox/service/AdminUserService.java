@@ -37,6 +37,7 @@ public class AdminUserService {
     private final WalletRepository walletRepository;
     private final UserCardRepository userCardRepository;
     private final WalletService walletService;
+    private final com.pokemon.blindbox.security.LockedUserKickFilter lockedUserKickFilter;
 
     /**
      * Danh sách người dùng phân trang kèm số dư ví & tổng số thẻ sở hữu.
@@ -85,6 +86,9 @@ public class AdminUserService {
 
         user.setIsLocked(locked);
         User saved = userRepository.save(user);
+        if (lockedUserKickFilter != null) {
+            lockedUserKickFilter.evictUserLockCache(saved.getId(), locked);
+        }
         log.info("Admin userId={} set isLocked={} for target userId={} ({})",
                 currentAdminId, locked, saved.getId(), saved.getUsername());
 

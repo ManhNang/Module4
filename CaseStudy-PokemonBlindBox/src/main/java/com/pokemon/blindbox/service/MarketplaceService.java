@@ -10,6 +10,7 @@ import com.pokemon.blindbox.entity.UserCard;
 import com.pokemon.blindbox.entity.UserSealedItem;
 import com.pokemon.blindbox.entity.Wallet;
 import com.pokemon.blindbox.entity.enums.AuctionStatus;
+import com.pokemon.blindbox.entity.enums.ExpeditionStatus;
 import com.pokemon.blindbox.entity.enums.ListingStatus;
 import com.pokemon.blindbox.entity.enums.MarketItemType;
 import com.pokemon.blindbox.entity.enums.SealedItemType;
@@ -19,6 +20,8 @@ import com.pokemon.blindbox.exception.ResourceNotFoundException;
 import com.pokemon.blindbox.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,12 +39,16 @@ import java.util.Map;
 @Slf4j
 public class MarketplaceService {
 
+    private static final Pageable DEFAULT_MARKET_PAGE = PageRequest.of(0, 60);
+
     private final MarketListingRepository marketListingRepository;
     private final AuctionRepository auctionRepository;
     private final UserCardRepository userCardRepository;
     private final UserSealedItemRepository userSealedItemRepository;
     private final WalletRepository walletRepository;
     private final WalletService walletService;
+    private final SanctuarySlotRepository sanctuarySlotRepository;
+    private final ExpeditionCardRepository expeditionCardRepository;
 
     /**
      * 1. Treo Thẻ bài / Pack lẻ / Box nguyên seal lên Chợ bán giá cố định (MarketListing).
@@ -97,6 +104,13 @@ public class MarketplaceService {
         }
         if (Boolean.TRUE.equals(userCard.getIsLocked())) {
             throw new BusinessValidationException("Thẻ bài này đang được treo trên Sàn hoặc Phiên Đấu Giá khác!");
+        }
+        if (expeditionCardRepository != null
+                && expeditionCardRepository.existsByUserCardIdAndExpeditionStatus(userCard.getId(), ExpeditionStatus.IN_PROGRESS)) {
+            throw new BusinessValidationException("Thẻ bài này đang tham gia chuyến thám hiểm trên Đảo Pokémon!");
+        }
+        if (sanctuarySlotRepository != null) {
+            sanctuarySlotRepository.deleteByUserCardId(userCard.getId());
         }
 
         userCard.setIsLocked(true);

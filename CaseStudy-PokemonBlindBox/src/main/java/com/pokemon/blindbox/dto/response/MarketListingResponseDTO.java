@@ -19,6 +19,8 @@ public record MarketListingResponseDTO(
         Long sealedSetId,
         String sealedSetName,
         String sealedSetCode,
+        String sealedPackImageUrl,
+        String sealedBoxImageUrl,
         Integer sealedCardsPerPack,
         Integer sealedPacksPerBox,
         BigDecimal price,
@@ -44,6 +46,8 @@ public record MarketListingResponseDTO(
                 .sealedSetId(sealed != null && sealed.getCardSet() != null ? sealed.getCardSet().getId() : null)
                 .sealedSetName(sealed != null && sealed.getCardSet() != null ? sealed.getCardSet().getName() : null)
                 .sealedSetCode(sealed != null && sealed.getCardSet() != null ? sealed.getCardSet().getCode() : null)
+                .sealedPackImageUrl(sealed != null && sealed.getCardSet() != null ? sealed.getCardSet().getPackImageUrl() : null)
+                .sealedBoxImageUrl(sealed != null && sealed.getCardSet() != null ? sealed.getCardSet().getBoxImageUrl() : null)
                 .sealedCardsPerPack(sealed != null ? sealed.getCardsPerPack() : null)
                 .sealedPacksPerBox(sealed != null ? sealed.getPacksPerBox() : null)
                 .price(listing.getPrice())

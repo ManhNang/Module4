@@ -13,10 +13,104 @@
     let adminUsersPage = 0;
     let adminUsersTotalPages = 1;
 
+    // ==================== 1B. UPLOAD & PREVIEW ẢNH PACK / BOX (PNG/WebP ≤ 2MB) ====================
+    window.syncSetMediaPreview = function (prefix) {
+        const inputEl = document.getElementById(`${prefix}-image-url`);
+        const imgEl = document.getElementById(`${prefix}-img-preview`);
+        const phEl = document.getElementById(`${prefix}-img-placeholder`);
+        if (!inputEl || !imgEl || !phEl) return;
+        const url = (inputEl.value || '').trim();
+        if (url) {
+            imgEl.onerror = () => {
+                imgEl.classList.add('hidden');
+                phEl.classList.remove('hidden');
+            };
+            imgEl.src = url;
+            imgEl.classList.remove('hidden');
+            phEl.classList.add('hidden');
+        } else {
+            imgEl.src = '';
+            imgEl.classList.add('hidden');
+            phEl.classList.remove('hidden');
+        }
+    };
+
+    window.clearSetMediaImage = function (prefix) {
+        const inputEl = document.getElementById(`${prefix}-image-url`);
+        if (inputEl) inputEl.value = '';
+        window.syncSetMediaPreview(prefix);
+    };
+
+    window.uploadSetMediaFile = async function (fileInput, mediaType, prefix, setCodeInputId) {
+        const file = fileInput?.files?.[0];
+        if (!file) return;
+        const validTypes = ['image/png', 'image/webp'];
+        if (file.type && !validTypes.includes(file.type.toLowerCase())) {
+            window.showToast('error', 'Định dạng không hỗ trợ', 'Chỉ chấp nhận file ảnh PNG (.png) hoặc WebP (.webp)!');
+            fileInput.value = '';
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            window.showToast('error', 'File quá lớn', 'Dung lượng ảnh tối đa là 2MB!');
+            fileInput.value = '';
+            return;
+        }
+        const setCode = (document.getElementById(setCodeInputId)?.value || 'set').trim() || 'set';
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('setCode', setCode);
+        formData.append('mediaType', mediaType);
+
+        try {
+            const res = await fetch('/api/v1/admin/card-sets/upload-media', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                window.showToast('error', 'Tải ảnh thất bại', data.message || 'Vui lòng kiểm tra lại định dạng ảnh.');
+                return;
+            }
+            const urlInput = document.getElementById(`${prefix}-image-url`);
+            if (urlInput && data.imageUrl) {
+                urlInput.value = data.imageUrl;
+                window.syncSetMediaPreview(prefix);
+            }
+            window.showToast('success', 'Đã tải ảnh lên!', 'Bấm "Lưu thay đổi" để áp dụng ảnh mới cho Bộ Thẻ.');
+        } catch (err) {
+            window.showToast('error', 'Lỗi kết nối', err.message || 'Không thể tải ảnh lên máy chủ.');
+        } finally {
+            fileInput.value = '';
+        }
+    };
+
     // ==================== 1. MODAL HELPERS & ESCAPE KEY ====================
+    window.resetCreateCardModal = function () {
+        const nameInput = document.getElementById('card-name');
+        const fileInput = document.getElementById('card-image-file');
+        const urlInput = document.getElementById('card-image-url');
+        const numInput = document.getElementById('card-number');
+        const alertBox = document.getElementById('card-conflict-alert');
+        if (nameInput) nameInput.value = '';
+        if (fileInput) fileInput.value = '';
+        if (urlInput) urlInput.value = '';
+        if (alertBox) alertBox.classList.add('hidden');
+        if (numInput) {
+            const maxNum = Array.from(document.querySelectorAll('#card-templates-tbody tr[data-card-number]'))
+                .reduce((acc, r) => Math.max(acc, parseInt(r.getAttribute('data-card-number') || '0', 10) || 0), 0);
+            numInput.value = String(maxNum + 1);
+        }
+        if (typeof window.syncCreateCardImagePreview === 'function') window.syncCreateCardImagePreview();
+        if (typeof window.updateFormattedNumberPreview === 'function') window.updateFormattedNumberPreview();
+        if (typeof window.validateCreateCardForm === 'function') window.validateCreateCardForm();
+    };
+
     window.openModal = function (id) {
         const el = document.getElementById(id);
         if (!el) return;
+        if (id === 'modal-create-card') {
+            window.resetCreateCardModal();
+        }
         el.classList.remove('hidden');
         el.classList.add('flex');
     };
@@ -30,7 +124,16 @@
 
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
-        ['modal-card-preview', 'modal-user-wallet', 'modal-edit-card', 'modal-create-card', 'modal-species', 'modal-rarity', 'modal-create-set']
+        const subModals = ['modal-rarity', 'modal-species', 'modal-card-preview'];
+        const openSubModals = subModals.filter(id => {
+            const el = document.getElementById(id);
+            return el && !el.classList.contains('hidden');
+        });
+        if (openSubModals.length > 0) {
+            openSubModals.forEach(id => window.closeModal(id));
+            return;
+        }
+        ['modal-user-wallet', 'modal-edit-card', 'modal-create-card', 'modal-create-set']
             .forEach(id => window.closeModal(id));
     });
 
@@ -39,7 +142,6 @@
     window.updateNewSetBoxHint = function () {
         const packs = parseInt(document.getElementById('new-set-packs-per-box')?.value || '0', 10) || 0;
         const packPrice = parseFloat(document.getElementById('new-set-pack-price')?.value || '0') || 0;
-        const boxPrice = parseFloat(document.getElementById('new-set-box-price')?.value || '0') || 0;
         const hintEl = document.getElementById('new-set-box-hint');
         if (!hintEl) return;
         const fullPrice = packs * packPrice;
@@ -47,15 +149,10 @@
             hintEl.textContent = '';
             return;
         }
-        const diffPct = Math.round(((fullPrice - boxPrice) / fullPrice) * 100);
+        const autoBoxPrice = Math.round(fullPrice * 0.9);
+        const autoBoxStr = autoBoxPrice.toLocaleString('vi-VN') + ' Xu';
         const fullStr = Math.round(fullPrice).toLocaleString('vi-VN') + ' Xu';
-        if (diffPct > 0) {
-            hintEl.textContent = `Giá lẻ ${packs} gói: ${fullStr} — Đang giảm ${diffPct}%`;
-        } else if (diffPct < 0) {
-            hintEl.textContent = `Giá lẻ ${packs} gói: ${fullStr} — Cao hơn ${Math.abs(diffPct)}%`;
-        } else {
-            hintEl.textContent = `Giá lẻ ${packs} gói: ${fullStr} — Bằng giá lẻ`;
-        }
+        hintEl.textContent = `Giá hộp tự động (${packs} gói, giảm 10%): ${autoBoxStr} (giá lẻ ${fullStr})`;
     };
 
     window.validateCreateSetForm = function () {
@@ -67,8 +164,7 @@
         const cpp = parseInt(document.getElementById('new-set-cards-per-pack')?.value || '0', 10);
         const ppb = parseInt(document.getElementById('new-set-packs-per-box')?.value || '0', 10);
         const pp = parseFloat(document.getElementById('new-set-pack-price')?.value || '0');
-        const bp = parseFloat(document.getElementById('new-set-box-price')?.value || '0');
-        btn.disabled = !(name && code && total >= 1 && cpp >= 1 && ppb >= 1 && pp >= 1 && bp >= 1);
+        btn.disabled = !(name && code && total >= 1 && cpp >= 1 && ppb >= 1 && pp >= 1);
     };
 
     window.updateRarityModalPreview = function () {
@@ -94,7 +190,17 @@
         const weight = parseInt(weightRaw || '-1', 10);
         const color = (document.getElementById('rarity-modal-color')?.value || '').trim().toUpperCase();
         const isHolo = Boolean(document.getElementById('rarity-modal-holo')?.checked);
-        const valid = Boolean(name && weightRaw !== '' && !Number.isNaN(weight) && weight >= 0 && /^#[0-9A-F]{6}$/.test(color));
+        const revealEffect = (document.getElementById('rarity-modal-reveal-effect')?.value || 'NONE').toUpperCase();
+        const coinsRaw = document.getElementById('rarity-modal-coins-per-min')?.value;
+        const coinsPerMin = parseInt(coinsRaw || '0', 10);
+        const buybackRaw = document.getElementById('rarity-modal-buyback-price')?.value;
+        const buybackPrice = parseInt(buybackRaw || '0', 10);
+        const valid = Boolean(
+            name && weightRaw !== '' && !Number.isNaN(weight) && weight >= 0
+            && /^#[0-9A-F]{6}$/.test(color)
+            && coinsRaw !== '' && !Number.isNaN(coinsPerMin) && coinsPerMin >= 1
+            && buybackRaw !== '' && !Number.isNaN(buybackPrice) && buybackPrice >= 1
+        );
         if (!valid) {
             btn.disabled = true;
             return;
@@ -103,7 +209,10 @@
             const changed = name !== rarityInitialSnapshot.name
                 || weight !== rarityInitialSnapshot.dropWeight
                 || color !== rarityInitialSnapshot.colorHex
-                || isHolo !== rarityInitialSnapshot.isHolographic;
+                || isHolo !== rarityInitialSnapshot.isHolographic
+                || revealEffect !== rarityInitialSnapshot.revealEffect
+                || coinsPerMin !== rarityInitialSnapshot.sanctuaryCoinsPerMin
+                || buybackPrice !== rarityInitialSnapshot.buybackPrice;
             btn.disabled = !changed;
         } else {
             btn.disabled = false;
@@ -138,7 +247,7 @@
             imgEl.classList.remove('hidden');
             phEl.classList.add('hidden');
         } else {
-            imgEl.src = '';
+            imgEl.removeAttribute('src');
             imgEl.classList.add('hidden');
             phEl.classList.remove('hidden');
         }
@@ -151,6 +260,7 @@
         try {
             await window.uploadSelectedImageToCloudinary('card-image-file', 'card-image-url', 'card-number');
             window.syncCreateCardImagePreview();
+            window.validateCreateCardForm();
         } finally {
             if (labelEl) labelEl.textContent = 'Chọn ảnh & Tải lên';
         }
@@ -173,15 +283,40 @@
         document.getElementById('rarity-modal-color').value = hex;
         document.getElementById('rarity-modal-color-picker').value = /^#[0-9A-F]{6}$/.test(hex) ? hex : '#EC4899';
         document.getElementById('rarity-modal-holo').checked = rarity ? Boolean(rarity.isHolographic) : false;
+        const effectVal = String(rarity?.revealEffect || 'NONE').toUpperCase();
+        const effectSel = document.getElementById('rarity-modal-reveal-effect');
+        if (effectSel) effectSel.value = effectVal;
+        const coinsPerMinVal = Number(rarity?.sanctuaryCoinsPerMin) > 0 ? Number(rarity.sanctuaryCoinsPerMin) : 2;
+        const coinsInput = document.getElementById('rarity-modal-coins-per-min');
+        if (coinsInput) coinsInput.value = String(coinsPerMinVal);
+        const buybackVal = Number(rarity?.buybackPrice) > 0 ? Math.round(Number(rarity.buybackPrice)) : 5;
+        const buybackInput = document.getElementById('rarity-modal-buyback-price');
+        if (buybackInput) buybackInput.value = String(buybackVal);
 
         const submitBtn = document.getElementById('btn-upsert-rarity-submit');
         if (submitBtn) submitBtn.textContent = rarity ? 'Lưu thay đổi' : 'Lưu Độ Hiếm';
         rarityInitialSnapshot = rarity
-            ? { name: rarity.name, dropWeight: Number(rarity.dropWeight), colorHex: hex, isHolographic: Boolean(rarity.isHolographic) }
+            ? { name: rarity.name, dropWeight: Number(rarity.dropWeight), colorHex: hex, isHolographic: Boolean(rarity.isHolographic), revealEffect: effectVal, sanctuaryCoinsPerMin: coinsPerMinVal, buybackPrice: buybackVal }
             : null;
 
         window.updateRarityModalPreview();
         window.openModal('modal-rarity');
+    };
+
+    window.previewRarityRevealEffect = function () {
+        if (!window.PokemonRevealVfx || typeof window.PokemonRevealVfx.openPreviewModal !== 'function') {
+            window.showToast('error', 'Chưa tải bộ hiệu ứng', 'Vui lòng tải lại trang để xem thử hiệu ứng mở thẻ.');
+            return;
+        }
+        const effectVal = document.getElementById('rarity-modal-reveal-effect')?.value || 'NONE';
+        const nameVal = (document.getElementById('rarity-modal-name')?.value || '').trim() || 'Thẻ Mẫu';
+        const colorVal = safeHex(document.getElementById('rarity-modal-color')?.value?.trim(), '#EC4899');
+        const isHolo = Boolean(document.getElementById('rarity-modal-holo')?.checked);
+        window.PokemonRevealVfx.openPreviewModal(effectVal, {
+            rarityName: nameVal,
+            colorHex: colorVal,
+            isHolographic: isHolo
+        });
     };
 
     window.openSpeciesModal = function (species, targetSelectId) {
@@ -314,6 +449,7 @@
         if (setToolbar) {
             setToolbar.classList.toggle('hidden', tab === 'users');
         }
+        document.documentElement.setAttribute('data-admin-tab', tab);
         try {
             sessionStorage.setItem('pk_admin_active_tab', tab);
         } catch (e) {}
@@ -384,21 +520,43 @@
         tr.setAttribute('data-drop-weight', String(Number(r.dropWeight || 0)));
         tr.className = 'rarity-card-item';
         const color = safeHex(r.colorHex, '#EC4899');
+        const effectVal = String(r.revealEffect || 'NONE').toUpperCase();
+        const fxShortMap = {
+            DOUBLE_RARE: 'DR',
+            ILLUSTRATION: 'IR',
+            ULTRA: 'UR',
+            SPECIAL_ILLUSTRATION: 'SIR',
+            FUTURISTIC: 'FR',
+            MEGA_HYPER: 'MHR'
+        };
+        const fxShort = fxShortMap[effectVal] || effectVal;
         const holoBadge = r.isHolographic
-            ? '<span class="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-extrabold text-amber-600 dark:text-amber-300 border border-amber-500/30">HOLO 3D</span>'
+            ? '<span class="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-extrabold text-amber-600 dark:text-amber-300 border border-amber-500/30 whitespace-nowrap shrink-0">HOLO 3D</span>'
+            : '';
+        const coinsPerMin = Number(r.sanctuaryCoinsPerMin) > 0 ? Number(r.sanctuaryCoinsPerMin) : 2;
+        const buybackPrice = Number(r.buybackPrice) > 0 ? Math.round(Number(r.buybackPrice)) : 5;
+        const effectBadge = effectVal !== 'NONE'
+            ? `<span title="Hiệu ứng: ${esc(effectVal)}" class="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-300 border border-indigo-500/30 whitespace-nowrap shrink-0">FX: ${esc(fxShort)}</span>`
             : '';
 
         tr.innerHTML = `
-            <td class="px-4 py-3">
-                <div class="flex items-center gap-2">
+            <td class="px-4 py-3 whitespace-nowrap">
+                <div class="flex flex-nowrap items-center gap-2">
                     <span class="h-3 w-3 rounded-full shrink-0" style="background-color:${color}"></span>
-                    <span class="font-extrabold pk-text-primary">${esc(r.name)}</span>
+                    <span class="font-extrabold pk-text-primary whitespace-nowrap">${esc(r.name)}</span>
                     ${holoBadge}
+                    ${effectBadge}
                 </div>
             </td>
-            <td class="px-4 py-3 text-left">
-                <div class="flex items-center justify-start gap-3">
-                    <div class="hidden sm:block w-32 h-1.5 rounded-full bg-slate-200/80 dark:bg-slate-800 overflow-hidden shrink-0">
+            <td class="px-3 py-3 text-right pk-num tabular-nums font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                +${coinsPerMin} Xu/p
+            </td>
+            <td class="px-3 py-3 text-right pk-num tabular-nums font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                ${buybackPrice.toLocaleString('vi-VN')} Xu
+            </td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+                <div class="flex items-center justify-center gap-2.5">
+                    <div class="hidden sm:block w-20 h-1.5 rounded-full bg-slate-200/80 dark:bg-slate-800 overflow-hidden shrink-0">
                         <div class="rarity-bar h-full rounded-full transition-all duration-300"
                              data-rarity-id="${Number(r.id)}"
                              style="width: 0%; background-color:${color}"></div>
@@ -406,15 +564,15 @@
                     <span class="rarity-percent pk-num tabular-nums font-bold pk-text-primary w-14 text-right" data-rarity-id="${Number(r.id)}">0.00%</span>
                 </div>
             </td>
-            <td class="px-4 py-3 text-center">
+            <td class="px-3 py-3 text-center">
                 <input type="number" min="0" step="1" required
-                       class="rarity-weight-input pk-input pk-num tabular-nums h-9 w-24 mx-auto rounded-xl px-3 text-center text-sm font-extrabold"
+                       class="rarity-weight-input pk-input pk-num tabular-nums h-9 w-20 mx-auto rounded-xl px-2.5 text-center text-sm font-extrabold"
                        data-rarity-id="${Number(r.id)}"
                        data-initial-weight="${Number(r.dropWeight)}"
                        value="${Number(r.dropWeight)}"
                        oninput="window.recalculateRarityPercentages()"/>
             </td>
-            <td class="px-4 py-3 text-center whitespace-nowrap">
+            <td class="px-3 py-3 text-center whitespace-nowrap">
                 <div class="inline-flex items-center justify-center gap-3">
                     <button type="button"
                             data-id="${Number(r.id)}"
@@ -422,7 +580,10 @@
                             data-weight="${Number(r.dropWeight)}"
                             data-color="${color}"
                             data-holo="${Boolean(r.isHolographic)}"
-                            onclick="window.openRarityModal({id: parseInt(this.dataset.id,10), name: this.dataset.name, dropWeight: parseInt(this.dataset.weight,10), colorHex: this.dataset.color, isHolographic: this.dataset.holo === 'true'})"
+                            data-effect="${esc(effectVal)}"
+                            data-coins="${coinsPerMin}"
+                            data-buyback="${buybackPrice}"
+                            onclick="window.openRarityModal({id: parseInt(this.dataset.id,10), name: this.dataset.name, dropWeight: parseInt(this.dataset.weight,10), colorHex: this.dataset.color, isHolographic: this.dataset.holo === 'true', revealEffect: this.dataset.effect || 'NONE', sanctuaryCoinsPerMin: parseInt(this.dataset.coins,10) || 2, buybackPrice: parseInt(this.dataset.buyback,10) || 5})"
                             class="rarity-edit-btn font-bold pk-text-primary hover:underline cursor-pointer">
                         Sửa
                     </button>
@@ -1230,7 +1391,8 @@
                 cardsPerPack: parseInt(document.getElementById('new-set-cards-per-pack').value, 10),
                 packsPerBox: parseInt(document.getElementById('new-set-packs-per-box').value, 10),
                 packPrice: parseFloat(document.getElementById('new-set-pack-price').value),
-                boxPrice: parseFloat(document.getElementById('new-set-box-price').value)
+                packImageUrl: (document.getElementById('new-set-pack-image-url')?.value || '').trim(),
+                boxImageUrl: (document.getElementById('new-set-box-image-url')?.value || '').trim()
             };
             const res = await fetch('/api/v1/admin/card-sets', {
                 method: 'POST',
@@ -1282,8 +1444,9 @@
                 cardsPerPack: parseInt(document.getElementById('config-cards-per-pack').value, 10),
                 packsPerBox: parseInt(document.getElementById('config-packs-per-box').value, 10),
                 packPrice: parseFloat(document.getElementById('config-pack-price').value),
-                boxPrice: parseFloat(document.getElementById('config-box-price').value),
-                isActive: document.getElementById('config-set-active').checked
+                isActive: document.getElementById('config-set-active').checked,
+                packImageUrl: (document.getElementById('config-pack-image-url')?.value || '').trim(),
+                boxImageUrl: (document.getElementById('config-box-image-url')?.value || '').trim()
             };
             const res = await fetch(`/api/v1/admin/card-sets/${setId}`, {
                 method: 'PUT',
@@ -1358,7 +1521,10 @@
                 name: document.getElementById('rarity-modal-name').value.trim(),
                 dropWeight: parseInt(document.getElementById('rarity-modal-weight').value, 10),
                 colorHex: document.getElementById('rarity-modal-color').value.trim().toUpperCase(),
-                isHolographic: document.getElementById('rarity-modal-holo').checked
+                isHolographic: document.getElementById('rarity-modal-holo').checked,
+                revealEffect: (document.getElementById('rarity-modal-reveal-effect')?.value || 'NONE').toUpperCase(),
+                sanctuaryCoinsPerMin: parseInt(document.getElementById('rarity-modal-coins-per-min')?.value || '2', 10) || 2,
+                buybackPrice: parseInt(document.getElementById('rarity-modal-buyback-price')?.value || '5', 10) || 5
             };
             const url = rarityId ? `/api/v1/admin/rarities/${rarityId}` : '/api/v1/admin/rarities';
             const method = rarityId ? 'PUT' : 'POST';
@@ -1388,7 +1554,7 @@
             sortRaritiesListByWeightDesc();
             highlightElementBriefly(cardEl);
             window.recalculateRarityPercentages();
-            upsertOptionInSelects(['card-rarity-id', 'edit-card-rarity-id'], data.id, data.name, targetSelectId || null);
+            upsertOptionInSelects(['card-rarity-id', 'edit-card-rarity-id', 'admin-cards-filter-rarity'], data.id, data.name, targetSelectId || null);
 
             window.showToast('success', rarityId ? 'Đã cập nhật độ hiếm' : 'Đã thêm độ hiếm mới', `"${data.name}" đã được đồng bộ màu sắc cho toàn bộ thẻ.`);
         });
@@ -1436,10 +1602,22 @@
             const alertMsg = document.getElementById('card-conflict-message');
             alertBox.classList.add('hidden');
 
+            const fileInput = document.getElementById('card-image-file');
+            const imageUrl = (document.getElementById('card-image-url')?.value || '').trim();
+            const hasSelectedFile = Boolean(fileInput && fileInput.files && fileInput.files.length > 0);
+            if (!imageUrl && !hasSelectedFile) {
+                window.showToast('error', 'Thiếu ảnh thẻ bài', 'Vui lòng chọn file ảnh hoặc nhập URL ảnh thẻ bài trước khi lưu!');
+                return;
+            }
+            if (!imageUrl && hasSelectedFile) {
+                window.showToast('error', 'Ảnh chưa sẵn sàng', 'Vui lòng đợi ảnh tải lên hoàn tất hoặc dán trực tiếp URL ảnh.');
+                return;
+            }
+
             const payload = {
                 name: document.getElementById('card-name').value.trim(),
                 cardNumber: parseInt(document.getElementById('card-number').value, 10),
-                imageUrl: document.getElementById('card-image-url').value.trim(),
+                imageUrl,
                 rarityId: parseInt(document.getElementById('card-rarity-id').value, 10),
                 speciesId: parseInt(document.getElementById('card-species-id').value, 10)
             };
@@ -1463,20 +1641,7 @@
             const newRow = buildCardRowElement(data);
             insertCardRowSorted(newRow, data.cardNumber);
             window.closeModal('modal-create-card');
-
-            const nameInput = document.getElementById('card-name');
-            const fileInput = document.getElementById('card-image-file');
-            const urlInput = document.getElementById('card-image-url');
-            const numInput = document.getElementById('card-number');
-            if (nameInput) nameInput.value = '';
-            if (fileInput) fileInput.value = '';
-            if (urlInput) urlInput.value = '';
-            if (numInput) {
-                const maxNum = Array.from(document.querySelectorAll('#card-templates-tbody tr[data-card-number]'))
-                    .reduce((acc, r) => Math.max(acc, parseInt(r.getAttribute('data-card-number') || '0', 10) || 0), 0);
-                numInput.value = String(maxNum + 1);
-            }
-            window.updateFormattedNumberPreview();
+            window.resetCreateCardModal();
 
             window.showToast('success', 'Thêm thẻ bài thành công!', `Đã thêm "${data.name}" (${data.formattedCardNumber}).`);
         });

@@ -6,6 +6,7 @@ import com.pokemon.blindbox.dto.response.*;
 import com.pokemon.blindbox.entity.*;
 import com.pokemon.blindbox.entity.enums.BoxStatus;
 import com.pokemon.blindbox.entity.enums.PackStatus;
+import com.pokemon.blindbox.entity.enums.RevealEffect;
 import com.pokemon.blindbox.exception.BusinessValidationException;
 import com.pokemon.blindbox.exception.DuplicateResourceException;
 import com.pokemon.blindbox.exception.ResourceNotFoundException;
@@ -61,7 +62,9 @@ public class AdminCardSetService {
                 .cardsPerPack(request.cardsPerPack())
                 .packsPerBox(request.packsPerBox())
                 .packPrice(request.packPrice())
-                .boxPrice(request.boxPrice())
+                .boxPrice(SealedStoreVaultService.computeDiscountedBoxPrice(request.packPrice(), request.packsPerBox()))
+                .packImageUrl(normalizeNullableImageUrl(request.packImageUrl()))
+                .boxImageUrl(normalizeNullableImageUrl(request.boxImageUrl()))
                 .isActive(true)
                 .build());
         log.info("Created new CardSet id={}, code={}, name={}", saved.getId(), saved.getCode(), saved.getName());
@@ -85,14 +88,93 @@ public class AdminCardSetService {
         cardSet.setCardsPerPack(request.cardsPerPack());
         cardSet.setPacksPerBox(request.packsPerBox());
         cardSet.setPackPrice(request.packPrice());
-        cardSet.setBoxPrice(request.boxPrice());
+        cardSet.setBoxPrice(SealedStoreVaultService.computeDiscountedBoxPrice(request.packPrice(), request.packsPerBox()));
         if (request.isActive() != null) {
             cardSet.setIsActive(request.isActive());
+        }
+        if (request.packImageUrl() != null) {
+            cardSet.setPackImageUrl(normalizeNullableImageUrl(request.packImageUrl()));
+        }
+        if (request.boxImageUrl() != null) {
+            cardSet.setBoxImageUrl(normalizeNullableImageUrl(request.boxImageUrl()));
         }
 
         CardSet saved = cardSetRepository.save(cardSet);
         log.info("Updated CardSet id={}, code={}, isActive={}", saved.getId(), saved.getCode(), saved.getIsActive());
         return CardSetResponseDTO.fromEntity(saved);
+    }
+
+    /**
+     * Upload ảnh PNG/WebP tùy chỉnh cho Pack hoặc Box của Bộ Thẻ (tối đa 2MB).
+     * Lưu trực tiếp vào thư mục ./uploads/sets/ (phục vụ ngay qua WebMvcConfig tại /uploads/**).
+     */
+    public String uploadSetMediaImage(MultipartFile file, String setCode, String mediaType) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessValidationException("Vui lòng chọn file ảnh PNG hoặc WebP!");
+        }
+        long maxBytes = 2L * 1024L * 1024L;
+        if (file.getSize() > maxBytes) {
+            throw new BusinessValidationException("Dung lượng ảnh tối đa là 2MB!");
+        }
+
+        String contentType = file.getContentType() != null ? file.getContentType().toLowerCase() : "";
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (java.io.IOException e) {
+            throw new BusinessValidationException("Không thể đọc dữ liệu file ảnh tải lên!");
+        }
+
+        boolean isPng = bytes.length >= 8
+                && (bytes[0] & 0xFF) == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47;
+        boolean isWebp = bytes.length >= 12
+                && bytes[0] == 'R' && bytes[1] == 'I' && bytes[2] == 'F' && bytes[3] == 'F'
+                && bytes[8] == 'W' && bytes[9] == 'E' && bytes[10] == 'B' && bytes[11] == 'P';
+
+        if (!((isPng && (contentType.isEmpty() || contentType.equals("image/png")))
+                || (isWebp && (contentType.isEmpty() || contentType.equals("image/webp"))))) {
+            throw new BusinessValidationException("Chỉ chấp nhận định dạng ảnh PNG (.png) hoặc WebP (.webp) hợp lệ!");
+        }
+
+        String ext = isPng ? ".png" : ".webp";
+        String safeCode = (setCode != null ? setCode.trim().toLowerCase().replaceAll("[^a-z0-9_-]", "") : "set");
+        if (safeCode.isEmpty()) safeCode = "set";
+        String safeKind = "box".equalsIgnoreCase(mediaType) ? "box" : "pack";
+        String fileName = safeCode + "-" + safeKind + "-" + UUID.randomUUID().toString().substring(0, 8) + ext;
+
+        try {
+            java.nio.file.Path uploadDir = java.nio.file.Paths.get("uploads", "sets").toAbsolutePath().normalize();
+            java.nio.file.Files.createDirectories(uploadDir);
+            java.nio.file.Path targetFile = uploadDir.resolve(fileName);
+            java.nio.file.Files.write(targetFile, bytes);
+
+            // Sao chép thêm vào src/main/resources/static/uploads/sets (nếu chạy môi trường dev) để lưu bền vững
+            java.nio.file.Path staticBase = java.nio.file.Paths.get("src", "main", "resources", "static");
+            if (java.nio.file.Files.isDirectory(staticBase)) {
+                java.nio.file.Path staticSetsDir = staticBase.resolve("uploads").resolve("sets");
+                java.nio.file.Files.createDirectories(staticSetsDir);
+                java.nio.file.Files.write(staticSetsDir.resolve(fileName), bytes);
+            }
+        } catch (java.io.IOException e) {
+            log.error("Failed to save uploaded set media image {}", fileName, e);
+            throw new BusinessValidationException("Không thể lưu file ảnh lên máy chủ: " + e.getMessage());
+        }
+
+        String publicUrl = "/uploads/sets/" + fileName;
+        log.info("Uploaded custom {} image for set {}: {}", safeKind, safeCode, publicUrl);
+        return publicUrl;
+    }
+
+    private String normalizeNullableImageUrl(String rawUrl) {
+        if (rawUrl == null) return null;
+        String trimmed = rawUrl.trim();
+        if (trimmed.isEmpty()) return null;
+        String lower = trimmed.toLowerCase();
+        if (!(lower.startsWith("/uploads/") || lower.startsWith("/images/")
+                || lower.startsWith("https://") || lower.startsWith("http://"))) {
+            throw new BusinessValidationException("Đường dẫn ảnh phải bắt đầu bằng /uploads/, /images/, http:// hoặc https://");
+        }
+        return trimmed;
     }
 
     @Transactional
@@ -232,6 +314,12 @@ public class AdminCardSetService {
         }
         if (request.dailyBoxLimit() != null && request.dailyBoxLimit() >= 0) {
             cardSet.setDailyBoxLimit(request.dailyBoxLimit());
+        }
+        if (request.packImageUrl() != null) {
+            cardSet.setPackImageUrl(normalizeNullableImageUrl(request.packImageUrl()));
+        }
+        if (request.boxImageUrl() != null) {
+            cardSet.setBoxImageUrl(normalizeNullableImageUrl(request.boxImageUrl()));
         }
 
         CardSet saved = cardSetRepository.save(cardSet);
@@ -481,9 +569,12 @@ public class AdminCardSetService {
                 .dropWeight(request.dropWeight())
                 .colorHex(request.colorHex().trim().toUpperCase())
                 .isHolographic(Boolean.TRUE.equals(request.isHolographic()))
+                .revealEffect(request.revealEffect() != null ? request.revealEffect() : RevealEffect.NONE)
+                .sanctuaryCoinsPerMin(request.sanctuaryCoinsPerMin() != null ? request.sanctuaryCoinsPerMin() : 2)
+                .buybackPrice(request.buybackPrice() != null ? request.buybackPrice() : new java.math.BigDecimal("5.00"))
                 .build());
-        log.info("Created new Rarity id={}, name={}, weight={}, holo={}",
-                saved.getId(), saved.getName(), saved.getDropWeight(), saved.getIsHolographic());
+        log.info("Created new Rarity id={}, name={}, weight={}, holo={}, effect={}, coinsPerMin={}, buybackPrice={}",
+                saved.getId(), saved.getName(), saved.getDropWeight(), saved.getIsHolographic(), saved.getRevealEffect(), saved.getSanctuaryCoinsPerMin(), saved.getBuybackPrice());
         return RarityResponseDTO.fromEntity(saved);
     }
 
@@ -503,8 +594,18 @@ public class AdminCardSetService {
         if (request.isHolographic() != null) {
             rarity.setIsHolographic(request.isHolographic());
         }
+        if (request.revealEffect() != null) {
+            rarity.setRevealEffect(request.revealEffect());
+        }
+        if (request.sanctuaryCoinsPerMin() != null) {
+            rarity.setSanctuaryCoinsPerMin(request.sanctuaryCoinsPerMin());
+        }
+        if (request.buybackPrice() != null) {
+            rarity.setBuybackPrice(request.buybackPrice());
+        }
         Rarity saved = rarityRepository.save(rarity);
-        log.info("Updated Rarity id={}, name={}, holo={}", saved.getId(), saved.getName(), saved.getIsHolographic());
+        log.info("Updated Rarity id={}, name={}, holo={}, effect={}, coinsPerMin={}, buybackPrice={}",
+                saved.getId(), saved.getName(), saved.getIsHolographic(), saved.getRevealEffect(), saved.getSanctuaryCoinsPerMin(), saved.getBuybackPrice());
         return RarityResponseDTO.fromEntity(saved);
     }
 

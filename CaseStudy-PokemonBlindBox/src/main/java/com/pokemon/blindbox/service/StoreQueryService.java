@@ -74,20 +74,46 @@ public class StoreQueryService {
         List<RarityResponseDTO> rarities = catalogCacheService.getAllRaritiesWithWeights();
         List<CardSpeciesResponseDTO> speciesList = catalogCacheService.getAllCardSpecies();
 
-        List<UserCardResponseDTO> myCards = userCardRepository
-                .findByUserIdOrderByAcquiredAtDesc(userId, PageRequest.of(0, MAX_USER_CARDS_IN_VIEW))
+        // Sắp xếp trực tiếp từ SQL theo Giá bán nhanh Cao -> Thấp, Mã thẻ Tăng dần, Bản sao chưa khóa lên trước
+        List<UserCardResponseDTO> allCards = userCardRepository
+                .findByUserIdOrderByDefaultInventorySort(userId, PageRequest.of(0, MAX_USER_CARDS_IN_VIEW))
                 .getContent()
                 .stream()
                 .map(uc -> UserCardResponseDTO.fromEntity(uc, CardTemplateResponseDTO.fromEntity(uc.getCardTemplate())))
                 .toList();
 
-        Map<Long, Long> templateCopyCounts = myCards.stream()
-                .collect(Collectors.groupingBy(uc -> uc.card().id(), Collectors.counting()));
+        Map<Long, Long> templateCopyCounts = new java.util.LinkedHashMap<>();
+        Map<Long, Long> templateSellableCounts = new java.util.LinkedHashMap<>();
+        Map<Long, UserCardResponseDTO> uniqueCardsByTemplate = new java.util.LinkedHashMap<>();
 
-        long unlockedCardCount = myCards.stream().filter(uc -> !Boolean.TRUE.equals(uc.isLocked())).count();
-        long listedCardCount = myCards.size() - unlockedCardCount;
+        for (UserCardResponseDTO uc : allCards) {
+            Long tplId = uc.card().id();
+            templateCopyCounts.merge(tplId, 1L, Long::sum);
+            if (!Boolean.TRUE.equals(uc.isLocked())) {
+                templateSellableCounts.merge(tplId, 1L, Long::sum);
+            } else {
+                templateSellableCounts.putIfAbsent(tplId, 0L);
+            }
+            // Do SQL đã ORDER BY uc.isLocked ASC nên bản sao đầu tiên của mỗi templateId luôn là bản chưa khóa (nếu có)
+            uniqueCardsByTemplate.putIfAbsent(tplId, uc);
+        }
 
-        return new InventoryPageData(cardSets, rarities, speciesList, myCards, templateCopyCounts, unlockedCardCount, listedCardCount);
+        List<UserCardResponseDTO> myCards = List.copyOf(uniqueCardsByTemplate.values());
+        long totalCardCopies = allCards.size();
+        long unlockedCardCount = allCards.stream().filter(uc -> !Boolean.TRUE.equals(uc.isLocked())).count();
+        long listedCardCount = totalCardCopies - unlockedCardCount;
+
+        return new InventoryPageData(
+                cardSets,
+                rarities,
+                speciesList,
+                myCards,
+                templateCopyCounts,
+                templateSellableCounts,
+                totalCardCopies,
+                unlockedCardCount,
+                listedCardCount
+        );
     }
 
     public CardDetailPageData loadCardDetailById(Long userId, Long cardId) {
@@ -153,22 +179,24 @@ public class StoreQueryService {
         List<AuctionResponseDTO> auctions;
         String activeCrossFilter = null;
 
+        org.springframework.data.domain.Pageable marketLimit = PageRequest.of(0, 60);
+
         if (cleanSpeciesName != null) {
-            listings = marketListingRepository.findActiveBySpecies(ListingStatus.ACTIVE, null, cleanSpeciesName)
+            listings = marketListingRepository.findActiveBySpecies(ListingStatus.ACTIVE, null, cleanSpeciesName, marketLimit)
                     .stream().map(MarketListingResponseDTO::fromEntity).toList();
-            auctions = auctionRepository.findActiveBySpecies(AuctionStatus.ACTIVE, null, cleanSpeciesName)
+            auctions = auctionRepository.findActiveBySpecies(AuctionStatus.ACTIVE, null, cleanSpeciesName, marketLimit)
                     .stream().map(AuctionResponseDTO::fromEntity).toList();
             activeCrossFilter = "Loài: " + cleanSpeciesName;
         } else if (cleanSetName != null) {
-            listings = marketListingRepository.findActiveByCardSet(ListingStatus.ACTIVE, null, null, cleanSetName)
+            listings = marketListingRepository.findActiveByCardSet(ListingStatus.ACTIVE, null, null, cleanSetName, marketLimit)
                     .stream().map(MarketListingResponseDTO::fromEntity).toList();
-            auctions = auctionRepository.findActiveByCardSet(AuctionStatus.ACTIVE, null, null, cleanSetName)
+            auctions = auctionRepository.findActiveByCardSet(AuctionStatus.ACTIVE, null, null, cleanSetName, marketLimit)
                     .stream().map(AuctionResponseDTO::fromEntity).toList();
             activeCrossFilter = "Bộ: " + cleanSetName;
         } else {
-            listings = marketListingRepository.findActiveByCardSet(ListingStatus.ACTIVE, null, null, null)
+            listings = marketListingRepository.findActiveByCardSet(ListingStatus.ACTIVE, null, null, null, marketLimit)
                     .stream().map(MarketListingResponseDTO::fromEntity).toList();
-            List<AuctionResponseDTO> activeList = auctionRepository.findActiveByCardSet(AuctionStatus.ACTIVE, null, null, null)
+            List<AuctionResponseDTO> activeList = auctionRepository.findActiveByCardSet(AuctionStatus.ACTIVE, null, null, null, marketLimit)
                     .stream().map(AuctionResponseDTO::fromEntity).toList();
             List<AuctionResponseDTO> endedList = auctionRepository
                     .findTop30ByStatusInOrderByEndTimeDesc(List.of(AuctionStatus.ENDED, AuctionStatus.SETTLED))
@@ -196,18 +224,62 @@ public class StoreQueryService {
             }
         }
 
-        List<UserCardResponseDTO> myCards = userCardRepository
-                .findByUserIdOrderByAcquiredAtDesc(userId, PageRequest.of(0, MAX_USER_CARDS_IN_VIEW))
+        List<UserCardResponseDTO> allMyCards = userCardRepository
+                .findByUserIdOrderByDefaultInventorySort(userId, PageRequest.of(0, MAX_USER_CARDS_IN_VIEW))
                 .getContent()
                 .stream()
                 .map(uc -> UserCardResponseDTO.fromEntity(uc, CardTemplateResponseDTO.fromEntity(uc.getCardTemplate())))
                 .toList();
 
+        Map<Long, Long> myCardCopyCounts = new java.util.LinkedHashMap<>();
+        Map<Long, UserCardResponseDTO> uniqueUnlockedByTemplate = new java.util.LinkedHashMap<>();
+        for (UserCardResponseDTO uc : allMyCards) {
+            if (!Boolean.TRUE.equals(uc.isLocked())) {
+                Long tplId = uc.card().id();
+                myCardCopyCounts.merge(tplId, 1L, Long::sum);
+                uniqueUnlockedByTemplate.putIfAbsent(tplId, uc);
+            }
+        }
+        List<UserCardResponseDTO> myCards = List.copyOf(uniqueUnlockedByTemplate.values());
+
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        long activeCount = 0;
+        long mineCount = 0;
+        long endedCount = 0;
+        for (AuctionResponseDTO auc : auctions) {
+            boolean isEnded = auc.status() != AuctionStatus.ACTIVE
+                    || (auc.endTime() != null && !auc.endTime().isAfter(now));
+            if (isEnded) {
+                endedCount++;
+            } else {
+                activeCount++;
+            }
+            if (userId != null && userId.equals(auc.sellerId())) {
+                mineCount++;
+            }
+        }
+
         List<CardSetResponseDTO> cardSets = catalogCacheService.getAllCardSets();
         List<RarityResponseDTO> rarities = catalogCacheService.getAllRaritiesWithWeights();
         List<CardSpeciesResponseDTO> speciesList = catalogCacheService.getAllCardSpecies();
 
-        return new MarketPageData(listings, auctions, sellerNameMap, bidCountMap, myCards, cardSets, rarities, speciesList, activeCrossFilter, cleanSetName, cleanSpeciesName);
+        return new MarketPageData(
+                listings,
+                auctions,
+                sellerNameMap,
+                bidCountMap,
+                myCards,
+                myCardCopyCounts,
+                activeCount,
+                mineCount,
+                endedCount,
+                cardSets,
+                rarities,
+                speciesList,
+                activeCrossFilter,
+                cleanSetName,
+                cleanSpeciesName
+        );
     }
 
     public AuctionDetailPageData loadAuctionDetailPage(Long auctionId) {
@@ -287,6 +359,8 @@ public class StoreQueryService {
             List<CardSpeciesResponseDTO> speciesList,
             List<UserCardResponseDTO> myCards,
             Map<Long, Long> templateCopyCounts,
+            Map<Long, Long> templateSellableCounts,
+            long totalCardCopies,
             long unlockedCardCount,
             long listedCardCount
     ) {}
@@ -308,6 +382,10 @@ public class StoreQueryService {
             Map<Long, String> sellerNameMap,
             Map<Long, Long> bidCountMap,
             List<UserCardResponseDTO> myCards,
+            Map<Long, Long> myCardCopyCounts,
+            long activeCount,
+            long mineCount,
+            long endedCount,
             List<CardSetResponseDTO> cardSets,
             List<RarityResponseDTO> rarities,
             List<CardSpeciesResponseDTO> speciesList,

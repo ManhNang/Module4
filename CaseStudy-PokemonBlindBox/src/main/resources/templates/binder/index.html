@@ -7,7 +7,8 @@
 <div th:replace="~{fragments/header :: navbar('inventory')}"></div>
 
 <main id="binder-main"
-      th:attr="data-initial-tab=${initialTab ?: 'inventory'}"
+      th:with="normTab=${initialTab == 'sealed' ? 'sealed' : ((initialTab == 'progress' or initialTab == 'masterset') ? 'masterset' : 'inventory')}"
+      th:attr="data-initial-tab=${normTab}"
       class="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 lg:px-8 space-y-5">
 
     <!-- ==================== ĐẦU TRANG (1 HÀNG DUY NHẤT: TIÊU ĐỀ + ⓘ + THỐNG KÊ NHANH BÊN TRÁI, 3 TAB BÊN PHẢI) ==================== -->
@@ -23,31 +24,34 @@
             </button>
             <span id="inventory-quick-stats"
                   class="pk-num rounded-full pk-surface-muted px-3 py-1 text-[11px] font-bold pk-text-secondary"
-                  th:text="${#lists.size(myCards)} + ' bản sao'">
-                0 bản sao
+                  th:text="${#lists.size(myCards)} + ' loại thẻ • ' + ${totalCardCopies ?: #lists.size(myCards)} + ' bản sao'">
+                0 loại thẻ • 0 bản sao
             </span>
         </div>
 
-        <!-- Bộ chuyển đổi 3 Tab con -->
+        <!-- Bộ chuyển đổi 3 Tab con (Đồng bộ trạng thái active ngay từ SSR theo normTab) -->
         <div class="grid grid-cols-3 sm:flex sm:flex-nowrap items-center gap-1.5 rounded-2xl pk-surface-muted p-1.5 w-full sm:w-auto shrink-0">
             <button type="button"
                     id="btn-tab-inventory"
                     onclick="window.switchInventoryTab('inventory')"
-                    class="pk-btn-primary justify-center rounded-xl px-3.5 py-2 text-xs sm:text-sm font-extrabold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
-                <span id="tab-inventory-count-label" class="pk-num" th:text="'Thẻ Bài (' + ${#lists.size(myCards)} + ')'">Thẻ Bài (0)</span>
+                    th:classappend="${normTab == 'inventory'} ? 'pk-btn-primary font-extrabold' : 'font-bold pk-text-secondary hover:pk-text-primary'"
+                    class="justify-center rounded-xl px-3.5 py-2 text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+                <span id="tab-inventory-count-label" class="pk-num" th:text="'Thẻ Bài (' + ${totalCardCopies ?: #lists.size(myCards)} + ')'">Thẻ Bài (0)</span>
             </button>
 
             <button type="button"
                     id="btn-tab-sealed"
                     onclick="window.switchInventoryTab('sealed')"
-                    class="justify-center rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold pk-text-secondary hover:pk-text-primary transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+                    th:classappend="${normTab == 'sealed'} ? 'pk-btn-primary font-extrabold' : 'font-bold pk-text-secondary hover:pk-text-primary'"
+                    class="justify-center rounded-xl px-3.5 py-2 text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
                 <span class="pk-num" th:text="'Pack & Box (' + ${totalSealedCount} + ')'">Pack &amp; Box (0)</span>
             </button>
 
             <button type="button"
                     id="btn-tab-masterset"
                     onclick="window.switchInventoryTab('masterset')"
-                    class="justify-center rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold pk-text-secondary hover:pk-text-primary transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+                    th:classappend="${normTab == 'masterset'} ? 'pk-btn-primary font-extrabold' : 'font-bold pk-text-secondary hover:pk-text-primary'"
+                    class="justify-center rounded-xl px-3.5 py-2 text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
                 <span class="pk-num">Tiến Độ</span>
             </button>
         </div>
@@ -103,7 +107,7 @@
     <!-- ================================================================================== -->
     <!-- TAB 1: THẺ BÀI ĐANG SỞ HỮU (CONTENT-FIRST)                                          -->
     <!-- ================================================================================== -->
-    <div id="panel-tab-inventory" class="space-y-4">
+    <div id="panel-tab-inventory" th:classappend="${normTab != 'inventory'} ? 'hidden' : ''" class="space-y-4">
         <!-- Thanh Tìm kiếm, Lọc Bộ, Độ hiếm, Sắp xếp & Nút Dọn kho (Không bị cắt chữ) -->
         <div th:if="${!#lists.isEmpty(myCards)}" class="space-y-2.5">
             <div class="pk-surface rounded-2xl p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center">
@@ -111,7 +115,7 @@
                     <svg class="h-4 w-4 pk-text-secondary absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
                     </svg>
-                    <input type="text" id="inv-filter-search" oninput="window.filterAndSortInventoryCards()"
+                    <input type="text" id="inv-filter-search" oninput="window.debouncedFilterInventoryCards ? window.debouncedFilterInventoryCards() : window.filterAndSortInventoryCards()"
                            placeholder="Tìm tên thẻ hoặc #001..."
                            class="pk-input h-9 w-full rounded-xl pl-9 pr-3 text-xs sm:text-sm"/>
                 </div>
@@ -182,8 +186,10 @@
         </div>
 
         <div id="my-cards-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-            <div th:each="uc : ${myCards}"
+            <div th:each="uc, iterStat : ${myCards}"
                  th:with="inExpedition=${expeditionCardIds != null and expeditionCardIds.contains(uc.userCardId())},
+                          totalCnt=${templateCopyCounts != null ? templateCopyCounts.getOrDefault(uc.card().id(), 1L) : 1L},
+                          sellableCnt=${templateSellableCounts != null ? templateSellableCounts.getOrDefault(uc.card().id(), uc.isLocked() ? 0L : 1L) : (uc.isLocked() ? 0L : 1L)},
                           rNameLower=${#strings.toLowerCase(uc.card().rarityName() ?: '')},
                           isHighRarity=${#strings.contains(rNameLower, 'special illustration') or #strings.contains(rNameLower, 'hyper') or #strings.contains(rNameLower, 'secret') or #strings.contains(rNameLower, 'gold') or #strings.contains(rNameLower, 'illustration') or #strings.contains(rNameLower, 'ultra') or #strings.contains(rNameLower, 'double')},
                           badgeCol=${#strings.contains(rNameLower, 'special illustration') ? '#ec4899' :
@@ -196,6 +202,9 @@
                  th:attr="data-template-id=${uc.card().id()},
                           data-is-locked=${uc.isLocked()},
                           data-lock-reason=${!uc.isLocked() ? 'none' : (inExpedition ? 'expedition' : 'market')},
+                          data-total-count=${totalCnt},
+                          data-sellable-count=${sellableCnt},
+                          data-filter-match='true',
                           data-set-name=${uc.card().setName()},
                           data-card-name=${uc.card().name()},
                           data-card-number=${uc.card().cardNumber()},
@@ -203,7 +212,7 @@
                           data-rarity-name=${uc.card().rarityName()},
                           data-is-high-rarity=${isHighRarity},
                           data-buyback-price=${uc.card().rarityBuybackPrice()}"
-                 th:style="${isHighRarity} ? '--rarity-glow:' + ${badgeCol} : ''"
+                 th:style="(${isHighRarity} ? '--rarity-glow:' + ${badgeCol} + ';' : '') + (${iterStat.index >= 25} ? 'display:none;' : '')"
                  th:classappend="${isHighRarity} ? 'pk-rarity-glow-card' : ''"
                  class="my-card-item card-item pk-surface rounded-2xl p-3 flex flex-col justify-between space-y-2.5 transition">
 
@@ -215,6 +224,7 @@
                        class="block w-full h-full">
                         <img th:src="${uc.card().imageUrl()}"
                              th:alt="${uc.card().name()}"
+                             loading="lazy" decoding="async"
                              onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"
                              class="transition-transform duration-300 group-hover:scale-105"/>
                     </a>
@@ -313,9 +323,15 @@
             </div>
         </div>
 
-        <!-- Phân trang lưới Thẻ Bài (25 thẻ / trang, ẩn nếu <= 1 trang) -->
-        <div id="inv-cards-pagination" class="hidden flex flex-wrap items-center justify-between gap-3 pt-2">
-            <span id="inv-cards-page-info" class="pk-num text-xs font-semibold pk-text-secondary">Hiển thị 1–25 trên tổng 67 loại thẻ</span>
+        <!-- Phân trang lưới Thẻ Bài (25 thẻ / trang, hiện sẵn từ SSR nếu > 25 thẻ để không nhảy layout) -->
+        <div id="inv-cards-pagination"
+             th:classappend="${#lists.size(myCards) <= 25} ? 'hidden' : ''"
+             class="flex flex-wrap items-center justify-between gap-3 pt-2 min-h-[34px]">
+            <span id="inv-cards-page-info"
+                  class="pk-num text-xs font-semibold pk-text-secondary"
+                  th:text="'Hiển thị 1–' + (${#lists.size(myCards) > 25 ? 25 : #lists.size(myCards)}) + ' trên tổng ' + ${#lists.size(myCards)} + ' loại thẻ'">
+                Hiển thị 1–25 trên tổng 67 loại thẻ
+            </span>
             <div id="inv-cards-page-controls" class="flex flex-wrap items-center gap-1.5"></div>
         </div>
     </div>
@@ -323,7 +339,7 @@
     <!-- ================================================================================== -->
     <!-- TAB 2: KHO PACK & BOX (TINH GỌN, XÓA TIÊU ĐỀ PHỤ, THU GỌN Ô x0)                    -->
     <!-- ================================================================================== -->
-    <div id="panel-tab-sealed" class="hidden space-y-4">
+    <div id="panel-tab-sealed" th:classappend="${normTab != 'sealed'} ? 'hidden' : ''" class="space-y-4">
         <div th:if="${#lists.isEmpty(sealedGroups)}"
              class="pk-surface rounded-3xl p-8 text-center space-y-3">
             <p class="text-sm pk-text-secondary">Bạn chưa có Pack hay Box nào trong Kho.</p>
@@ -354,8 +370,23 @@
                 <div th:if="${grp.availableBoxes() > 0 or grp.lockedBoxes() > 0}"
                      class="pk-surface-elevated rounded-2xl p-4 flex flex-col justify-between gap-3.5 border border-amber-500/25">
                     <div class="flex items-center gap-3.5">
-                        <div class="relative shrink-0">
-                            <div class="pk-vault-box-art">
+                        <div class="relative shrink-0"
+                             th:with="hasBoxImg=${grp.boxImageUrl() != null and !#strings.isEmpty(grp.boxImageUrl())}">
+                            <div th:if="${hasBoxImg}" class="w-24 h-24 shrink-0 flex items-center justify-center">
+                                <img th:src="${grp.boxImageUrl()}"
+                                     th:alt="'Box ' + ${grp.setName()}"
+                                     loading="lazy" decoding="async"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='';"
+                                     class="w-full h-full object-contain rounded-lg drop-shadow-sm"/>
+                                <div style="display:none" class="pk-vault-box-art shrink-0">
+                                    <svg class="h-7 w-7 text-amber-200/95" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                        <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
+                                        <line x1="3" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="21" y2="12"/>
+                                    </svg>
+                                    <span class="mt-0.5 text-[9px] font-black tracking-widest text-amber-100" th:text="${grp.setCode()}">DLR</span>
+                                </div>
+                            </div>
+                            <div th:if="${!hasBoxImg}" class="pk-vault-box-art">
                                 <svg class="h-7 w-7 text-amber-200/95" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                     <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
                                     <line x1="3" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="21" y2="12"/>
@@ -404,8 +435,23 @@
                 <div th:if="${grp.availablePacks() > 0 or grp.lockedPacks() > 0}"
                      class="pk-surface-elevated rounded-2xl p-4 flex flex-col justify-between gap-3.5 border border-sky-500/25">
                     <div class="flex items-center gap-3.5">
-                        <div class="relative shrink-0">
-                            <div class="pk-vault-pack-art">
+                        <div class="relative shrink-0"
+                             th:with="hasPackImg=${grp.packImageUrl() != null and !#strings.isEmpty(grp.packImageUrl())}">
+                            <div th:if="${hasPackImg}" class="w-20 h-24 shrink-0 flex items-center justify-center">
+                                <img th:src="${grp.packImageUrl()}"
+                                     th:alt="'Pack ' + ${grp.setName()}"
+                                     loading="lazy" decoding="async"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='';"
+                                     class="w-full h-full object-contain rounded-lg drop-shadow-sm"/>
+                                <div style="display:none" class="pk-vault-pack-art shrink-0">
+                                    <svg class="h-6 w-6 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                        <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
+                                        <line x1="3" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="21" y2="12"/>
+                                    </svg>
+                                    <span class="mt-0.5 text-[9px] font-black tracking-widest text-sky-200" th:text="${grp.setCode()}">DLR</span>
+                                </div>
+                            </div>
+                            <div th:if="${!hasPackImg}" class="pk-vault-pack-art">
                                 <svg class="h-6 w-6 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                     <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
                                     <line x1="3" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="21" y2="12"/>
@@ -464,7 +510,7 @@
     <!-- ================================================================================== -->
     <!-- TAB 3: TIẾN ĐỘ (THANH TIẾN ĐỘ 1 HÀNG MẢNH + THẺ CHUẨN + THẺ SECRET)               -->
     <!-- ================================================================================== -->
-    <div id="panel-tab-masterset" class="hidden space-y-5">
+    <div id="panel-tab-masterset" th:classappend="${normTab != 'masterset'} ? 'hidden' : ''" class="space-y-5">
 
         <!-- Thanh tiến độ 1 hàng mảnh: Chọn Bộ bên trái + Progress bar ở giữa + Chỉ số Chuẩn & Secret bên phải -->
         <section class="pk-surface rounded-2xl p-3.5 flex flex-col md:flex-row md:items-center gap-3.5">
@@ -510,11 +556,11 @@
                 </h2>
                 <div class="flex flex-wrap items-center gap-2.5">
                     <input type="text" id="filter-name" placeholder="Tìm tên hoặc #001..."
-                           oninput="window.filterBinderGridClientSide()"
+                           oninput="window.debouncedFilterBinderGrid ? window.debouncedFilterBinderGrid() : window.filterBinderGridClientSide()"
                            class="pk-input h-9 w-44 sm:w-48 rounded-xl px-3 text-xs"/>
                     <div class="inline-flex items-center gap-1 rounded-xl pk-surface-muted p-1">
                         <button type="button" id="progress-filter-ALL" onclick="window.setProgressOwnershipFilter('ALL')"
-                                class="progress-filter-btn pk-btn-primary rounded-lg px-2.5 py-1 text-[11px] font-extrabold cursor-pointer transition">
+                                class="progress-filter-btn rounded-lg px-2.5 py-1.5 text-xs font-extrabold transition cursor-pointer bg-amber-500 text-slate-950 shadow-sm">
                             Tất cả
                         </button>
                         <button type="button" id="progress-filter-OWNED" onclick="window.setProgressOwnershipFilter('OWNED')"
@@ -554,6 +600,7 @@
                            class="block w-full h-full">
                             <img th:src="${slot.cardTemplate().imageUrl()}"
                                  th:alt="${slot.cardTemplate().name()}"
+                                 loading="lazy" decoding="async"
                                  onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/208.png'"/>
                         </a>
                         <span class="pk-num absolute bottom-1.5 left-1.5 z-10 rounded-md bg-slate-950/75 px-1.5 py-0.5 text-[9.5px] font-extrabold text-white backdrop-blur-sm"
@@ -569,6 +616,7 @@
                         <img th:if="${slot.cardTemplate() != null}"
                              th:src="${slot.cardTemplate().imageUrl()}"
                              alt="Thẻ chưa mở khóa"
+                             loading="lazy" decoding="async"
                              draggable="false"
                              onerror="this.style.display='none'"
                              class="pk-locked-card-img"/>
@@ -634,6 +682,7 @@
                            class="block w-full h-full">
                             <img th:src="${slot.cardTemplate().imageUrl()}"
                                  th:alt="${slot.cardTemplate().name()}"
+                                 loading="lazy" decoding="async"
                                  onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"/>
                         </a>
                         <span class="pk-num absolute bottom-1.5 left-1.5 z-10 rounded-md bg-slate-950/75 px-1.5 py-0.5 text-[9.5px] font-extrabold text-amber-300 backdrop-blur-sm"
@@ -648,6 +697,7 @@
                         <img th:if="${slot.cardTemplate() != null}"
                              th:src="${slot.cardTemplate().imageUrl()}"
                              alt="Thẻ chưa mở khóa"
+                             loading="lazy" decoding="async"
                              draggable="false"
                              onerror="this.style.display='none'"
                              class="pk-locked-card-img"/>
@@ -920,7 +970,7 @@
         <div class="pk-lightbox-card-wrap flex items-center justify-center pt-2">
             <div id="vault-lightbox-card-frame"
                  class="pk-lightbox-card-inner relative w-64 sm:w-72 aspect-[5/7] rounded-2xl overflow-hidden bg-slate-950 border-2 shadow-2xl">
-                <img id="vault-lightbox-card-img" src="" alt="" class="w-full h-full object-cover select-none"/>
+                <img id="vault-lightbox-card-img" src="" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover select-none"/>
             </div>
         </div>
 

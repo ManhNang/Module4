@@ -36,10 +36,15 @@ public record CreateCardSetRequest(
         @Digits(integer = 13, fraction = 2, message = "Giá 1 gói không hợp lệ")
         BigDecimal packPrice,
 
-        @NotNull(message = "Giá nguyên hộp không được để trống")
         @DecimalMin(value = "1.00", message = "Giá nguyên hộp tối thiểu 1 Xu")
         @DecimalMax(value = "1000000000.00", message = "Giá nguyên hộp tối đa 1,000,000,000 Xu")
         @Digits(integer = 13, fraction = 2, message = "Giá nguyên hộp không hợp lệ")
-        BigDecimal boxPrice
+        BigDecimal boxPrice,
+
+        @Size(max = 500, message = "Đường dẫn ảnh Pack tối đa 500 ký tự")
+        String packImageUrl,
+
+        @Size(max = 500, message = "Đường dẫn ảnh Box tối đa 500 ký tự")
+        String boxImageUrl
 ) {
 }

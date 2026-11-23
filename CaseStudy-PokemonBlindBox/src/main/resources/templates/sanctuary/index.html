@@ -31,7 +31,7 @@
                          class="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 transition-all duration-500"
                          style="width: 2%"></div>
                 </div>
-                <span id="sanctuary-daily-cap-text" class="pk-num text-xs font-extrabold text-amber-600 dark:text-amber-400 whitespace-nowrap">0 / 250 Xu</span>
+                <span id="sanctuary-daily-cap-text" class="pk-num text-xs font-extrabold text-amber-600 dark:text-amber-400 whitespace-nowrap">0 / 1.000 Xu</span>
                 <span id="sanctuary-cap-sleep-pill" class="hidden inline-flex items-center gap-1 rounded-full bg-sky-500/15 px-2 py-0.5 text-[10.5px] font-bold text-sky-600 dark:text-sky-300 whitespace-nowrap">
                     <span>Đang nghỉ (00:00)</span>
                 </span>
@@ -107,8 +107,9 @@
                     </button>
                 </div>
 
-                <!-- Empty Island Overlay Hint -->
+                <!-- Empty Island Overlay Hint (Ẩn mặc định nếu đã có Pokémon trên đảo từ SSR) -->
                 <div id="sanctuary-empty-overlay"
+                     th:classappend="${initialSanctuaryState != null and initialSanctuaryState['slots'] != null and !#lists.isEmpty(initialSanctuaryState['slots'])} ? 'hidden' : ''"
                      class="pointer-events-none absolute inset-0 z-30 flex flex-col items-center justify-center p-4 text-center">
                     <div class="pk-hud-glass rounded-2xl px-5 py-3.5 max-w-sm">
                         <p class="text-sm font-extrabold text-white">Đảo bay đang chờ Pokémon đầu tiên!</p>
@@ -217,7 +218,7 @@
                             data-zone-name="Rừng Xanh"
                             data-zone-duration="15 phút"
                             onclick="window.openExpeditionModal(this)"
-                            class="w-full rounded-xl bg-emerald-500/15 hover:bg-emerald-600 border border-emerald-500/45 text-emerald-700 dark:text-emerald-300 hover:text-white py-2 text-xs font-extrabold cursor-pointer transition">
+                            class="sanctuary-zone-start-btn w-full rounded-xl bg-emerald-500/15 hover:bg-emerald-600 border border-emerald-500/45 text-emerald-700 dark:text-emerald-300 hover:text-white py-2 text-xs font-extrabold cursor-pointer transition">
                         Chọn đội hình →
                     </button>
                 </div>
@@ -257,7 +258,7 @@
                             data-zone-name="Hang Tinh Thể"
                             data-zone-duration="60 phút"
                             onclick="window.openExpeditionModal(this)"
-                            class="w-full rounded-xl bg-violet-500/15 hover:bg-violet-600 border border-violet-500/45 text-violet-700 dark:text-violet-300 hover:text-white py-2 text-xs font-extrabold cursor-pointer transition">
+                            class="sanctuary-zone-start-btn w-full rounded-xl bg-violet-500/15 hover:bg-violet-600 border border-violet-500/45 text-violet-700 dark:text-violet-300 hover:text-white py-2 text-xs font-extrabold cursor-pointer transition">
                         Chọn đội hình →
                     </button>
                 </div>
@@ -297,7 +298,7 @@
                             data-zone-name="Đỉnh Huyền Thoại"
                             data-zone-duration="180 phút"
                             onclick="window.openExpeditionModal(this)"
-                            class="w-full rounded-xl bg-rose-500/15 hover:bg-rose-600 border border-rose-500/45 text-rose-700 dark:text-amber-300 hover:text-white py-2 text-xs font-extrabold cursor-pointer transition">
+                            class="sanctuary-zone-start-btn w-full rounded-xl bg-rose-500/15 hover:bg-rose-600 border border-rose-500/45 text-rose-700 dark:text-amber-300 hover:text-white py-2 text-xs font-extrabold cursor-pointer transition">
                         Chọn đội hình →
                     </button>
                 </div>
@@ -305,7 +306,13 @@
 
             <!-- Active Expeditions List (Hidden when empty) -->
             <div id="sanctuary-active-expeditions-wrap" class="hidden space-y-2.5 pt-2 border-t border-slate-300/40 dark:border-slate-700/60">
-                <h3 class="text-xs font-extrabold uppercase tracking-wider pk-text-secondary">Chuyến Thám Hiểm Đang Diễn Ra</h3>
+                <div class="flex items-center justify-between gap-2">
+                    <h3 class="text-xs font-extrabold uppercase tracking-wider pk-text-secondary">Chuyến Thám Hiểm Đang Diễn Ra</h3>
+                    <span id="sanctuary-expedition-count-badge"
+                          class="pk-num tabular-nums rounded-full bg-amber-500/15 border border-amber-500/35 px-2.5 py-0.5 text-[10.5px] font-extrabold text-amber-600 dark:text-amber-400">
+                        0 / 2 đang chạy
+                    </span>
+                </div>
                 <div id="sanctuary-active-expeditions" class="space-y-2.5"></div>
             </div>
         </div>
@@ -482,11 +489,15 @@
                 <div class="space-y-1.5">
                     <div><strong class="pk-text-primary">Tốc độ sinh Xu theo độ hiếm (mỗi phút):</strong></div>
                     <div class="flex flex-wrap gap-1.5">
-                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#94a3b8; color:#94a3b8;">Common • 2 Xu</span>
-                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#34d399; color:#34d399;">Uncommon • 4 Xu</span>
-                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#38bdf8; color:#38bdf8;">Rare • 8 Xu</span>
-                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#fb923c; color:#fb923c;">EX / Illustration • 12 Xu</span>
-                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#f59e0b; color:#f59e0b;">Secret / Hyper • 25 Xu</span>
+                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#94a3b8; color:#94a3b8;">Common • 1 Xu</span>
+                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#34d399; color:#34d399;">Uncommon • 2 Xu</span>
+                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#38bdf8; color:#38bdf8;">Rare • 3 Xu</span>
+                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#818cf8; color:#818cf8;">Double Rare • 5 Xu</span>
+                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#c084fc; color:#c084fc;">Illustration • 8 Xu</span>
+                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#fb923c; color:#fb923c;">Ultra • 10 Xu</span>
+                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#ec4899; color:#ec4899;">Special IR • 15 Xu</span>
+                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#06b6d4; color:#06b6d4;">Futuristic • 20 Xu</span>
+                        <span class="pk-rarity-badge pk-num px-2 py-0.5 text-[10.5px]" style="border-color:#f59e0b; color:#f59e0b;">Mega Hyper • 30 Xu</span>
                     </div>
                 </div>
             </li>
@@ -494,7 +505,7 @@
                 <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-500">
                     <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
                 </span>
-                <span><strong class="pk-text-primary">Hạn mức chống lạm phát:</strong> Tối đa <strong class="pk-num text-amber-600 dark:text-amber-400">250 Xu / ngày</strong> từ thu hoạch trên đảo (tự động làm mới lúc 00:00).</span>
+                <span><strong class="pk-text-primary">Hạn mức chống lạm phát:</strong> Tối đa <strong class="pk-num text-amber-600 dark:text-amber-400">1.000 Xu / ngày</strong> từ thu hoạch trên đảo (tự động làm mới lúc 00:00).</span>
             </li>
             <li class="flex items-start gap-2.5">
                 <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-500">
@@ -546,6 +557,9 @@
 </div>
 
 <div th:replace="~{fragments/header :: commonScripts}"></div>
-<script defer th:src="@{/js/pages/sanctuary.js(v='20261121n')}"></script>
+<script th:inline="javascript">
+    window.__INITIAL_SANCTUARY_STATE__ = /*[[${initialSanctuaryState}]]*/ null;
+</script>
+<script defer th:src="@{/js/pages/sanctuary.js(v='20261122b')}"></script>
 </body>
 </html>

@@ -16,12 +16,10 @@ spring:
     resources:
       static-locations: file:src/main/resources/static/,classpath:/static/
       cache:
-        period: 0
         cachecontrol:
-          no-store: true
-          no-cache: true
           max-age: 0s
-          cache-public: false
+          must-revalidate: true
+          cache-public: true
       chain:
         strategy:
           content:

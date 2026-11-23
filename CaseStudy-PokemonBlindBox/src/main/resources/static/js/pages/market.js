@@ -72,7 +72,8 @@ window.applyMarketFilters = function () {
     const rarityVal = (document.getElementById('market-filter-rarity')?.value || '').trim().toLowerCase();
     const sortVal = document.getElementById('market-filter-sort')?.value || 'ending-asc';
 
-    const cards = Array.from(grid.querySelectorAll('.market-item-card'));
+    const currentCards = Array.from(grid.querySelectorAll('.market-item-card'));
+    const cards = currentCards.slice();
 
     // Sắp xếp: luôn đẩy phiên đã kết thúc xuống dưới phiên đang diễn ra
     cards.sort((a, b) => {
@@ -94,10 +95,12 @@ window.applyMarketFilters = function () {
         return aEnded ? (endB - endA) : (endA - endB);
     });
 
+    const orderChanged = cards.some((card, idx) => card !== currentCards[idx]);
     let countActive = 0;
     let countMine = 0;
     let countEnded = 0;
     let visibleCount = 0;
+    const frag = orderChanged ? document.createDocumentFragment() : null;
 
     cards.forEach(card => {
         const ended = isAuctionCardEnded(card, nowMs);
@@ -131,8 +134,9 @@ window.applyMarketFilters = function () {
         const visible = matchFilter && matchTab;
         card.style.display = visible ? '' : 'none';
         if (visible) visibleCount++;
-        grid.appendChild(card);
+        if (frag) frag.appendChild(card);
     });
+    if (frag) grid.appendChild(frag);
 
     const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = String(val); };
     setTxt('market-tab-count-ACTIVE', countActive);
@@ -381,8 +385,17 @@ window.filterSellPickerCards = function () {
 function initSellPickerCards() {
     const grid = document.getElementById('sell-picker-grid');
     if (!grid) return;
-    const preselectId = document.getElementById('modal-market-sell')?.getAttribute('data-preselect-card-id') || '';
     const rawCards = Array.from(grid.querySelectorAll('.sell-picker-card'));
+    const seen = new Set();
+    let hasDuplicates = false;
+    rawCards.forEach(card => {
+        const tplId = card.getAttribute('data-template-id') || card.getAttribute('data-user-card-id');
+        if (seen.has(tplId)) hasDuplicates = true;
+        seen.add(tplId);
+    });
+    if (!hasDuplicates) return; // Danh sách đã được gộp trùng & sắp xếp sẵn từ Server!
+
+    const preselectId = document.getElementById('modal-market-sell')?.getAttribute('data-preselect-card-id') || '';
     const grouped = new Map();
 
     rawCards.forEach(card => {
@@ -410,6 +423,7 @@ function initSellPickerCards() {
         return (a.el.getAttribute('data-card-name') || '').localeCompare(b.el.getAttribute('data-card-name') || '');
     });
 
+    const frag = document.createDocumentFragment();
     uniqueEntries.forEach(({ el, count }) => {
         el.setAttribute('data-qty', String(count));
         const qtyBadge = el.querySelector('.sell-picker-qty');
@@ -421,8 +435,9 @@ function initSellPickerCards() {
                 qtyBadge.classList.add('hidden');
             }
         }
-        grid.appendChild(el);
+        frag.appendChild(el);
     });
+    grid.appendChild(frag);
 }
 
 window.syncDurationButtons = function () {
@@ -500,7 +515,12 @@ document.getElementById('unified-sell-form')?.addEventListener('submit', async (
         return;
     }
     const btn = document.getElementById('btn-submit-auction');
-    if (btn) btn.disabled = true;
+    const origBtnText = btn ? btn.textContent : 'Mở Phiên Đấu Giá';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Đang xử lý...';
+        btn.classList.add('opacity-70', 'cursor-wait');
+    }
     try {
         const res = await fetch('/api/v1/market/auctions', {
             method: 'POST',
@@ -523,9 +543,16 @@ document.getElementById('unified-sell-form')?.addEventListener('submit', async (
         window.showToast('success', 'Đã mở Phiên Đấu Giá!', 'Đang chuyển vào phòng đấu giá...');
         setTimeout(() => { window.location.href = `/market/auctions/${data.id}`; }, 750);
     } finally {
+        if (btn) {
+            btn.textContent = origBtnText;
+            btn.classList.remove('opacity-70', 'cursor-wait');
+        }
         syncSubmitAuctionButtonState();
     }
 });
+
+window.debouncedApplyMarketFilters = (window.debounce || ((fn) => fn))(window.applyMarketFilters, 150);
+window.debouncedFilterSellPickerCards = (window.debounce || ((fn) => fn))(window.filterSellPickerCards, 150);
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
@@ -536,12 +563,13 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+function initMarketPage() {
     initSellPickerCards();
     window.syncDurationButtons();
-    window.applyMarketFilters();
     tickAllAuctionTimers();
-    setInterval(tickAllAuctionTimers, 1000);
+    window.applyMarketFilters();
+    const marketTimerId = setInterval(tickAllAuctionTimers, 1000);
+    window.addEventListener('pagehide', () => clearInterval(marketTimerId));
 
     const modal = document.getElementById('modal-market-sell');
     const preselectCardId = modal?.getAttribute('data-preselect-card-id');
@@ -552,4 +580,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (preselectCardId) {
         window.openSellModal(preselectCardId, 'CARD', null);
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMarketPage);
+} else {
+    initMarketPage();
+}

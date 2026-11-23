@@ -1,5 +1,6 @@
 package com.pokemon.blindbox.entity;
 
+import com.pokemon.blindbox.entity.enums.RevealEffect;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -46,7 +47,16 @@ public class Rarity implements Serializable {
     @Builder.Default
     private Boolean isHolographic = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reveal_effect", nullable = false, length = 32)
+    @Builder.Default
+    private RevealEffect revealEffect = RevealEffect.NONE;
+
+    @Column(name = "sanctuary_coins_per_min", nullable = false)
+    @Builder.Default
+    private Integer sanctuaryCoinsPerMin = 2;
+
     @Column(name = "buyback_price", nullable = false, precision = 15, scale = 2)
     @Builder.Default
-    private BigDecimal buybackPrice = new BigDecimal("3000.00");
+    private BigDecimal buybackPrice = new BigDecimal("5.00");
 }

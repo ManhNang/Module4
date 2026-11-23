@@ -119,7 +119,6 @@ com\pokemon\blindbox\entity\SanctuaryDailyEarning$SanctuaryDailyEarningBuilder.c
 com\pokemon\blindbox\dto\request\CreateBoosterBoxBatchRequest.class
 com\pokemon\blindbox\controller\SealedStoreVaultController$OpenSealedPacksRequest.class
 com\pokemon\blindbox\entity\enums\ListingStatus.class
-com\pokemon\blindbox\service\SealedStoreVaultService$WeightedPool.class
 com\pokemon\blindbox\entity\CardSet.class
 com\pokemon\blindbox\entity\SetDailySale.class
 com\pokemon\blindbox\dto\response\AdminUserSummaryDTO.class

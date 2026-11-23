@@ -23,6 +23,8 @@ public interface ExpeditionRepository extends JpaRepository<Expedition, Long> {
     })
     List<Expedition> findByUserIdAndStatusOrderByStartedAtDesc(Long userId, ExpeditionStatus status);
 
+    long countByUserIdAndStatus(Long userId, ExpeditionStatus status);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             SELECT e FROM Expedition e

@@ -57,6 +57,12 @@ class MarketplaceAndAuctionWebSocketTest {
     private WalletService walletService;
 
     @Mock
+    private SanctuarySlotRepository sanctuarySlotRepository;
+
+    @Mock
+    private ExpeditionCardRepository expeditionCardRepository;
+
+    @Mock
     private ApplicationEventPublisher eventPublisher;
 
     @Mock

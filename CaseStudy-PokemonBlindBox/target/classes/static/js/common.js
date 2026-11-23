@@ -17,16 +17,33 @@ window.escapeHtml = function (value) {
         .replace(/'/g, '&#39;');
 };
 
+// Helper debounce dùng chung chống giật lag DOM khi gõ tìm kiếm liên tục
+window.debounce = function (fn, delayMs = 150) {
+    let timerId = null;
+    return function (...args) {
+        const ctx = this;
+        if (timerId) clearTimeout(timerId);
+        timerId = setTimeout(() => {
+            timerId = null;
+            fn.apply(ctx, args);
+        }, delayMs);
+    };
+};
+
 // P0-05: Tự động đính kèm X-XSRF-TOKEN vào mọi yêu cầu fetch POST/PUT/PATCH/DELETE cùng nguồn
+// & bắt mượt lỗi hết hạn Session (/login redirect) hoặc khóa tài khoản (403 ACCOUNT_LOCKED)
 (function () {
     if (window.__pkCsrfFetchPatched) return;
     window.__pkCsrfFetchPatched = true;
     const originalFetch = window.fetch.bind(window);
+    let authRedirectInProgress = false;
+
     function getCookie(name) {
         const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
         return match ? decodeURIComponent(match[1]) : null;
     }
-    window.fetch = function (input, init) {
+
+    window.fetch = async function (input, init) {
         const opts = init ? { ...init } : {};
         const method = (opts.method || 'GET').toUpperCase();
         if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
@@ -39,7 +56,31 @@ window.escapeHtml = function (value) {
                 opts.headers = headers;
             }
         }
-        return originalFetch(input, opts);
+        const res = await originalFetch(input, opts);
+
+        if (!authRedirectInProgress && res.redirected && res.url && res.url.includes('/login')) {
+            authRedirectInProgress = true;
+            if (window.showToast) {
+                window.showToast('info', 'Phiên đăng nhập hết hạn', 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!');
+            }
+            setTimeout(() => { window.location.href = '/login'; }, 650);
+            return res;
+        }
+
+        if (!authRedirectInProgress && res.status === 403) {
+            try {
+                const data = await res.clone().json();
+                if (data && data.error === 'ACCOUNT_LOCKED') {
+                    authRedirectInProgress = true;
+                    if (window.showToast) {
+                        window.showToast('error', 'Tài khoản đã bị khóa', 'Tài khoản của bạn đã bị khóa!');
+                    }
+                    setTimeout(() => { window.location.href = '/login?locked=true'; }, 650);
+                }
+            } catch (e) {}
+        }
+
+        return res;
     };
 })();
 
@@ -257,8 +298,12 @@ window.initCustomSelects = function (rootContainer) {
         trigger.setAttribute('aria-haspopup', 'listbox');
         trigger.setAttribute('aria-expanded', 'false');
 
-        // Kế thừa kích thước chữ / độ cao đồng bộ với các input xung quanh
-        if (select.classList.contains('h-10')) {
+        // Kế thừa chính xác chiều cao h-9 (36px) hoặc h-10 (40px) của thẻ <select> gốc để không bị nhảy kích thước
+        if (select.classList.contains('h-9')) {
+            trigger.style.height = '36px';
+            trigger.style.paddingTop = '0';
+            trigger.style.paddingBottom = '0';
+        } else if (select.classList.contains('h-10')) {
             trigger.style.height = '40px';
             trigger.style.paddingTop = '0';
             trigger.style.paddingBottom = '0';
@@ -525,8 +570,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Đảm bảo Drawer & Backdrop luôn nằm trực tiếp trước thẻ đóng </body>
+function initCommonUi() {
     const backdrop = document.getElementById('mobile-nav-backdrop');
     const drawer = document.getElementById('mobile-nav-drawer');
     if (backdrop && backdrop.parentElement !== document.body) {
@@ -538,4 +582,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.syncThemeIcons();
     window.initCustomSelects(document);
     window.bindHoloTiltEffects(document);
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCommonUi);
+} else {
+    initCommonUi();
+}

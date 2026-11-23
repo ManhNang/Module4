@@ -35,6 +35,9 @@ function updateCountdownTimer() {
     }
 }
 
+let auctionStompClient = null;
+let auctionTimerId = null;
+
 function connectAuctionWebSocket() {
     if (!AUCTION_ID || typeof SockJS === 'undefined' || typeof StompJs === 'undefined') return;
 
@@ -108,6 +111,7 @@ function connectAuctionWebSocket() {
             });
         }
     });
+    auctionStompClient = client;
     client.activate();
 }
 
@@ -165,6 +169,17 @@ document.getElementById('place-bid-form')?.addEventListener('submit', async (e) 
 
 document.addEventListener('DOMContentLoaded', () => {
     updateCountdownTimer();
-    setInterval(updateCountdownTimer, 1000);
+    auctionTimerId = setInterval(updateCountdownTimer, 1000);
     connectAuctionWebSocket();
+
+    window.addEventListener('pagehide', () => {
+        if (auctionTimerId != null) {
+            clearInterval(auctionTimerId);
+            auctionTimerId = null;
+        }
+        if (auctionStompClient) {
+            auctionStompClient.deactivate();
+            auctionStompClient = null;
+        }
+    });
 });

@@ -1,3 +1,31 @@
+/* ==================== 0. ANTI-FOUC CRITICAL LAYOUT & THEME ICON RULES ==================== */
+[hidden],
+.pk-vault-pack-art.hidden,
+.pk-vault-box-art.hidden {
+    display: none !important;
+}
+
+/* Đổi icon Mặt Trăng / Mặt Trời tức thì bằng CSS theo data-theme (0ms, không đợi DOMContentLoaded) */
+#theme-icon-moon { display: block !important; }
+#theme-icon-sun { display: none !important; }
+[data-theme="dark"] #theme-icon-moon { display: none !important; }
+[data-theme="dark"] #theme-icon-sun { display: block !important; }
+
+/* Khôi phục tức thì Tab đang chọn trên trang Quản trị (/admin/dashboard) từ data-admin-tab trong <head> */
+html[data-admin-tab="rarities"] #admin-panel-sets,
+html[data-admin-tab="cards"] #admin-panel-sets,
+html[data-admin-tab="users"] #admin-panel-sets {
+    display: none !important;
+}
+html[data-admin-tab="rarities"] #admin-panel-rarities,
+html[data-admin-tab="cards"] #admin-panel-cards,
+html[data-admin-tab="users"] #admin-panel-users {
+    display: block !important;
+}
+html[data-admin-tab="users"] #admin-set-toolbar {
+    display: none !important;
+}
+
 /* ==================== 1. DUAL-THEME CSS VARIABLES ==================== */
 :root {
     /* Cream Mode (Mặc định - Chuẩn Pokémon TCG Pocket) */
@@ -164,13 +192,10 @@ body {
     background-image: radial-gradient(var(--bg-dot-pattern) 1px, transparent 1px);
     background-size: 20px 20px;
     color: var(--text-primary);
-    transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 .pk-surface {
     background: var(--bg-surface);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border-subtle);
     box-shadow: var(--shadow-card);
 }
@@ -187,8 +212,8 @@ body {
 
 .pk-navbar {
     background: var(--bg-navbar);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -217,15 +242,27 @@ body {
     box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
 }
 
-/* Chống cắt chữ trên mọi thẻ <select> dropdown (fallback khi JS chưa khởi tạo) */
+/* Chống cắt chữ & đồng bộ kích thước/mũi tên trên mọi thẻ <select> trước khi JS nâng cấp */
 select.pk-input {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
     padding-right: 38px !important;
+    padding-left: 14px !important;
+    border-radius: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 16px;
+}
+select.pk-input.h-9 {
+    height: 36px;
+}
+select.pk-input.h-10 {
+    height: 40px;
 }
 
 /* ==================== CUSTOM DROPDOWN COMPONENT (DUAL-THEME CREAM & DARK MODE) ==================== */
@@ -303,8 +340,8 @@ select.pk-input {
     position: fixed;
     z-index: 9995;
     border-radius: 12px;
-    padding: 6px;
-    max-height: 260px;
+    padding: 5px;
+    max-height: 288px;
     overflow-y: auto;
     background: #FFFFFF;
     border: 1px solid #E6E2D8;
@@ -351,9 +388,10 @@ select.pk-input {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    padding: 9px 11px;
+    padding: 7px 10px;
     border-radius: 8px;
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
     font-weight: 500;
     color: var(--text-primary);
     background: transparent;
@@ -738,9 +776,9 @@ select.pk-input {
 
 /* ==================== 4. IMMERSIVE GACHA STAGE, TEAR PACK VFX, RARITY AURAS & CARD SPOTLIGHT ==================== */
 .pk-gacha-overlay {
-    background: rgba(7, 10, 19, 0.92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(7, 10, 19, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     overflow: hidden !important;
 }
 .pk-gacha-stage {
@@ -1366,4 +1404,415 @@ input[type="checkbox"] {
 }
 .toast-enter {
     animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ==================== 7. DYNAMIC 6-TIER CARD REVEAL VFX (GPU-FRIENDLY 60FPS) ==================== */
+.pk-reveal-vfx-root {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    pointer-events: none;
+    overflow: hidden;
+}
+.pk-reveal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0);
+    opacity: 0;
+    transition: opacity 0.24s ease, background-color 0.24s ease;
+    pointer-events: none;
+}
+.pk-reveal-backdrop.is-interactive {
+    pointer-events: auto;
+    cursor: pointer;
+}
+.pk-reveal-backdrop.is-dim-soft {
+    background: rgba(2, 6, 23, 0.42);
+    opacity: 1;
+}
+.pk-reveal-backdrop.is-dim-medium {
+    background: rgba(2, 6, 23, 0.65);
+    opacity: 1;
+}
+.pk-reveal-backdrop.is-dim-deep {
+    background: rgba(2, 6, 23, 0.84);
+    opacity: 1;
+}
+.pk-reveal-flash {
+    position: fixed;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease-out;
+}
+.pk-reveal-particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+.pk-reveal-skip-hint {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translate(-50%, 8px);
+    padding: 6px 14px;
+    border-radius: 9999px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #e2e8f0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+}
+.pk-reveal-skip-hint.is-visible {
+    opacity: 0.92;
+    transform: translate(-50%, 0);
+}
+
+/* Slow-mo flip cho Special Illustration & Mega Hyper */
+.pk-flip-scene.pk-flip-slowmo .pk-flip-inner {
+    transition: transform 0.88s cubic-bezier(0.16, 0.84, 0.24, 1) !important;
+}
+
+/* Nổi lá bài lên trên lớp dim khi tụ lực */
+.pk-flip-scene.is-anticipation {
+    position: relative;
+    z-index: 95;
+}
+.pk-flip-scene.pk-jackpot-focus {
+    z-index: 96;
+}
+
+/* Back-face auras theo 6 bậc preset */
+.pk-aura-double-rare {
+    border: 2px solid rgba(129, 140, 248, 0.88);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.6), 0 0 24px -2px rgba(129, 140, 248, 0.55);
+}
+.pk-aura-illustration {
+    border: 2px solid rgba(192, 132, 252, 0.9);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.6), 0 0 28px 0 rgba(192, 132, 252, 0.58);
+}
+.pk-aura-ultra {
+    border: 2.5px solid #fb923c;
+    box-shadow: 0 14px 32px -6px rgba(0, 0, 0, 0.65), 0 0 32px 2px rgba(251, 146, 60, 0.62);
+}
+.pk-aura-special-illustration {
+    border: 2.5px solid transparent;
+    background:
+        radial-gradient(circle at 50% 35%, #2e1065 0%, #0f172a 65%, #090d16 100%) padding-box,
+        linear-gradient(125deg, #ec4899, #f472b6, #38bdf8, #a855f7, #ec4899) border-box;
+    box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.68), 0 0 30px 2px rgba(236, 72, 153, 0.55);
+}
+.pk-aura-futuristic {
+    border: 2.5px solid transparent;
+    background:
+        radial-gradient(circle at 50% 35%, #083344 0%, #0f172a 65%, #090d16 100%) padding-box,
+        linear-gradient(135deg, #06b6d4, #22d3ee, #f43f5e, #06b6d4) border-box;
+    box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.7), 0 0 30px 2px rgba(6, 182, 212, 0.55);
+}
+.pk-aura-mega-hyper {
+    border: 3px solid transparent;
+    background:
+        radial-gradient(circle at 50% 35%, #451a03 0%, #0f172a 65%, #090d16 100%) padding-box,
+        linear-gradient(125deg, #f59e0b, #fde047, #ffffff, #fbbf24, #f59e0b) border-box;
+    animation: pkPulseGold 1.6s ease-in-out infinite;
+}
+
+/* ==================== PRE-REVEAL (ANTICIPATION) KEYFRAMES ==================== */
+.pk-card-fx-layer {
+    position: absolute;
+    inset: -3px;
+    border-radius: 16px;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 30;
+}
+
+/* 1. DOUBLE_RARE: Lóe viền xanh lam/tím */
+@keyframes pkDoubleEdgeFlash {
+    0% { opacity: 0; transform: scale(0.96); }
+    45% { opacity: 1; transform: scale(1.03); }
+    100% { opacity: 0; transform: scale(1.06); }
+}
+.pk-pre-double-rare .pk-flip-inner {
+    animation: pkDoublePulse 0.18s ease-out both;
+}
+@keyframes pkDoublePulse {
+    0% { transform: scale(1); }
+    60% { transform: scale(1.05); }
+    100% { transform: scale(1.02); }
+}
+.pk-card-fx-double-rare .pk-edge-flash {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    border: 3px solid #818cf8;
+    box-shadow: inset 0 0 18px rgba(96, 165, 250, 0.85), 0 0 24px rgba(129, 140, 248, 0.9);
+    animation: pkDoubleEdgeFlash 0.22s ease-out forwards;
+}
+
+/* 2. ILLUSTRATION: Khựng 0.25s hồi hộp + hào quang tím pastel */
+@keyframes pkIllustPause {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.06) translateY(-4px); }
+    100% { transform: scale(1.04) translateY(-2px); }
+}
+.pk-pre-illustration .pk-flip-inner {
+    animation: pkIllustPause 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.pk-card-fx-illustration {
+    border: 2.5px solid rgba(192, 132, 252, 0.95);
+    box-shadow: 0 0 32px rgba(192, 132, 252, 0.78), inset 0 0 22px rgba(233, 213, 255, 0.45);
+}
+
+/* 3. ULTRA: Rung tích lực cam vàng */
+@keyframes pkUltraCharge {
+    0% { transform: scale(1) translate3d(0, 0, 0); }
+    20% { transform: scale(1.03) translate3d(-3px, 1px, 0); }
+    40% { transform: scale(1.05) translate3d(3px, -2px, 0); }
+    60% { transform: scale(1.06) translate3d(-4px, 2px, 0); }
+    80% { transform: scale(1.08) translate3d(4px, -2px, 0); }
+    100% { transform: scale(1.1) translate3d(0, 0, 0); }
+}
+.pk-pre-ultra .pk-flip-inner {
+    animation: pkUltraCharge 0.42s ease-in both;
+}
+.pk-card-fx-ultra {
+    border: 3px solid #fb923c;
+    box-shadow: 0 0 36px rgba(251, 146, 60, 0.92), inset 0 0 26px rgba(251, 191, 36, 0.55);
+}
+
+/* 4. SPECIAL_ILLUSTRATION: Tia cầu vồng quét ngang chéo qua thẻ */
+@keyframes pkPrismSweep {
+    0% { transform: translate3d(-140%, -30%, 0) rotate(28deg); opacity: 0; }
+    20% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translate3d(160%, 30%, 0) rotate(28deg); opacity: 0; }
+}
+.pk-pre-special-illustration .pk-flip-inner {
+    animation: pkIllustPause 0.52s ease-in-out both;
+}
+.pk-card-fx-special-illustration .pk-prism-beam {
+    position: absolute;
+    top: -40%;
+    left: -30%;
+    width: 65%;
+    height: 180%;
+    background: linear-gradient(90deg, transparent, rgba(236, 72, 153, 0.85), rgba(56, 189, 248, 0.85), rgba(251, 191, 36, 0.9), transparent);
+    animation: pkPrismSweep 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+/* 5. FUTURISTIC: Cyber Glitch + Lưới đỏ-neon/cyan + Tia laser quét dọc */
+@keyframes pkCyberGlitch {
+    0% { transform: translate3d(0, 0, 0) skewX(0deg); }
+    15% { transform: translate3d(-4px, 1px, 0) skewX(-5deg); }
+    30% { transform: translate3d(5px, -2px, 0) skewX(6deg); }
+    45% { transform: translate3d(-3px, 2px, 0) skewX(-3deg); }
+    65% { transform: translate3d(4px, -1px, 0) skewX(4deg); }
+    82% { transform: translate3d(-2px, 0, 0) skewX(-2deg); }
+    100% { transform: translate3d(0, 0, 0) scale(1.06); }
+}
+@keyframes pkCyberLaserScan {
+    0% { transform: translateY(-10%); opacity: 0.95; }
+    50% { transform: translateY(105%); opacity: 1; }
+    100% { transform: translateY(-10%); opacity: 0.95; }
+}
+.pk-pre-futuristic .pk-flip-inner {
+    animation: pkCyberGlitch 0.58s steps(2, end) both;
+}
+.pk-card-fx-futuristic .pk-cyber-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(6, 182, 212, 0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(244, 63, 94, 0.32) 1px, transparent 1px);
+    background-size: 16px 16px;
+    border: 2px solid #22d3ee;
+    box-shadow: inset 0 0 24px rgba(6, 182, 212, 0.6), 0 0 28px rgba(244, 63, 94, 0.65);
+}
+.pk-card-fx-futuristic .pk-cyber-laser {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #f43f5e, #ffffff, #22d3ee);
+    box-shadow: 0 0 14px #22d3ee, 0 0 22px #f43f5e;
+    animation: pkCyberLaserScan 0.56s linear forwards;
+}
+
+/* 6. MEGA_HYPER: Jackpot tụ năng lượng vàng kim + rung tăng dần (~0.88s) */
+@keyframes pkJackpotCharge {
+    0% { transform: scale(1) translate3d(0, 0, 0); }
+    18% { transform: scale(1.04) translate3d(-2px, 1px, 0); }
+    36% { transform: scale(1.07) translate3d(3px, -2px, 0); }
+    54% { transform: scale(1.1) translate3d(-5px, 2px, 0); }
+    72% { transform: scale(1.13) translate3d(6px, -3px, 0); }
+    88% { transform: scale(1.16) translate3d(-6px, 3px, 0); }
+    100% { transform: scale(1.2) translate3d(0, 0, 0); }
+}
+@keyframes pkGoldConverge {
+    0% { transform: scale(1.85); opacity: 0.25; }
+    70% { transform: scale(0.9); opacity: 0.95; }
+    100% { transform: scale(0.25); opacity: 1; }
+}
+.pk-pre-mega-hyper .pk-flip-inner {
+    animation: pkJackpotCharge 0.88s cubic-bezier(0.32, 0, 0.67, 0) both;
+}
+.pk-card-fx-mega-hyper {
+    border: 3px solid #fde047;
+    box-shadow: 0 0 48px rgba(251, 191, 36, 0.95), inset 0 0 32px rgba(254, 240, 138, 0.75);
+}
+.pk-card-fx-mega-hyper .pk-gold-converge {
+    position: absolute;
+    inset: -25%;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(251, 191, 36, 0.65) 40%, transparent 72%);
+    animation: pkGoldConverge 0.86s ease-in forwards;
+}
+
+/* ==================== AFTERGLOW (HÀO QUANG GIỮ LẠI SAU KHI LẬT) ==================== */
+.pk-afterglow-double-rare {
+    box-shadow: 0 0 22px -2px rgba(129, 140, 248, 0.78), 0 12px 26px -8px rgba(0, 0, 0, 0.65) !important;
+}
+.pk-afterglow-illustration {
+    box-shadow: 0 0 26px 0 rgba(192, 132, 252, 0.8), 0 14px 28px -8px rgba(0, 0, 0, 0.65) !important;
+}
+.pk-afterglow-ultra {
+    box-shadow: 0 0 30px 2px rgba(251, 146, 60, 0.85), 0 14px 30px -8px rgba(0, 0, 0, 0.7) !important;
+}
+.pk-afterglow-special-illustration {
+    box-shadow: 0 0 34px 3px rgba(236, 72, 153, 0.85), 0 0 18px rgba(56, 189, 248, 0.6) !important;
+}
+.pk-afterglow-futuristic {
+    box-shadow: 0 0 28px 2px rgba(6, 182, 212, 0.92), 0 0 18px rgba(244, 63, 94, 0.72) !important;
+}
+.pk-afterglow-mega-hyper {
+    box-shadow: 0 0 42px 6px rgba(251, 191, 36, 0.95), 0 0 16px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* ==================== LIGHTWEIGHT GPU PARTICLES ==================== */
+@keyframes pkParticleBurst {
+    0% { transform: translate3d(-50%, -50%, 0) scale(0.4); opacity: 1; }
+    100% { transform: translate3d(calc(-50% + var(--tx)), calc(-50% + var(--ty)), 0) scale(0.15); opacity: 0; }
+}
+@keyframes pkStardustFloat {
+    0% { transform: translate3d(0, 0, 0) scale(0.5); opacity: 0; }
+    25% { opacity: 1; }
+    100% { transform: translate3d(var(--tx), var(--ty), 0) scale(1.1); opacity: 0; }
+}
+@keyframes pkShockwaveExpand {
+    0% { transform: translate3d(-50%, -50%, 0) scale(0.25); opacity: 0.95; }
+    100% { transform: translate3d(-50%, -50%, 0) scale(2.8); opacity: 0; }
+}
+@keyframes pkPrismShardFly {
+    0% { transform: translate3d(-50%, -50%, 0) rotate(0deg) scale(0.8); opacity: 1; }
+    100% { transform: translate3d(calc(-50% + var(--tx)), calc(-50% + var(--ty)), 0) rotate(var(--rot)) scale(0.2); opacity: 0; }
+}
+@keyframes pkJackpotHaloSpin {
+    0% { transform: translate3d(-50%, -50%, 0) scale(0.5) rotate(0deg); opacity: 0.95; }
+    35% { opacity: 0.88; }
+    100% { transform: translate3d(-50%, -50%, 0) scale(1.45) rotate(140deg); opacity: 0; }
+}
+@keyframes pkGoldRainFall {
+    0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0.95; }
+    85% { opacity: 0.85; }
+    100% { transform: translate3d(var(--tx), 105vh, 0) rotate(var(--rot)); opacity: 0; }
+}
+
+.pk-vfx-sparkle {
+    position: fixed;
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: var(--c, #818cf8);
+    box-shadow: 0 0 10px var(--c, #818cf8);
+    animation: pkParticleBurst 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.pk-vfx-stardust {
+    position: fixed;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--c, #c084fc);
+    box-shadow: 0 0 10px var(--c, #c084fc);
+    animation: pkStardustFloat 0.95s ease-out forwards;
+}
+.pk-vfx-shockwave {
+    position: fixed;
+    width: 140px;
+    height: 140px;
+    border-radius: 9999px;
+    border: 4px solid #fb923c;
+    box-shadow: 0 0 28px rgba(251, 146, 60, 0.9), inset 0 0 18px rgba(251, 191, 36, 0.6);
+    animation: pkShockwaveExpand 0.58s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.pk-vfx-ember {
+    position: fixed;
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: var(--c, #fb923c);
+    box-shadow: 0 0 12px var(--c, #fb923c);
+    animation: pkParticleBurst 0.78s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.pk-vfx-prism-shard {
+    position: fixed;
+    width: 10px;
+    height: 6px;
+    border-radius: 2px;
+    background: var(--c, #ec4899);
+    box-shadow: 0 0 10px var(--c, #ec4899);
+    animation: pkPrismShardFly 0.95s cubic-bezier(0.12, 0.82, 0.28, 1) forwards;
+}
+.pk-vfx-cyber-pulse {
+    position: fixed;
+    width: 150px;
+    height: 150px;
+    border-radius: 18px;
+    border: 3px solid #22d3ee;
+    box-shadow: 0 0 26px rgba(6, 182, 212, 0.9), 0 0 18px rgba(244, 63, 94, 0.7);
+    animation: pkShockwaveExpand 0.52s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.pk-vfx-cyber-bit {
+    position: fixed;
+    width: 9px;
+    height: 3px;
+    background: var(--c, #22d3ee);
+    box-shadow: 0 0 10px var(--c, #22d3ee);
+    animation: pkParticleBurst 0.68s ease-out forwards;
+}
+.pk-vfx-jackpot-halo {
+    position: fixed;
+    width: 280px;
+    height: 280px;
+    border-radius: 9999px;
+    border: 3px dashed rgba(253, 224, 71, 0.9);
+    box-shadow: 0 0 55px rgba(251, 191, 36, 0.85), inset 0 0 40px rgba(254, 240, 138, 0.45);
+    animation: pkJackpotHaloSpin 1.7s ease-out forwards;
+}
+.pk-vfx-gold-rain {
+    position: fixed;
+    width: 8px;
+    height: 5px;
+    border-radius: 2px;
+    background: var(--c, #fbbf24);
+    box-shadow: 0 0 10px var(--c, #fbbf24);
+    animation: pkGoldRainFall 1.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pk-pre-double-rare .pk-flip-inner,
+    .pk-pre-illustration .pk-flip-inner,
+    .pk-pre-ultra .pk-flip-inner,
+    .pk-pre-special-illustration .pk-flip-inner,
+    .pk-pre-futuristic .pk-flip-inner,
+    .pk-pre-mega-hyper .pk-flip-inner,
+    .pk-aura-mega-hyper {
+        animation: none !important;
+    }
 }

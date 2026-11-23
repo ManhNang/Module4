@@ -48,6 +48,21 @@ public class AdminCardSetController {
     }
 
     /**
+     * 1B. Upload ảnh PNG/WebP tùy chỉnh cho Pack hoặc Box của Bộ Thẻ (≤ 2MB).
+     * POST /api/v1/admin/card-sets/upload-media
+     */
+    @PostMapping(value = "/card-sets/upload-media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ImageUploadResponseDTO> uploadCardSetMedia(
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(value = "setCode", required = false, defaultValue = "set") String setCode,
+            @RequestParam(value = "mediaType", required = false, defaultValue = "pack") String mediaType
+    ) {
+        String imageUrl = adminCardSetService.uploadSetMediaImage(file, setCode, mediaType);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ImageUploadResponseDTO.builder().imageUrl(imageUrl).build());
+    }
+
+    /**
      * 2. Thêm mới CardTemplate bằng JSON (khi đã có imageUrl từ bước upload ảnh).
      * Nếu trùng (setId, cardNumber) -> trả về HTTP 409 CONFLICT.
      * POST /api/v1/admin/card-sets/{setId}/cards

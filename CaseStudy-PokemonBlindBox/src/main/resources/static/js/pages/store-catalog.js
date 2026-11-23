@@ -87,7 +87,15 @@
         const quantity = Math.max(1, parseInt(input?.value || '1', 10) || 1);
 
         const endpoint = kind === 'pack' ? '/api/v1/store/buy-pack' : '/api/v1/store/buy-box';
+        const labelEl = document.getElementById(`${kind}-btn-total-${setId}`);
+        const origLabelText = labelEl ? labelEl.textContent : btn.textContent;
         btn.disabled = true;
+        btn.classList.add('opacity-70', 'cursor-wait');
+        if (labelEl) {
+            labelEl.textContent = 'Đang xử lý...';
+        } else {
+            btn.textContent = 'Đang xử lý...';
+        }
 
         try {
             const res = await fetch(endpoint, {
@@ -147,6 +155,12 @@
             window.showToast('error', 'Lỗi kết nối', err.message || 'Không thể kết nối máy chủ.');
         } finally {
             btn.disabled = false;
+            btn.classList.remove('opacity-70', 'cursor-wait');
+            if (labelEl && labelEl.textContent === 'Đang xử lý...') {
+                labelEl.textContent = origLabelText;
+            } else if (!labelEl) {
+                btn.textContent = origLabelText;
+            }
         }
     };
     document.addEventListener('DOMContentLoaded', () => {

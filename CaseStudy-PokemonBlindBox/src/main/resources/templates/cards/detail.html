@@ -107,6 +107,7 @@
                  class="pk-holo-card pk-card-fullbleed pk-detail-card-glow cursor-grab active:cursor-grabbing select-none">
                 <img th:src="${card.imageUrl()}"
                      th:alt="${card.name()}"
+                     decoding="async"
                      onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"/>
             </div>
         </div>

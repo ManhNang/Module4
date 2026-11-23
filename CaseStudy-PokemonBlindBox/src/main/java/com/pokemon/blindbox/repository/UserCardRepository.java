@@ -63,6 +63,36 @@ public interface UserCardRepository extends JpaRepository<UserCard, Long> {
     Page<UserCard> findByUserIdOrderByAcquiredAtDesc(Long userId, Pageable pageable);
 
     /**
+     * Truy vấn kho thẻ của người chơi đã sắp xếp sẵn từ DB theo đúng thứ tự mặc định của trang Kho đồ:
+     * Giá bán nhanh (buybackPrice) Cao -> Thấp, Mã thẻ (#001 -> #103), ưu tiên bản sao chưa khóa (isLocked ASC) lên đầu.
+     */
+    @EntityGraph(attributePaths = {"cardTemplate", "cardTemplate.cardSet", "cardTemplate.rarity", "cardTemplate.cardSpecies"})
+    @Query("""
+            SELECT uc FROM UserCard uc
+            JOIN uc.cardTemplate ct
+            JOIN ct.rarity r
+            WHERE uc.userId = :userId
+            ORDER BY r.buybackPrice DESC, ct.cardNumber ASC, uc.isLocked ASC, uc.id ASC
+            """)
+    Page<UserCard> findByUserIdOrderByDefaultInventorySort(@Param("userId") Long userId, Pageable pageable);
+
+    /**
+     * Truy vấn TOÀN BỘ thẻ rảnh (isLocked = false) cho Đảo Pokémon & Trạm Thám Hiểm,
+     * dùng LEFT JOIN để không bao giờ làm rớt thẻ và sắp xếp trực tiếp theo tốc độ sinh Xu/phút giảm dần
+     * (không cắt LIMIT 150 trước khi sort).
+     */
+    @EntityGraph(attributePaths = {"cardTemplate", "cardTemplate.cardSet", "cardTemplate.rarity", "cardTemplate.cardSpecies"})
+    @Query("""
+            SELECT uc FROM UserCard uc
+            JOIN uc.cardTemplate ct
+            LEFT JOIN ct.rarity r
+            WHERE uc.userId = :userId
+              AND uc.isLocked = false
+            ORDER BY COALESCE(r.sanctuaryCoinsPerMin, 2) DESC, COALESCE(r.dropWeight, 1000000) ASC, ct.cardNumber ASC, uc.id ASC
+            """)
+    List<UserCard> findUnlockedForSanctuary(@Param("userId") Long userId);
+
+    /**
      * Truy vấn chuyên biệt cho trang chi tiết thẻ bài (không load toàn bộ kho thẻ của user) (P1-05).
      */
     List<UserCard> findByUserIdAndCardTemplateIdOrderByIdAsc(Long userId, Long cardTemplateId);

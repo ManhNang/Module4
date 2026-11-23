@@ -45,7 +45,7 @@
                 <svg class="h-4 w-4 pk-text-secondary absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
                 </svg>
-                <input type="text" id="market-filter-search" oninput="window.applyMarketFilters()"
+                <input type="text" id="market-filter-search" oninput="window.debouncedApplyMarketFilters ? window.debouncedApplyMarketFilters() : window.applyMarketFilters()"
                        placeholder="Tìm tên thẻ, bộ, mã số..."
                        class="pk-input h-9 w-full rounded-xl pl-9 pr-3 text-xs sm:text-sm"/>
             </div>
@@ -143,7 +143,7 @@
                     LIVE
                 </span>
                 <h2 class="text-base font-extrabold pk-text-primary pk-num">
-                    Đấu Giá Trực Tiếp (<span id="market-visible-count" th:text="${#lists.size(activeAuctions)}">0</span>)
+                    Đấu Giá Trực Tiếp (<span id="market-visible-count" th:text="${activeAuctionCount != null ? activeAuctionCount : #lists.size(activeAuctions)}">0</span>)
                 </h2>
             </div>
 
@@ -151,15 +151,15 @@
             <div class="inline-flex items-center gap-1 rounded-xl pk-surface-muted p-1">
                 <button type="button" id="market-status-tab-ACTIVE" onclick="window.switchMarketStatusTab('ACTIVE')"
                         class="market-status-tab rounded-lg px-3 py-1.5 text-xs font-extrabold cursor-pointer transition bg-amber-500 text-slate-950 shadow-sm whitespace-nowrap">
-                    Đang diễn ra (<span id="market-tab-count-ACTIVE" class="pk-num">0</span>)
+                    Đang diễn ra (<span id="market-tab-count-ACTIVE" class="pk-num" th:text="${activeAuctionCount ?: 0}">0</span>)
                 </button>
                 <button type="button" id="market-status-tab-MINE" onclick="window.switchMarketStatusTab('MINE')"
                         class="market-status-tab rounded-lg px-3 py-1.5 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition whitespace-nowrap">
-                    Phiên của tôi (<span id="market-tab-count-MINE" class="pk-num">0</span>)
+                    Phiên của tôi (<span id="market-tab-count-MINE" class="pk-num" th:text="${mineAuctionCount ?: 0}">0</span>)
                 </button>
                 <button type="button" id="market-status-tab-ENDED" onclick="window.switchMarketStatusTab('ENDED')"
                         class="market-status-tab rounded-lg px-3 py-1.5 text-xs font-bold pk-text-secondary hover:pk-text-primary cursor-pointer transition whitespace-nowrap">
-                    Đã kết thúc (<span id="market-tab-count-ENDED" class="pk-num">0</span>)
+                    Đã kết thúc (<span id="market-tab-count-ENDED" class="pk-num" th:text="${endedAuctionCount ?: 0}">0</span>)
                 </button>
             </div>
         </div>
@@ -200,7 +200,7 @@
                           data-set-name=${isCard and auc.card() != null ? auc.card().setName() : auc.sealedSetName()},
                           data-rarity-name=${isCard and auc.card() != null ? auc.card().rarityName() : ''},
                           data-species-name=${isCard and auc.card() != null ? auc.card().speciesName() : ''}"
-                 th:style="'--rarity-glow:' + ${rColor}"
+                 th:style="'--rarity-glow:' + ${rColor} + (${isEnded} ? ';display:none;' : '')"
                  th:classappend="${isEnded} ? 'opacity-75 saturate-[0.8] border-slate-500/25' : 'pk-rarity-glow-card border-slate-300/40 dark:border-slate-700/60'"
                  class="market-item-card card-item pk-surface rounded-3xl p-4 border-2 flex flex-col justify-between space-y-3.5 transition">
 
@@ -209,15 +209,38 @@
                        class="card-image-wrapper pk-card-frame !w-20 shrink-0 pk-surface-muted">
                         <img th:src="${auc.card().imageUrl()}"
                              th:alt="${auc.card().name()}"
+                             loading="lazy" decoding="async"
                              onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png'"/>
                     </a>
                     <div th:if="${!isCard}"
-                         th:classappend="${isBox} ? 'from-amber-500 via-rose-600 to-indigo-900 border-amber-300/60' : 'from-slate-800 via-indigo-900 to-slate-900 border-sky-400/50'"
-                         class="w-20 h-28 rounded-xl bg-gradient-to-br border-2 flex flex-col items-center justify-center text-white shadow-md shrink-0 text-center p-1">
-                        <span class="text-[9px] font-extrabold tracking-widest opacity-85" th:text="${auc.sealedSetCode()}">DLR</span>
-                        <span class="text-xs font-black mt-1" th:text="${isBox ? 'BOX' : 'PACK'}">PACK</span>
-                        <span class="text-[9px] font-bold opacity-80 mt-0.5"
-                              th:text="${isBox ? auc.sealedPacksPerBox() + ' Pack' : auc.sealedCardsPerPack() + ' thẻ'}">6 thẻ</span>
+                         th:with="sealedImg=${isBox ? auc.sealedBoxImageUrl() : auc.sealedPackImageUrl()},
+                                  hasSealedImg=${sealedImg != null and !#strings.isEmpty(sealedImg)}"
+                         class="shrink-0">
+                        <div th:if="${hasSealedImg}"
+                             th:classappend="${isBox} ? 'w-24 h-24' : 'w-20 h-24'"
+                             class="shrink-0 flex items-center justify-center">
+                            <img th:src="${sealedImg}"
+                                 th:alt="${(isBox ? 'Box ' : 'Pack ') + auc.sealedSetName()}"
+                                 loading="lazy" decoding="async"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='';"
+                                 class="w-full h-full object-contain rounded-lg drop-shadow-sm"/>
+                            <div style="display:none"
+                                 th:classappend="${isBox} ? 'from-amber-500 via-rose-600 to-indigo-900 border-amber-300/60' : 'from-slate-800 via-indigo-900 to-slate-900 border-sky-400/50'"
+                                 class="w-20 h-28 rounded-xl bg-gradient-to-br border-2 flex flex-col items-center justify-center text-white shadow-md text-center p-1">
+                                <span class="text-[9px] font-extrabold tracking-widest opacity-85" th:text="${auc.sealedSetCode()}">DLR</span>
+                                <span class="text-xs font-black mt-1" th:text="${isBox ? 'BOX' : 'PACK'}">PACK</span>
+                                <span class="text-[9px] font-bold opacity-80 mt-0.5"
+                                      th:text="${isBox ? auc.sealedPacksPerBox() + ' Pack' : auc.sealedCardsPerPack() + ' thẻ'}">6 thẻ</span>
+                            </div>
+                        </div>
+                        <div th:if="${!hasSealedImg}"
+                             th:classappend="${isBox} ? 'from-amber-500 via-rose-600 to-indigo-900 border-amber-300/60' : 'from-slate-800 via-indigo-900 to-slate-900 border-sky-400/50'"
+                             class="w-20 h-28 rounded-xl bg-gradient-to-br border-2 flex flex-col items-center justify-center text-white shadow-md text-center p-1">
+                            <span class="text-[9px] font-extrabold tracking-widest opacity-85" th:text="${auc.sealedSetCode()}">DLR</span>
+                            <span class="text-xs font-black mt-1" th:text="${isBox ? 'BOX' : 'PACK'}">PACK</span>
+                            <span class="text-[9px] font-bold opacity-80 mt-0.5"
+                                  th:text="${isBox ? auc.sealedPacksPerBox() + ' Pack' : auc.sealedCardsPerPack() + ' thẻ'}">6 thẻ</span>
+                        </div>
                     </div>
 
                     <div class="min-w-0 flex-1 space-y-1.5">
@@ -328,7 +351,7 @@
                         <svg class="h-3.5 w-3.5 pk-text-secondary absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
                         </svg>
-                        <input type="text" id="sell-picker-search" oninput="window.filterSellPickerCards()"
+                        <input type="text" id="sell-picker-search" oninput="window.debouncedFilterSellPickerCards ? window.debouncedFilterSellPickerCards() : window.filterSellPickerCards()"
                                placeholder="Tìm tên thẻ, bộ..."
                                class="pk-input h-9 w-full rounded-xl pl-8 pr-3 text-xs"/>
                     </div>
@@ -337,11 +360,12 @@
                 <div class="relative flex-1 min-h-0 flex flex-col">
                     <div id="sell-picker-grid"
                          class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto p-1 pb-9 flex-1 min-h-0 max-h-[46vh] lg:max-h-none">
-                        <!-- Thẻ bài -->
+                        <!-- Thẻ bài (Đã gộp trùng & sắp xếp sẵn từ Server) -->
                         <button type="button"
                                 th:each="uc : ${myCards}"
                                 th:if="${!uc.isLocked()}"
-                                th:with="pLower=${#strings.toLowerCase(uc.card().rarityName() ?: '')},
+                                th:with="copyCnt=${myCardCopyCounts != null ? myCardCopyCounts.getOrDefault(uc.card().id(), 1L) : 1L},
+                                         pLower=${#strings.toLowerCase(uc.card().rarityName() ?: '')},
                                          pColor=${#strings.contains(pLower, 'special illustration') ? '#EC4899' :
                                                   ((#strings.contains(pLower, 'hyper') or #strings.contains(pLower, 'secret') or #strings.contains(pLower, 'gold')) ? '#F59E0B' :
                                                   (#strings.contains(pLower, 'illustration') ? '#C084FC' :
@@ -352,6 +376,7 @@
                                 th:attr="data-item-type='CARD',
                                          data-user-card-id=${uc.userCardId()},
                                          data-template-id=${uc.card().id()},
+                                         data-qty=${copyCnt},
                                          data-card-name=${uc.card().name()},
                                          data-rarity-name=${uc.card().rarityName()},
                                          data-rarity-color=${pColor},
@@ -359,7 +384,9 @@
                                          data-buyback-price=${uc.card().rarityBuybackPrice()}"
                                 onclick="window.selectSellCard(this)"
                                 class="sell-picker-card group relative pk-surface-elevated border-2 border-transparent hover:border-amber-500/60 rounded-2xl p-2 flex flex-col items-center text-center gap-1.5 cursor-pointer transition">
-                            <span class="sell-picker-qty hidden pk-num absolute top-2 left-2 z-10 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10px] font-extrabold text-amber-400 shadow border border-amber-500/35">x1</span>
+                            <span th:classappend="${copyCnt <= 1} ? 'hidden' : ''"
+                                  th:text="'x' + ${copyCnt}"
+                                  class="sell-picker-qty pk-num absolute top-2 left-2 z-10 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10px] font-extrabold text-amber-400 shadow border border-amber-500/35">x1</span>
                             <span class="sell-picker-check hidden absolute top-2 right-2 z-10 h-5 w-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow">
                                 <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="20 6 9 17 4 12"/>
@@ -368,6 +395,7 @@
                             <div class="w-[88%] aspect-[2.5/3.5] rounded-xl overflow-hidden pk-surface-muted shadow-md transition group-hover:scale-[1.03] shrink-0">
                                 <img th:src="${uc.card().imageUrl()}"
                                      th:alt="${uc.card().name()}"
+                                     loading="lazy" decoding="async"
                                      onerror="this.src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'"
                                      class="h-full w-full object-cover"/>
                             </div>
@@ -408,11 +436,22 @@
                                     <polyline points="20 6 9 17 4 12"/>
                                 </svg>
                             </span>
-                            <div th:classappend="${isBox} ? 'from-amber-500 via-rose-600 to-indigo-900 border-amber-300/50' : 'from-slate-800 via-indigo-900 to-slate-900 border-sky-400/40'"
-                                 class="w-[88%] aspect-[2.5/3.5] rounded-xl bg-gradient-to-br border flex flex-col items-center justify-center text-white shadow-md transition group-hover:scale-[1.03] shrink-0 p-2 gap-1">
-                                <span class="text-[10px] font-extrabold tracking-widest opacity-85" th:text="${opt.setCode()}">DLR</span>
-                                <span class="text-base font-black" th:text="${isBox ? 'BOX' : 'PACK'}">PACK</span>
-                                <span class="text-[10px] font-semibold opacity-80" th:text="${opt.setName()}">Delta Reign</span>
+                            <div th:with="optImg=${isBox ? opt.boxImageUrl() : opt.packImageUrl()},
+                                          hasOptImg=${optImg != null and !#strings.isEmpty(optImg)}"
+                                 class="w-[88%] aspect-[2.5/3.5] shrink-0 flex items-center justify-center">
+                                <img th:if="${hasOptImg}"
+                                     th:src="${optImg}"
+                                     th:alt="${(isBox ? 'Box ' : 'Pack ') + opt.setName()}"
+                                     loading="lazy" decoding="async"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='';"
+                                     class="w-full h-full object-contain rounded-lg drop-shadow-sm transition group-hover:scale-[1.04]"/>
+                                <div th:style="${hasOptImg} ? 'display:none' : ''"
+                                     th:classappend="${isBox} ? 'from-amber-500 via-rose-600 to-indigo-900 border-amber-300/50' : 'from-slate-800 via-indigo-900 to-slate-900 border-sky-400/40'"
+                                     class="w-full h-full rounded-xl bg-gradient-to-br border flex flex-col items-center justify-center text-white shadow-md transition group-hover:scale-[1.03] p-2 gap-1">
+                                    <span class="text-[10px] font-extrabold tracking-widest opacity-85" th:text="${opt.setCode()}">DLR</span>
+                                    <span class="text-base font-black" th:text="${isBox ? 'BOX' : 'PACK'}">PACK</span>
+                                    <span class="text-[10px] font-semibold opacity-80" th:text="${opt.setName()}">Delta Reign</span>
+                                </div>
                             </div>
                             <div class="w-full px-0.5 space-y-0.5 min-w-0">
                                 <div class="text-xs font-extrabold pk-text-primary truncate"
