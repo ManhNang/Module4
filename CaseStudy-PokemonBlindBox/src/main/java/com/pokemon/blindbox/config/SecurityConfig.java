@@ -81,7 +81,8 @@ public class SecurityConfig {
                                 "/wallet/**",
                                 "/ws-blindbox/**",
                                 "/api/v1/**",
-                                "/api/inventory/**"
+                                "/api/inventory/**",
+                                "/api/sanctuary/**"
                         ).hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated()
                 )

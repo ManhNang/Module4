@@ -15,6 +15,7 @@ D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\controll
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\controller\InventoryBuybackController.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\controller\MarketplaceAuctionController.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\controller\SanctuaryController.java
+D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\controller\SanctuaryDropController.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\controller\SealedStoreVaultController.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\controller\WalletPaymentController.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\controller\web\AuthController.java
@@ -83,6 +84,7 @@ D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\e
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\enums\PackStatus.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\enums\RevealEffect.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\enums\Role.java
+D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\enums\SanctuaryDropType.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\enums\SealedItemType.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\enums\TransactionStatus.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\enums\TransactionType.java
@@ -91,7 +93,9 @@ D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\E
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\MarketListing.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\Rarity.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\SanctuaryDailyEarning.java
+D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\SanctuaryRandomDrop.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\SanctuarySlot.java
+D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\SanctuaryUserProfile.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\SetDailySale.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\User.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\entity\UserCard.java
@@ -117,7 +121,9 @@ D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\reposito
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\repository\MarketListingRepository.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\repository\RarityRepository.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\repository\SanctuaryDailyEarningRepository.java
+D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\repository\SanctuaryRandomDropRepository.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\repository\SanctuarySlotRepository.java
+D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\repository\SanctuaryUserProfileRepository.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\repository\SetDailySaleRepository.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\repository\specification\CardTemplateSpecification.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\repository\UserCardRepository.java
@@ -141,6 +147,7 @@ D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\service\
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\service\GachaEngineService.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\service\InventoryBuybackService.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\service\MarketplaceService.java
+D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\service\SanctuaryDropService.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\service\SanctuaryService.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\service\SealedStoreVaultService.java
 D:\Module4\CaseStudy-PokemonBlindBox\src\main\java\com\pokemon\blindbox\service\StoreQueryService.java

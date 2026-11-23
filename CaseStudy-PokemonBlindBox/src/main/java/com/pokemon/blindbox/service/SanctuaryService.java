@@ -379,12 +379,21 @@ public class SanctuaryService {
             }
         }
 
-        BigDecimal actualCoins = creditWithDailyCap(
-                userId,
-                expedition.getRewardCoins(),
-                TransactionType.EXPEDITION_REWARD,
-                String.format("Thưởng thám hiểm %s (%d phút)", expedition.getZoneName(), expedition.getDurationMinutes())
-        );
+        // Cộng thẳng 100% Xu thưởng Thám hiểm vào Ví (KHÔNG kiểm tra, KHÔNG bị cắt và KHÔNG tính vào hạn mức 1.000 Xu/ngày của Đảo)
+        BigDecimal actualCoins = (expedition.getRewardCoins() != null ? expedition.getRewardCoins() : BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+        Wallet wallet = walletRepository.findByUserIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy ví của người dùng."));
+        if (actualCoins.compareTo(BigDecimal.ZERO) > 0) {
+            wallet.setBalance(wallet.getBalance().add(actualCoins));
+            wallet = walletRepository.save(wallet);
+            walletService.recordTransaction(
+                    wallet,
+                    TransactionType.EXPEDITION_REWARD,
+                    actualCoins,
+                    String.format("Thưởng thám hiểm %s (%d phút)", expedition.getZoneName(), expedition.getDurationMinutes())
+            );
+        }
 
         // Quay cơ hội rơi Pack ngẫu nhiên
         Long rewardPackId = null;
@@ -399,7 +408,6 @@ public class SanctuaryService {
 
         incrementDailyQuestProgress(userId, QUEST_EXPEDITION);
 
-        Wallet wallet = walletRepository.findByUserId(userId).orElse(null);
         String msg = rewardPackId != null
                 ? String.format("Nhận +%s Xu và TRÚNG THƯỞNG 1 Pack Miễn Phí (#%d)!", actualCoins.stripTrailingZeros().toPlainString(), rewardPackId)
                 : String.format("Hoàn thành thám hiểm %s, nhận +%s Xu!", expedition.getZoneName(), actualCoins.stripTrailingZeros().toPlainString());

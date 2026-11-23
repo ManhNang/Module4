@@ -1816,3 +1816,72 @@ input[type="checkbox"] {
         animation: none !important;
     }
 }
+
+/* ==================== 8. SANCTUARY 2.5D RANDOM DROPS (POKEBALL / POND SPLASH / CHEST) ==================== */
+@keyframes pkDropBob {
+    0%, 100% { transform: translate3d(-50%, -65%, 0) translateY(0px); }
+    50% { transform: translate3d(-50%, -65%, 0) translateY(-7px); }
+}
+@keyframes pkDropAuraPulse {
+    0%, 100% { transform: scale(0.92); opacity: 0.55; }
+    50% { transform: scale(1.18); opacity: 0.95; }
+}
+@keyframes pkPondRipple {
+    0% { transform: scale(0.55); opacity: 0.9; }
+    100% { transform: scale(1.75); opacity: 0; }
+}
+.pk-island-drop-btn {
+    position: absolute;
+    pointer-events: auto;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 62px;
+    height: 62px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    z-index: 26;
+    animation: pkDropBob 2.1s ease-in-out infinite;
+    transition: filter 0.18s ease;
+}
+.pk-island-drop-btn:hover {
+    filter: brightness(1.15) drop-shadow(0 0 12px rgba(251, 191, 36, 0.85));
+}
+.pk-island-drop-aura {
+    position: absolute;
+    inset: 4px;
+    border-radius: 9999px;
+    pointer-events: none;
+    animation: pkDropAuraPulse 1.8s ease-in-out infinite;
+}
+.pk-island-drop-aura.is-pokeball {
+    background: radial-gradient(circle, rgba(244, 63, 94, 0.45) 0%, rgba(251, 191, 36, 0.25) 55%, transparent 75%);
+}
+.pk-island-drop-aura.is-pond {
+    border: 2px solid rgba(56, 189, 248, 0.85);
+    animation: pkPondRipple 1.6s ease-out infinite;
+}
+.pk-island-drop-aura.is-chest {
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.6) 0%, rgba(245, 158, 11, 0.28) 55%, transparent 75%);
+}
+.pk-island-drop-tag {
+    margin-top: 2px;
+    padding: 1px 7px;
+    border-radius: 9999px;
+    background: rgba(15, 23, 42, 0.86);
+    border: 1px solid rgba(251, 191, 36, 0.55);
+    color: #fde68a;
+    font-size: 9.5px;
+    font-weight: 800;
+    white-space: nowrap;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+@media (prefers-reduced-motion: reduce) {
+    .pk-island-drop-btn,
+    .pk-island-drop-aura {
+        animation: none !important;
+    }
+}

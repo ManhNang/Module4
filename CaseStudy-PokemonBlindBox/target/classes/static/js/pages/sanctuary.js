@@ -61,6 +61,10 @@
     let elapsedTime = 0;
     let isPaused = false;
     let countdownTimerId = null;
+    let dropPollTimerId = null;
+    let activeDropState = null;
+    let isClaimingDrop = false;
+    let isExchangingShards = false;
 
     // Entities synced between Physics & DOM
     const islandActors = new Map(); // slotId -> actor
@@ -1156,23 +1160,50 @@
         return Number.isFinite(dbRate) && dbRate > 0 ? dbRate : 2;
     }
 
+    let activeInfoModalSlotId = null;
+
     window.openSanctuaryCardInfoModal = function (slot) {
         if (!slot || !slot.card) return;
+        activeInfoModalSlotId = slot.slotId;
         const c = slot.card;
         const visual = getRarityVisual(c.rarityName, c.rarityColorHex);
+        const accentColor = (c.rarityColorHex && /^#[0-9a-fA-F]{6}$/.test(c.rarityColorHex)) ? c.rarityColorHex : visual.color;
         const nameEl = document.getElementById('sanctuary-card-modal-name');
+        const metaEl = document.getElementById('sanctuary-card-modal-meta');
         const rarityEl = document.getElementById('sanctuary-card-modal-rarity');
+        const frameEl = document.getElementById('sanctuary-card-modal-frame');
         const imgEl = document.getElementById('sanctuary-card-modal-img');
         const rateEl = document.getElementById('sanctuary-card-modal-rate');
         const linkEl = document.getElementById('sanctuary-card-modal-link');
         const modal = document.getElementById('modal-sanctuary-card-info');
 
         if (nameEl) nameEl.textContent = c.name || 'Pokémon';
+        if (metaEl) {
+            const parts = [c.setName, c.formattedCardNumber].filter(Boolean);
+            metaEl.textContent = parts.join(' • ');
+            metaEl.classList.toggle('hidden', parts.length === 0);
+        }
         if (rarityEl) {
             rarityEl.textContent = c.rarityName || 'Common';
-            rarityEl.style.borderColor = visual.color;
-            rarityEl.style.color = visual.color;
+            rarityEl.style.borderColor = accentColor;
+            rarityEl.style.color = accentColor;
             rarityEl.style.backgroundColor = '';
+        }
+        if (frameEl) {
+            const isHolo = Boolean(c.rarityIsHolographic);
+            frameEl.classList.toggle('pk-holo-card', isHolo);
+            frameEl.classList.toggle('is-holo-active', isHolo);
+            frameEl.style.transform = '';
+            if (isHolo) {
+                frameEl.style.borderColor = accentColor;
+                frameEl.style.boxShadow = `0 0 26px -2px ${accentColor}99, 0 14px 28px -8px rgba(0, 0, 0, 0.45)`;
+                if (typeof window.bindHoloTiltEffects === 'function' && frameEl.parentElement) {
+                    window.bindHoloTiltEffects(frameEl.parentElement);
+                }
+            } else {
+                frameEl.style.borderColor = '';
+                frameEl.style.boxShadow = '';
+            }
         }
         if (imgEl) imgEl.src = c.imageUrl || FALLBACK_ART;
         const rate = slot.coinPerTick || estimateCoinsPerMinute(c);
@@ -1182,7 +1213,21 @@
     };
 
     window.closeSanctuaryCardInfoModal = function () {
+        activeInfoModalSlotId = null;
         document.getElementById('modal-sanctuary-card-info')?.classList.add('hidden');
+    };
+
+    window.removeCardFromInfoModal = async function () {
+        const slotId = activeInfoModalSlotId;
+        if (!slotId) return;
+        const btn = document.getElementById('btn-sanctuary-modal-remove');
+        if (btn) btn.disabled = true;
+        try {
+            await window.removeSanctuarySlot(slotId);
+            window.closeSanctuaryCardInfoModal();
+        } finally {
+            if (btn) btn.disabled = false;
+        }
     };
 
     window.openIslandCardPicker = function () {
@@ -2015,6 +2060,191 @@
         }, 1000);
     }
 
+    // =========================================================================
+    // RANDOM EVENT DROPS ON ISLAND (POKEBALL / POND SPLASH / TREASURE CHEST)
+    // =========================================================================
+    function getDropVisualConfig(type) {
+        const t = String(type || 'POKEBALL').toUpperCase();
+        if (t === 'POND_SPLASH') {
+            return {
+                auraClass: 'is-pond',
+                label: 'Cá nhảy!',
+                title: 'Cá nhảy ở hồ nước — Bấm để nhặt (+100~150 Xu hoặc +1 Mảnh Pack)!',
+                svg: `<svg class="relative z-10 h-10 w-10 drop-shadow-[0_4px_8px_rgba(0,0,0,0.55)]" viewBox="0 0 48 48" fill="none">
+                    <ellipse cx="24" cy="36" rx="16" ry="5" stroke="#38BDF8" stroke-width="2.5" fill="rgba(56,189,248,0.22)"/>
+                    <path d="M13 26c3-9 13-13 20-8-2 3-2 7 0 10-7 5-17 1-20-2Z" fill="#FB923C" stroke="#FFF7ED" stroke-width="2"/>
+                    <path d="M33 18l7-4-2 9 2 8-7-3" fill="#FBBF24" stroke="#FFF7ED" stroke-width="1.8" stroke-linejoin="round"/>
+                    <circle cx="20" cy="23" r="2" fill="#0F172A"/>
+                    <circle cx="19.5" cy="22.5" r="0.7" fill="#FFFFFF"/>
+                    <path d="M14 14l2-4M24 11l0-5M32 13l3-3" stroke="#7DD3FC" stroke-width="2" stroke-linecap="round"/>
+                </svg>`
+            };
+        }
+        if (t === 'TREASURE_CHEST') {
+            return {
+                auraClass: 'is-chest',
+                label: 'Kho báu!',
+                title: 'Rương kho báu — Bấm để mở (+200 Xu hoặc +1 Mảnh Pack)!',
+                svg: `<svg class="relative z-10 h-10 w-10 drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]" viewBox="0 0 48 48" fill="none">
+                    <rect x="8" y="18" width="32" height="20" rx="4" fill="#B45309" stroke="#FDE68A" stroke-width="2.2"/>
+                    <path d="M8 21c0-6 6-10 16-10s16 4 16 10H8Z" fill="#D97706" stroke="#FDE68A" stroke-width="2.2"/>
+                    <rect x="8" y="21" width="32" height="4" fill="#FBBF24"/>
+                    <rect x="20" y="20" width="8" height="9" rx="2" fill="#FEF08A" stroke="#92400E" stroke-width="1.8"/>
+                    <circle cx="24" cy="24.5" r="1.4" fill="#92400E"/>
+                    <path d="M12 10l1.5 3 3 1.5-3 1.5L12 19l-1.5-3-3-1.5 3-1.5L12 10Z" fill="#FEF08A"/>
+                    <path d="M38 9l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2Z" fill="#FDE047"/>
+                </svg>`
+            };
+        }
+        return {
+            auraClass: 'is-pokeball',
+            label: 'Pokéball!',
+            title: 'Pokéball rơi trên đảo — Bấm để nhặt (+40~80 Xu)!',
+            svg: `<svg class="relative z-10 h-9 w-9 drop-shadow-[0_4px_8px_rgba(0,0,0,0.55)]" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="17" fill="#FFFFFF" stroke="#0F172A" stroke-width="2.6"/>
+                <path d="M7 24a17 17 0 0 1 34 0H7Z" fill="#EF4444" stroke="#0F172A" stroke-width="2.6"/>
+                <line x1="7" y1="24" x2="41" y2="24" stroke="#0F172A" stroke-width="3.2"/>
+                <circle cx="24" cy="24" r="6" fill="#FFFFFF" stroke="#0F172A" stroke-width="2.6"/>
+                <circle cx="24" cy="24" r="2.5" fill="#FBBF24"/>
+                <path d="M15 14a11 11 0 0 1 6-3" stroke="#FCA5A5" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>`
+        };
+    }
+
+    function updateDropHudBar(data) {
+        if (!data) return;
+        const shards = Number(data.packShards || 0);
+        const shardsPerPack = Number(data.shardsPerPack || 5);
+        const claimed = Number(data.dailyClaimed ?? (activeDropState ? activeDropState.dailyClaimed : 0));
+        const limit = Number(data.dailyLimit || 8);
+
+        const shardsText = document.getElementById('sanctuary-shards-text');
+        const dailyText = document.getElementById('sanctuary-drops-daily-text');
+        const exchangeBtn = document.getElementById('btn-exchange-pack-shards');
+
+        if (shardsText) shardsText.textContent = `${shards} / ${shardsPerPack}`;
+        if (dailyText) dailyText.textContent = `${claimed} / ${limit}`;
+        if (exchangeBtn) {
+            const canExchange = shards >= shardsPerPack && !isExchangingShards;
+            exchangeBtn.disabled = !canExchange;
+            if (canExchange) {
+                exchangeBtn.className = 'rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 px-2.5 py-0.5 text-[10.5px] font-black shadow-[0_0_12px_rgba(251,191,36,0.75)] transition cursor-pointer whitespace-nowrap animate-pulse';
+            } else {
+                exchangeBtn.className = 'rounded-full bg-white/10 text-slate-300 px-2.5 py-0.5 text-[10.5px] font-extrabold transition cursor-not-allowed whitespace-nowrap';
+            }
+        }
+    }
+
+    function renderActiveDropOnIsland() {
+        const layer = document.getElementById('sanctuary-drops-layer');
+        if (!layer) return;
+        layer.innerHTML = '';
+
+        const drop = activeDropState && activeDropState.activeDrop;
+        if (!drop) return;
+
+        const pos = isoToScreen(Number(drop.posX || 0), Number(drop.posY || 0));
+        const cfg = getDropVisualConfig(drop.type);
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = `sanctuary-drop-${drop.id}`;
+        btn.className = 'pk-island-drop-btn';
+        btn.title = cfg.title;
+        btn.style.left = `${pos.x.toFixed(1)}px`;
+        btn.style.top = `${pos.y.toFixed(1)}px`;
+        btn.innerHTML = `
+            <span class="pk-island-drop-aura ${cfg.auraClass}"></span>
+            ${cfg.svg}
+            <span class="pk-island-drop-tag">${cfg.label}</span>
+        `;
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            claimSanctuaryDrop(drop.id, pos.x, pos.y);
+        });
+        layer.appendChild(btn);
+    }
+
+    async function checkSanctuaryDrops() {
+        try {
+            const res = await fetch('/api/sanctuary/drops/check');
+            if (!res.ok) return;
+            const data = await res.json();
+            activeDropState = data;
+            updateDropHudBar(data);
+            renderActiveDropOnIsland();
+        } catch (err) {
+            // Silent ignore on transient poll errors
+        }
+    }
+
+    async function claimSanctuaryDrop(dropId, screenX, screenY) {
+        if (isClaimingDrop) return;
+        isClaimingDrop = true;
+        try {
+            const res = await fetch(`/api/sanctuary/drops/${dropId}/claim`, { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) {
+                if (window.showToast) window.showToast('info', 'Sự kiện Đảo', data.message || 'Vật phẩm đã hết hạn.');
+                await checkSanctuaryDrops();
+                return;
+            }
+            // Hiệu ứng chữ thưởng bay lên ngay tại vị trí vừa click
+            spawnHarvestDomVfx(screenX, screenY, data.rewardLabel || '+Xu');
+            if (window.updateNavbarWallet && data.newWalletBalance != null) {
+                window.updateNavbarWallet(data.newWalletBalance);
+            }
+            if (window.showToast) {
+                window.showToast('success', 'Nhặt quà sự kiện thành công!', data.message || `Bạn nhận được ${data.rewardLabel}!`);
+            }
+            activeDropState = {
+                activeDrop: null,
+                packShards: data.packShards,
+                shardsPerPack: data.shardsPerPack,
+                dailyClaimed: data.dailyClaimed,
+                dailyLimit: data.dailyLimit,
+                nextSpawnInSeconds: data.nextSpawnInSeconds
+            };
+            updateDropHudBar(activeDropState);
+            renderActiveDropOnIsland();
+        } catch (err) {
+            if (window.showToast) window.showToast('error', 'Lỗi nhặt quà', err.message || 'Vui lòng thử lại.');
+        } finally {
+            isClaimingDrop = false;
+        }
+    }
+
+    window.exchangeSanctuaryPackShards = async function () {
+        if (isExchangingShards) return;
+        isExchangingShards = true;
+        updateDropHudBar(activeDropState);
+        try {
+            const res = await fetch('/api/sanctuary/shards/exchange', { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) {
+                if (window.showToast) window.showToast('error', 'Chưa thể đổi Pack', data.message || 'Chưa đủ 5 Mảnh Pack.');
+                return;
+            }
+            if (activeDropState) {
+                activeDropState.packShards = data.packShards;
+            }
+            updateDropHudBar({
+                packShards: data.packShards,
+                shardsPerPack: data.shardsPerPack,
+                dailyClaimed: activeDropState ? activeDropState.dailyClaimed : 0,
+                dailyLimit: activeDropState ? activeDropState.dailyLimit : 8
+            });
+            if (window.showToast) {
+                window.showToast('success', 'Đổi Mảnh Pack thành công!', data.message || 'Đã cộng 1 Pack mới vào Kho Pack & Box!');
+            }
+        } catch (err) {
+            if (window.showToast) window.showToast('error', 'Lỗi kết nối', err.message || 'Vui lòng thử lại.');
+        } finally {
+            isExchangingShards = false;
+            updateDropHudBar(activeDropState);
+        }
+    };
+
     function initSanctuaryPage() {
         setupDiorama();
         if (window.__INITIAL_SANCTUARY_STATE__) {
@@ -2026,6 +2256,11 @@
             loadSanctuaryState();
         }
         startCountdownTicker();
+        checkSanctuaryDrops();
+        dropPollTimerId = setInterval(() => {
+            if (!document.hidden) checkSanctuaryDrops();
+        }, 60000);
+        window.addEventListener('resize', renderActiveDropOnIsland);
 
         const btnOpenPicker = document.getElementById('btn-open-card-picker');
         if (btnOpenPicker) btnOpenPicker.addEventListener('click', window.openIslandCardPicker);
@@ -2040,7 +2275,10 @@
         if (btnHarvestAll) btnHarvestAll.addEventListener('click', harvestAllReadySlots);
 
         const btnRefresh = document.getElementById('btn-sanctuary-refresh');
-        if (btnRefresh) btnRefresh.addEventListener('click', loadSanctuaryState);
+        if (btnRefresh) btnRefresh.addEventListener('click', () => {
+            loadSanctuaryState();
+            checkSanctuaryDrops();
+        });
 
         window.addEventListener('pagehide', () => {
             if (rafId != null) {
@@ -2051,6 +2289,11 @@
                 clearInterval(countdownTimerId);
                 countdownTimerId = null;
             }
+            if (dropPollTimerId != null) {
+                clearInterval(dropPollTimerId);
+                dropPollTimerId = null;
+            }
+            window.removeEventListener('resize', renderActiveDropOnIsland);
         });
     }
 

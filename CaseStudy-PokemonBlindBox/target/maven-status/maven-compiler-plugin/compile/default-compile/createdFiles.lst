@@ -69,6 +69,7 @@ com\pokemon\blindbox\dto\response\VNPayPaymentUrlResponseDTO$VNPayPaymentUrlResp
 com\pokemon\blindbox\entity\Auction$AuctionBuilder.class
 com\pokemon\blindbox\repository\SanctuaryDailyEarningRepository.class
 com\pokemon\blindbox\controller\BlindboxStoreController.class
+com\pokemon\blindbox\service\SanctuaryDropService$1.class
 com\pokemon\blindbox\dto\request\BulkSellToShopRequest$Item.class
 com\pokemon\blindbox\dto\request\AdjustUserWalletRequest.class
 com\pokemon\blindbox\dto\request\ReduceBoosterBoxesRequest.class
@@ -105,6 +106,7 @@ com\pokemon\blindbox\service\SanctuaryService$ExpeditionZoneConfig.class
 com\pokemon\blindbox\exception\ResourceNotFoundException.class
 com\pokemon\blindbox\repository\BoosterBoxRepository.class
 com\pokemon\blindbox\dto\request\PlaceAuctionBidRequest$PlaceAuctionBidRequestBuilder.class
+com\pokemon\blindbox\service\SanctuaryService$1.class
 com\pokemon\blindbox\service\StoreQueryService$InventoryPageData.class
 com\pokemon\blindbox\entity\Expedition$ExpeditionBuilder.class
 com\pokemon\blindbox\dto\request\UpsertRarityRequest.class
