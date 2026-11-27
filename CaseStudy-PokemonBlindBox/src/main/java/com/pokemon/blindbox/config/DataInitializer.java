@@ -7,6 +7,7 @@ import com.pokemon.blindbox.repository.UserRepository;
 import com.pokemon.blindbox.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,8 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 
 /**
- * Khởi tạo duy nhất 1 tài khoản Quản trị viên mặc định chuẩn BCryptPasswordEncoder:
- * - Admin: nangdzai2k / 123456 (ROLE_ADMIN)
+ * Khởi tạo duy nhất 1 tài khoản Quản trị viên mặc định cho môi trường dev/local (ROLE_ADMIN),
+ * cấu hình thông qua các biến app.dev-admin.* (BCryptPasswordEncoder).
  */
 @Component
 @Profile({"dev", "local"})
@@ -29,13 +30,22 @@ public class DataInitializer implements CommandLineRunner {
     private final WalletRepository walletRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.dev-admin.username:admin}")
+    private String defaultAdminUsername;
+
+    @Value("${app.dev-admin.email:admin@pokemon-blindbox.local}")
+    private String defaultAdminEmail;
+
+    @Value("${app.dev-admin.password:admin123}")
+    private String defaultAdminPassword;
+
     @Override
     @Transactional
     public void run(String... args) {
         User admin = ensureUser(
-                "nangdzai2k",
-                "nangdzai2k@pokemon-blindbox.vn",
-                "123456",
+                defaultAdminUsername,
+                defaultAdminEmail,
+                defaultAdminPassword,
                 Role.ROLE_ADMIN
         );
 

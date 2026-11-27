@@ -8,7 +8,6 @@ import com.pokemon.blindbox.service.DigitalBinderService;
 import com.pokemon.blindbox.service.SanctuaryService;
 import com.pokemon.blindbox.service.SealedStoreVaultService;
 import com.pokemon.blindbox.service.StoreQueryService;
-import com.pokemon.blindbox.service.VNPayService;
 import com.pokemon.blindbox.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -36,7 +35,6 @@ public class WebViewController {
     private final SanctuaryService sanctuaryService;
     private final SealedStoreVaultService sealedStoreVaultService;
     private final WalletService walletService;
-    private final VNPayService vnPayService;
     private final AuthenticatedUserProvider authUserProvider;
 
     @GetMapping("/")
@@ -45,16 +43,17 @@ public class WebViewController {
     }
 
     /**
-     * 1. Trang Cửa Hàng Đa Bộ Sưu Tập (Pack 6 thẻ + Box nguyên seal 20 Pack -10% + Daily Global Stock)
+     * 1. Trang Cửa Hàng Đa Bộ Sưu Tập (Pack 6 thẻ + Box nguyên seal 20 Pack -10% +
+     * Daily Global Stock)
      */
-    @GetMapping({"/store", "/shop/boxes"})
+    @GetMapping({ "/store", "/shop/boxes" })
     public String shopBoxTrayPage(
             @RequestParam(value = "boxId", required = false) Long boxId,
-            Model model
-    ) {
+            Model model) {
         Long userId = authUserProvider.getRequiredUserId();
         StoreQueryService.StorePageData data = storeQueryService.loadStorePage(boxId);
-        List<SealedStoreVaultService.StoreSetCatalogItem> storeSets = sealedStoreVaultService.getStoreCatalogWithDailyStock();
+        List<SealedStoreVaultService.StoreSetCatalogItem> storeSets = sealedStoreVaultService
+                .getStoreCatalogWithDailyStock();
 
         populateCommonUserAndWallet(model, "store", userId);
         model.addAttribute("storeSets", storeSets);
@@ -67,12 +66,11 @@ public class WebViewController {
     /**
      * 2. Trang Kho Đồ (Inventory & Master Set 103 ô)
      */
-    @GetMapping({"/inventory", "/binder"})
+    @GetMapping({ "/inventory", "/binder" })
     public String inventoryAndBinderPage(
             @RequestParam(value = "setId", required = false) Long setId,
             @RequestParam(value = "tab", defaultValue = "inventory") String initialTab,
-            Model model
-    ) {
+            Model model) {
         Long userId = authUserProvider.getRequiredUserId();
         StoreQueryService.InventoryPageData data = storeQueryService.loadInventoryPage(userId);
         MasterSetProgressDTO progress;
@@ -99,7 +97,8 @@ public class WebViewController {
         }
 
         Set<Long> expeditionCardIds = sanctuaryService.getActiveExpeditionCardIds(userId);
-        List<SealedStoreVaultService.SealedSetVaultGroup> sealedGroups = sealedStoreVaultService.getUserSealedVaultGroups(userId);
+        List<SealedStoreVaultService.SealedSetVaultGroup> sealedGroups = sealedStoreVaultService
+                .getUserSealedVaultGroups(userId);
         long totalSealedCount = sealedGroups.stream()
                 .mapToLong(g -> g.availablePacks() + g.lockedPacks() + g.availableBoxes() + g.lockedBoxes())
                 .sum();
@@ -140,8 +139,7 @@ public class WebViewController {
     public String cardDetailByNumberPage(
             @PathVariable Integer cardNumber,
             @RequestParam(value = "setId", defaultValue = "1") Long setId,
-            Model model
-    ) {
+            Model model) {
         Long userId = authUserProvider.getRequiredUserId();
         StoreQueryService.CardDetailPageData data = storeQueryService.loadCardDetailByNumber(userId, setId, cardNumber);
         return populateCardDetailModel(model, userId, data);
@@ -170,11 +168,11 @@ public class WebViewController {
             @RequestParam(value = "sellUserCardId", required = false) Long sellUserCardId,
             @RequestParam(value = "sellSealedId", required = false) Long sellSealedId,
             @RequestParam(value = "sellItemType", required = false) String sellItemType,
-            Model model
-    ) {
+            Model model) {
         Long userId = authUserProvider.getRequiredUserId();
         StoreQueryService.MarketPageData data = storeQueryService.loadMarketPage(userId, setName, speciesName);
-        List<SealedStoreVaultService.SealedMarketOption> sellableSealed = sealedStoreVaultService.getSellableSealedOptions(userId);
+        List<SealedStoreVaultService.SealedMarketOption> sellableSealed = sealedStoreVaultService
+                .getSellableSealedOptions(userId);
 
         populateCommonUserAndWallet(model, "market", userId);
         model.addAttribute("fixedPriceListings", data.fixedPriceListings());
@@ -219,13 +217,13 @@ public class WebViewController {
     }
 
     /**
-     * 5. Trang Admin Dashboard (ROLE_ADMIN) — hỗ trợ chuyển đổi đa Bộ sưu tập qua ?setId=
+     * 5. Trang Admin Dashboard (ROLE_ADMIN) — hỗ trợ chuyển đổi đa Bộ sưu tập qua
+     * ?setId=
      */
     @GetMapping("/admin/dashboard")
     public String adminDashboardPage(
             @RequestParam(value = "setId", required = false) Long setId,
-            Model model
-    ) {
+            Model model) {
         Long userId = authUserProvider.getRequiredUserId();
         StoreQueryService.AdminDashboardPageData data = storeQueryService.loadAdminDashboardPage(setId);
 
@@ -251,7 +249,8 @@ public class WebViewController {
 
     /**
      * 5B. Trang Đảo Nuôi Dưỡng & Thám Hiểm 2.5D (Poke-Sanctuary Idle)
-     * Nạp sẵn trạng thái Đảo ngay từ SSR để trang hiển thị tức thì không bị chớp rỗng rồi ghi đè bằng AJAX.
+     * Nạp sẵn trạng thái Đảo ngay từ SSR để trang hiển thị tức thì không bị chớp
+     * rỗng rồi ghi đè bằng AJAX.
      */
     @GetMapping("/sanctuary")
     public String sanctuaryPage(Model model) {
@@ -274,40 +273,6 @@ public class WebViewController {
         model.addAttribute("transactions", transactions);
 
         return "wallet/index";
-    }
-
-    /**
-     * 7. Trang kết quả trả về từ VNPay Sandbox (Chống IDOR: chỉ hiển thị ví của người đang đăng nhập, P0-06)
-     */
-    @GetMapping("/wallet/vnpay-return")
-    public String vnpayReturnPage(
-            @RequestParam Map<String, String> allParams,
-            Model model
-    ) {
-        Long currentUserId = authUserProvider.getRequiredUserId();
-        boolean signatureValid = vnPayService.verifySignature(allParams);
-        String responseCode = allParams.getOrDefault("vnp_ResponseCode", "99");
-        String vnpTxnRef = allParams.getOrDefault("vnp_TxnRef", "");
-        String vnpAmountRaw = allParams.getOrDefault("vnp_Amount", "0");
-
-        long amountVnd = 0L;
-        try {
-            amountVnd = Long.parseLong(vnpAmountRaw) / 100L;
-        } catch (NumberFormatException ignored) {
-        }
-
-        boolean paymentSuccess = signatureValid && "00".equals(responseCode);
-
-        populateCommonUserAndWallet(model, "wallet", currentUserId);
-        model.addAttribute("signatureValid", signatureValid);
-        model.addAttribute("paymentSuccess", paymentSuccess);
-        model.addAttribute("responseCode", responseCode);
-        model.addAttribute("vnpTxnRef", vnpTxnRef);
-        model.addAttribute("displayAmount", amountVnd);
-        model.addAttribute("vnpBankCode", allParams.getOrDefault("vnp_BankCode", "NCB"));
-        model.addAttribute("vnpTransactionNo", allParams.getOrDefault("vnp_TransactionNo", ""));
-
-        return "wallet/vnpay-return";
     }
 
     private void populateCommonUserAndWallet(Model model, String activeTab, Long userId) {

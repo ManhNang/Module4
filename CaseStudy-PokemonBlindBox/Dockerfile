@@ -29,11 +29,12 @@ WORKDIR /app
 
 # Copy file JAR đã đóng gói (chứa sẵn toàn bộ templates Thymeleaf) từ Stage 1
 COPY --from=build --chown=appuser:appgroup /workspace/target/*.jar /app/app.jar
+RUN mkdir -p /app/uploads/sets && chown -R appuser:appgroup /app/uploads
 
 USER appuser
 EXPOSE 8080
 
 HEALTHCHECK --interval=20s --timeout=5s --start-period=40s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-8080}/actuator/health || exit 1
 
 ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]

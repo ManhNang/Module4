@@ -326,39 +326,6 @@ function triggerStageFlash(tier) {
     setTimeout(() => { flash.style.opacity = '0'; }, 180);
 }
 
-function spawnGachaConfetti(tier) {
-    const layer = document.getElementById('vault-confetti-layer');
-    if (!layer) return;
-    const count = tier === 'hyper' ? 42 : 26;
-    const colors = tier === 'hyper'
-        ? ['#ff2a85', '#fbbf24', '#34d399', '#38bdf8', '#a855f7', '#ffffff']
-        : ['#fbbf24', '#fde047', '#f59e0b', '#ffffff', '#fb7185'];
-
-    for (let i = 0; i < count; i++) {
-        const piece = document.createElement('div');
-        const size = 6 + Math.random() * 7;
-        const startX = 25 + Math.random() * 50;
-        const startY = 30 + Math.random() * 25;
-        const dx = (Math.random() - 0.5) * 420;
-        const dy = -120 - Math.random() * 220;
-        const rot = Math.round(Math.random() * 720 - 360);
-        piece.style.cssText = `
-            position:absolute; left:${startX}%; top:${startY}%;
-            width:${size}px; height:${size * 0.65}px;
-            background:${colors[i % colors.length]};
-            border-radius:2px; box-shadow:0 0 8px ${colors[i % colors.length]};
-            transition: transform 1.15s cubic-bezier(0.12, 0.82, 0.28, 1), opacity 1.15s ease-out;
-            transform: translate3d(0,0,0) rotate(0deg); opacity: 1;
-        `;
-        layer.appendChild(piece);
-        requestAnimationFrame(() => {
-            piece.style.transform = `translate3d(${dx}px, ${dy + 340}px, 0) rotate(${rot}deg)`;
-            piece.style.opacity = '0';
-        });
-        setTimeout(() => piece.remove(), 1250);
-    }
-}
-
 function resetTearPackVisual() {
     const wrap = document.getElementById('vault-tear-wrapper');
     const prog = document.getElementById('vault-tear-progress');
@@ -458,7 +425,6 @@ window.unsealVaultBox = async function (btn) {
 };
 
 let activeDrawnCards = [];
-let lastHitVfxAt = 0;
 let vaultRareOnlyFilter = false;
 
 function lockBodyScrollForGacha(locked) {

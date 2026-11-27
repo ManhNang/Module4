@@ -5,7 +5,7 @@ let walletTxFilter = 'ALL'; // 'ALL' | 'CREDIT' | 'DEBIT'
 
 window.updateDepositXuPreview = function () {
     const raw = parseFloat(document.getElementById('deposit-amount')?.value || '0') || 0;
-    const xu = Math.max(0, Math.floor(raw / 100));
+    const xu = Math.max(0, Math.floor(raw / 10));
     const el = document.getElementById('deposit-xu-preview');
     if (el) {
         el.textContent = `Nhận: +${xu.toLocaleString('vi-VN')} Xu`;
@@ -147,72 +147,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderWalletTxPagination(1);
 });
 
-async function requestVNPayUrl() {
-    const userId = parseInt(document.getElementById('deposit-user-id').value, 10);
-    const amount = parseFloat(document.getElementById('deposit-amount').value);
-    const bankCode = document.getElementById('deposit-bank-code').value;
-
-    const res = await fetch('/api/v1/wallets/vnpay/create-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, amount, bankCode, locale: 'vn' })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-        window.showToast('error', 'Không thể tạo giao dịch', data.message || 'Vui lòng kiểm tra số tiền nạp');
-        return null;
-    }
-    return data;
-}
-
 document.getElementById('vnpay-deposit-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const data = await requestVNPayUrl();
-    if (!data) return;
-
-    window.showToast('success', 'Đang chuyển sang cổng thanh toán', 'Vui lòng hoàn tất thanh toán trên VNPay.');
-    setTimeout(() => {
-        window.location.href = data.paymentUrl;
-    }, 700);
+    await window.createVietQrDeposit();
 });
-
-window.createUrlAndStayForTest = async function () {
-    const data = await requestVNPayUrl();
-    if (!data) return;
-
-    const box = document.getElementById('generated-vnpay-box');
-    document.getElementById('generated-txn-ref').textContent = data.vnpTxnRef;
-    document.getElementById('btn-open-vnpay-url').href = data.paymentUrl;
-    document.getElementById('btn-simulate-ipn').onclick = () => window.triggerSimulateIpn(data.vnpTxnRef);
-    box.classList.remove('hidden');
-
-    window.showToast('info', 'Đã tạo yêu cầu nạp Xu',
-        'Bấm "Xác Nhận Nạp Thử" để hoàn tất cộng Xu vào ví.');
-};
-
-window.triggerSimulateIpn = async function (vnpTxnRef) {
-    try {
-        const res = await fetch(`/api/v1/admin/dev/simulate-ipn/${encodeURIComponent(vnpTxnRef)}`, { method: 'POST' });
-        if (res.status === 403) {
-            window.showToast('error', 'Không có quyền', 'Chức năng giả lập IPN chỉ dành cho Quản trị viên ở môi trường Dev.');
-            return;
-        }
-        const data = await res.json();
-        if (data.RspCode === '00') {
-            window.showToast('success', 'Nạp Xu thành công!',
-                `Giao dịch ${vnpTxnRef} đã được cộng Xu vào số dư ví.`);
-            await window.refreshNavbarWallet();
-            setTimeout(() => window.location.reload(), 1100);
-        } else if (data.RspCode === '02') {
-            window.showToast('conflict', 'Giao dịch đã được xử lý',
-                `Mã giao dịch ${vnpTxnRef} đã được xác nhận trước đó.`);
-        } else {
-            window.showToast('error', 'Không thể xác nhận giao dịch', data.Message || 'Vui lòng thử lại');
-        }
-    } catch (err) {
-        window.showToast('error', 'Lỗi kết nối', err.message);
-    }
-};
 
 window.openTxDetailModal = function (rowEl) {
     if (!rowEl) return;
@@ -246,13 +184,7 @@ window.openTxDetailModal = function (rowEl) {
     document.getElementById('modal-tx-desc').textContent = desc;
 
     const confirmBtn = document.getElementById('modal-tx-confirm-btn');
-    if (status === 'PENDING' && txnRef && txnRef !== '---') {
-        confirmBtn.classList.remove('hidden');
-        confirmBtn.onclick = () => {
-            window.closeTxDetailModal();
-            window.triggerSimulateIpn(txnRef);
-        };
-    } else {
+    if (confirmBtn) {
         confirmBtn.classList.add('hidden');
         confirmBtn.onclick = null;
     }
@@ -268,3 +200,137 @@ window.closeTxDetailModal = function () {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
 };
+
+// ==================== VIETQR + SEPAY AUTO-DEPOSIT (24/7 PERSONAL BANK) ====================
+let vietQrPollTimer = null;
+let activeVietQrCode = null;
+
+function stopVietQrPolling() {
+    if (vietQrPollTimer) {
+        clearInterval(vietQrPollTimer);
+        vietQrPollTimer = null;
+    }
+}
+
+window.closeVietQrBox = function () {
+    stopVietQrPolling();
+    activeVietQrCode = null;
+    document.getElementById('generated-vietqr-box')?.classList.add('hidden');
+};
+
+window.copyVietQrField = async function (elementId, label) {
+    const text = (document.getElementById(elementId)?.textContent || '').trim();
+    if (!text || text === '---') return;
+    try {
+        await navigator.clipboard.writeText(text);
+        window.showToast('success', 'Đã sao chép', `${label}: ${text}`);
+    } catch (e) {
+        window.showToast('info', label, text);
+    }
+};
+
+window.createVietQrDeposit = async function () {
+    const amount = parseFloat(document.getElementById('deposit-amount')?.value || '0') || 0;
+    if (amount < 10000) {
+        window.showToast('error', 'Số tiền chưa hợp lệ', 'Số tiền nạp tối thiểu là 10.000 ₫.');
+        return;
+    }
+
+    const btn = document.getElementById('btn-create-vietqr');
+    const origText = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Đang tạo mã QR...';
+    }
+
+    try {
+        const res = await fetch('/api/v1/wallets/vietqr/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            window.showToast('error', 'Không thể tạo mã VietQR', data.message || 'Vui lòng thử lại.');
+            return;
+        }
+
+        document.getElementById('generated-vnpay-box')?.classList.add('hidden');
+        const box = document.getElementById('generated-vietqr-box');
+        const alertEl = document.getElementById('vietqr-not-configured-alert');
+        const imgWrap = document.getElementById('vietqr-image-wrap');
+        const imgEl = document.getElementById('vietqr-img');
+        const bankEl = document.getElementById('vietqr-bank-code');
+        const accEl = document.getElementById('vietqr-account-number');
+        const nameEl = document.getElementById('vietqr-account-name');
+        const amtEl = document.getElementById('vietqr-amount-display');
+        const codeEl = document.getElementById('vietqr-transfer-code');
+        const statusEl = document.getElementById('vietqr-status-text');
+
+        activeVietQrCode = data.transferCode;
+        if (bankEl) bankEl.textContent = data.bankCode || 'MB';
+        if (accEl) accEl.textContent = data.accountNumber || 'Chưa cấu hình';
+        if (nameEl) nameEl.textContent = data.accountName || 'Chưa cấu hình';
+        if (amtEl) {
+            const vndStr = Number(data.amountVnd || 0).toLocaleString('vi-VN');
+            const xuStr = Number(data.creditedXu || 0).toLocaleString('vi-VN');
+            amtEl.textContent = `${vndStr} ₫ (+${xuStr} Xu)`;
+        }
+        if (codeEl) codeEl.textContent = data.transferCode;
+        if (alertEl) alertEl.classList.toggle('hidden', Boolean(data.configured));
+        if (imgWrap) imgWrap.classList.toggle('hidden', !data.configured);
+        if (imgEl && data.qrImageUrl) imgEl.src = data.qrImageUrl;
+        if (statusEl) {
+            statusEl.innerHTML = '<span class="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span><span>Đang chờ chuyển khoản... tự động cộng Xu sau 1–3 giây</span>';
+        }
+        if (box) {
+            box.classList.remove('hidden');
+        }
+
+        stopVietQrPolling();
+        if (data.configured) {
+            vietQrPollTimer = setInterval(async () => {
+                if (!activeVietQrCode || document.hidden) return;
+                try {
+                    const stRes = await fetch(`/api/v1/wallets/vietqr/status/${encodeURIComponent(activeVietQrCode)}`);
+                    if (!stRes.ok) return;
+                    const st = await stRes.json();
+                    if (st.status === 'SUCCESS') {
+                        stopVietQrPolling();
+                        if (statusEl) {
+                            statusEl.innerHTML = '<span class="inline-block h-2 w-2 rounded-full bg-emerald-500 shrink-0"></span><span class="text-emerald-600 dark:text-emerald-400 font-extrabold">Đã nhận tiền & cộng Xu thành công!</span>';
+                        }
+                        if (window.updateNavbarWallet && st.walletBalance != null) {
+                            window.updateNavbarWallet(st.walletBalance);
+                        }
+                        const balEl = document.getElementById('wallet-page-balance');
+                        if (balEl && st.walletBalance != null) {
+                            balEl.textContent = `${Number(st.walletBalance).toLocaleString('vi-VN')} Xu`;
+                        }
+                        window.showToast('success', 'Nạp Xu thành công!', `Đã cộng +${Number(st.creditedXu || 0).toLocaleString('vi-VN')} Xu vào Ví của bạn.`);
+                        setTimeout(() => {
+                            window.closeVietQrBox();
+                            window.location.reload();
+                        }, 1100);
+                    }
+                } catch (e) {}
+            }, 3000);
+        }
+    } catch (err) {
+        window.showToast('error', 'Lỗi kết nối', err.message || 'Không thể tạo mã VietQR.');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = origText;
+        }
+    }
+};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        window.closeVietQrBox();
+        window.closeTxDetailModal();
+    }
+});
+
+window.addEventListener('pagehide', stopVietQrPolling);

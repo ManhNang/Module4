@@ -5,6 +5,7 @@ import com.pokemon.blindbox.dto.response.*;
 import com.pokemon.blindbox.service.AdminCardSetService;
 import com.pokemon.blindbox.service.CatalogCacheService;
 import com.pokemon.blindbox.service.CloudinaryService;
+import com.pokemon.blindbox.service.SealedStoreVaultService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class AdminCardSetController {
     private final AdminCardSetService adminCardSetService;
     private final CatalogCacheService catalogCacheService;
     private final CloudinaryService cloudinaryService;
+    private final SealedStoreVaultService sealedStoreVaultService;
 
     /**
      * 1. Upload độc lập ảnh thẻ bài 2D lên Cloudinary và trả về imageUrl.
@@ -275,5 +277,20 @@ public class AdminCardSetController {
     @DeleteMapping("/species/{id}")
     public ResponseEntity<Map<String, Object>> deleteSpecies(@PathVariable Long id) {
         return ResponseEntity.ok(adminCardSetService.deleteCardSpecies(id));
+    }
+
+    // ==================== 12. HẠN MỨC BÁN HẰNG NGÀY (DAILY STOCK LIMITS) ====================
+
+    @PatchMapping("/card-sets/{setId}/daily-limits")
+    public ResponseEntity<Map<String, Object>> updateDailyLimits(
+            @PathVariable Long setId,
+            @Valid @RequestBody UpdateDailyLimitsRequest req
+    ) {
+        return ResponseEntity.ok(sealedStoreVaultService.updateDailyLimits(setId, req.dailyPackLimit(), req.dailyBoxLimit()));
+    }
+
+    @PostMapping("/card-sets/{setId}/reset-daily-sales")
+    public ResponseEntity<Map<String, Object>> resetDailySales(@PathVariable Long setId) {
+        return ResponseEntity.ok(sealedStoreVaultService.resetDailySales(setId));
     }
 }

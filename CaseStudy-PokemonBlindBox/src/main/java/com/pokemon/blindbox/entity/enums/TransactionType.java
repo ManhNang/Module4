@@ -2,6 +2,7 @@ package com.pokemon.blindbox.entity.enums;
 
 public enum TransactionType {
     DEPOSIT_VNPAY,
+    DEPOSIT_VIETQR,
     PURCHASE_PACK,
     PURCHASE_BOX,
     AUCTION_BID_HOLD,

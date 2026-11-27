@@ -43,7 +43,7 @@ public class SecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(csrfRequestHandler)
                         .ignoringRequestMatchers(
-                                new AntPathRequestMatcher("/api/v1/wallets/vnpay-ipn")
+                                new AntPathRequestMatcher("/api/v1/wallets/sepay-webhook")
                         )
                 )
                 .authorizeHttpRequests(auth -> auth
@@ -53,7 +53,7 @@ public class SecurityConfig {
                                 "/access-denied",
                                 "/actuator/health/**",
                                 "/actuator/info",
-                                "/api/v1/wallets/vnpay-ipn",
+                                "/api/v1/wallets/sepay-webhook",
                                 "/error",
                                 "/favicon.ico",
                                 "/css/**",

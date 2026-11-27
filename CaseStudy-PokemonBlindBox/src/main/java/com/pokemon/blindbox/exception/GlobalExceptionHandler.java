@@ -174,6 +174,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
     }
 
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ApiErrorResponse> handleSecurityException(
+            SecurityException ex,
+            HttpServletRequest request
+    ) {
+        ApiErrorResponse body = ApiErrorResponse.builder()
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .errorCode("WEBHOOK_UNAUTHORIZED")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiErrorResponse> handleAccessDenied(
             AccessDeniedException ex,

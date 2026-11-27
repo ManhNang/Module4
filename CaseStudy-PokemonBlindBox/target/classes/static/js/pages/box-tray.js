@@ -8,8 +8,6 @@ let currentDrawnCards = [];
 let currentPackHighestTier = 'common';
 let isTearInProgress = false;
 
-const TIER_RANK = { common: 1, uncommon: 2, rare: 3, ex: 4, hyper: 5 };
-
 function resolveCardRevealEffect(card) {
     if (window.PokemonRevealVfx) {
         return window.PokemonRevealVfx.normalizeEffect(card?.rarityRevealEffect);
